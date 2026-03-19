@@ -14,8 +14,25 @@ function ServiceCard({ service }: { service: string }) {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
 
   useEffect(() => {
-    axios.post(`${API_BASE}/metrics/query`, { service, resource: 'http.request' })
-      .then(res => setMetrics(res.data))
+    axios.get(`${API_BASE}/apm/services/${service}/resources`)
+      .then(res => {
+         const resources = res.data.resources;
+         if (resources.length > 0) {
+             Promise.all(resources.map((r: string) => axios.post(`${API_BASE}/metrics/query`, { service, resource: r })))
+               .then(responses => {
+                   let rate = 0; let error = 0; let duration = 0;
+                   responses.forEach(r => {
+                      rate += r.data.rate;
+                      error += r.data.error_count;
+                      duration += r.data.duration_sum;
+                   });
+                   setMetrics({ rate, error_count: error, duration_sum: duration });
+               })
+               .catch(() => setMetrics({ rate: 0, error_count: 0, duration_sum: 0 }));
+         } else {
+             setMetrics({ rate: 0, error_count: 0, duration_sum: 0 });
+         }
+      })
       .catch(() => setMetrics({ rate: 0, error_count: 0, duration_sum: 0 }));
   }, [service]);
 
