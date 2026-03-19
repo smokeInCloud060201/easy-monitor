@@ -24,18 +24,12 @@ async fn main() -> anyhow::Result<()> {
     processors::trace_metrics::start_trace_metrics_engine(tx.clone(), tx.subscribe()).await?;
     processors::alerts::start_alerts_evaluator(tx.clone(), tx.subscribe()).await?;
     processors::notifications::start_notifications_engine(tx.subscribe()).await?;
+    
+    // Mount ClickHouse Engine
     storage::start_storage_writer(tx.subscribe()).await?;
 
-    // Open Tantivy Reader
-    let index_path = std::path::Path::new("/tmp/easy-monitor/master-index");
-    let index_reader = if let Ok(index) = tantivy::Index::open_in_dir(index_path) {
-        index.reader().ok()
-    } else {
-        None
-    };
-
-    // Start Axum API Gateway
-    api::start_api_gateway(tx.subscribe(), index_reader).await?;
+    // Start Axum API Gateway without dependencies on Tantivy
+    api::start_api_gateway(tx.subscribe()).await?;
 
     // Start gRPC Ingress
     ingress::start_grpc_server(tx).await?;

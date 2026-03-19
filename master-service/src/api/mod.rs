@@ -1,7 +1,6 @@
 use std::sync::Arc;
 use axum::{Router, routing::{get, post}, middleware};
 use dashmap::DashMap;
-use tantivy::IndexReader;
 use tower_http::cors::CorsLayer;
 use tracing::{info, error};
 
@@ -13,16 +12,15 @@ pub mod auth;
 
 #[derive(Clone)]
 pub struct ApiState {
-    pub index_reader: Option<IndexReader>,
     pub latest_metrics: Arc<DashMap<String, f64>>,
 }
 
-pub async fn start_api_gateway(mut rx: EventBusRx, index_reader: Option<IndexReader>) -> anyhow::Result<()> {
+pub async fn start_api_gateway(mut rx: EventBusRx) -> anyhow::Result<()> {
     info!("Starting Axum API Gateway on 0.0.0.0:3000");
 
     let latest_metrics = Arc::new(DashMap::new());
-
     let metrics_cache = latest_metrics.clone();
+    
     tokio::spawn(async move {
         loop {
             match rx.recv().await {
@@ -39,7 +37,6 @@ pub async fn start_api_gateway(mut rx: EventBusRx, index_reader: Option<IndexRea
     });
 
     let state = ApiState {
-        index_reader,
         latest_metrics,
     };
 
@@ -47,6 +44,7 @@ pub async fn start_api_gateway(mut rx: EventBusRx, index_reader: Option<IndexRea
         .route("/apm/services", get(apm::get_services))
         .route("/apm/services/:name/resources", get(apm::get_resources))
         .route("/traces/query", post(queries::query_traces))
+        .route("/logs/query", post(queries::query_logs))
         .route("/metrics/query", post(queries::query_metrics))
         .route_layer(middleware::from_fn(auth::require_jwt));
 

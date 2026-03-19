@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import axios from 'axios';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Activity, Box, Flame } from 'lucide-react';
+import { Activity, Box, Flame, Terminal } from 'lucide-react';
 import APMCatalog from './pages/APMCatalog';
+import LogsExplorer from './pages/LogsExplorer';
 
 axios.get('http://localhost:3000/api/v1/login').then(res => {
   axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
@@ -15,6 +16,7 @@ function Sidebar() {
   const links = [
     { path: '/', label: 'Service Catalog', icon: Box },
     { path: '/traces', label: 'Trace Explorer', icon: Flame },
+    { path: '/logs', label: 'Logs Explorer', icon: Terminal },
   ];
 
   return (
@@ -54,6 +56,7 @@ export default function App() {
             <Routes>
               <Route path="/" element={<APMCatalog />} />
               <Route path="/traces" element={<TraceExplorer />} />
+              <Route path="/logs" element={<LogsExplorer />} />
             </Routes>
           </div>
         </main>

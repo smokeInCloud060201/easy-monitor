@@ -6,8 +6,8 @@ mod apm;
 mod collector;
 mod dogstatsd;
 mod forwarder;
+mod logs;
 mod wal;
-
 use std::sync::Arc;
 use crate::wal::WalBuffer;
 
@@ -54,6 +54,14 @@ async fn main() -> Result<()> {
     tokio::spawn(async move {
         if let Err(e) = forwarder::start_forwarder_worker(wal_fwd).await {
             tracing::error!("Forwarder Worker failed: {:?}", e);
+        }
+    });
+
+    // Spawn Log Tailer
+    let wal_logs = wal.clone();
+    tokio::spawn(async move {
+        if let Err(e) = logs::start_log_tailer(wal_logs, "/tmp/mock-logs").await {
+            tracing::error!("Log Tailer Worker failed: {}", e);
         }
     });
 

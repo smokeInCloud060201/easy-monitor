@@ -1,5 +1,6 @@
 use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use super::ApiState;
 
@@ -13,9 +14,75 @@ pub struct TracesQueryResponse {
     pub spans: Vec<serde_json::Value>, 
 }
 
+#[derive(Deserialize)]
+pub struct LogsQueryRequest {
+    pub keyword: Option<String>,
+    pub service: Option<String>,
+    pub pod_id: Option<String>,
+    pub limit: Option<usize>,
+}
+
+#[derive(Serialize)]
+pub struct LogLineResponse {
+    pub trace_id: String,
+    pub service: String,
+    pub message: String,
+}
+
+#[derive(Serialize)]
+pub struct LogsQueryResponse {
+    pub logs: Vec<LogLineResponse>,
+}
+
 pub async fn query_traces(State(_state): State<ApiState>, Json(_payload): Json<TracesQueryRequest>) -> Json<TracesQueryResponse> {
-    // In a full implementation, execute a Tantivy Searcher TermQuery for id == payload.trace_id
+    // In a full implementation, execute a ClickHouse TermQuery for id == payload.trace_id
     Json(TracesQueryResponse { spans: vec![] })
+}
+
+pub async fn query_logs(State(_state): State<ApiState>, Json(payload): Json<LogsQueryRequest>) -> Json<LogsQueryResponse> {
+    let client = reqwest::Client::new();
+    let mut logs = Vec::new();
+    
+    let mut query = String::from("SELECT trace_id, service, message FROM easy_monitor_logs WHERE 1=1");
+    
+    if let Some(svc) = payload.service {
+        if !svc.is_empty() && svc != "all" {
+            query.push_str(&format!(" AND service = '{}'", svc));
+        }
+    }
+    
+    if let Some(pod) = payload.pod_id {
+        if !pod.is_empty() && pod != "all" {
+            query.push_str(&format!(" AND pod_id = '{}'", pod));
+        }
+    }
+    
+    if let Some(kw) = payload.keyword {
+        if !kw.is_empty() {
+             query.push_str(&format!(" AND message ILIKE '%{}%'", kw));
+        }
+    }
+    
+    let limit = payload.limit.unwrap_or(100);
+    query.push_str(&format!(" ORDER BY timestamp DESC LIMIT {}", limit));
+    
+    let ch_url = "http://localhost:8123/";
+    
+    if let Ok(res) = client.post(ch_url).body(format!("{} FORMAT JSON", query)).send().await {
+        if let Ok(json_res) = res.json::<Value>().await {
+            if let Some(data) = json_res.get("data").and_then(|d| d.as_array()) {
+                for row in data {
+                    logs.push(LogLineResponse {
+                        trace_id: row.get("trace_id").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                        service: row.get("service").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                        message: row.get("message").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                    });
+                }
+            }
+        }
+    }
+    
+    Json(LogsQueryResponse { logs })
 }
 
 #[derive(Deserialize)]
