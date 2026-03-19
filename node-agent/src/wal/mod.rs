@@ -74,4 +74,8 @@ impl WalBuffer {
         }
         Ok(())
     }
+
+    pub fn metrics_tree(&self) -> Tree { self.metrics.clone() }
+    pub fn logs_tree(&self) -> Tree { self.logs.clone() }
+    pub fn traces_tree(&self) -> Tree { self.traces.clone() }
 }

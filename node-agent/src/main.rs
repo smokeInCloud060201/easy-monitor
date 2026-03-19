@@ -5,6 +5,7 @@ use tracing_subscriber::FmtSubscriber;
 mod apm;
 mod collector;
 mod dogstatsd;
+mod forwarder;
 mod wal;
 
 use std::sync::Arc;
@@ -45,6 +46,14 @@ async fn main() -> Result<()> {
     tokio::spawn(async move {
         if let Err(e) = collector::start_collector_worker(wal_col).await {
             tracing::error!("Collector Worker failed: {}", e);
+        }
+    });
+
+    // Spawn Master Service Forwarder
+    let wal_fwd = wal.clone();
+    tokio::spawn(async move {
+        if let Err(e) = forwarder::start_forwarder_worker(wal_fwd).await {
+            tracing::error!("Forwarder Worker failed: {:?}", e);
         }
     });
 

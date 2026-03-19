@@ -16,7 +16,7 @@ license = "MIT OR Apache-2.0"
 [workspace.dependencies]
 tokio = { version = "1.36", features = ["full"] }
 tokio-stream = "0.1"
-tonic = "0.11"
+tonic = { version = "0.11", features = ["tls", "gzip"] }
 prost = "0.12"
 tonic-build = "0.11"
 anyhow = "1.0"

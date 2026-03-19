@@ -85,16 +85,30 @@ impl TracesService for GrpcIngress {
     }
 }
 
+use tonic::transport::{Identity, ServerTlsConfig, Certificate};
+
 pub async fn start_grpc_server(tx: EventBusTx) -> anyhow::Result<()> {
-    let addr: SocketAddr = "0.0.0.0:50051".parse()?;
+    let addr: SocketAddr = "127.0.0.1:50051".parse()?;
     info!("gRPC Ingress listening on {}", addr);
+
+    let cert = std::fs::read_to_string("../certs/server.pem")?;
+    let key = std::fs::read_to_string("../certs/server.key")?;
+    let server_identity = Identity::from_pem(cert, key);
+
+    let client_ca_cert = std::fs::read_to_string("../certs/ca.pem")?;
+    let client_ca_cert = Certificate::from_pem(client_ca_cert);
+
+    let tls = ServerTlsConfig::new()
+        .identity(server_identity)
+        .client_ca_root(client_ca_cert);
 
     let ingress = GrpcIngress::new(tx);
 
     Server::builder()
-        .add_service(MetricsServiceServer::new(ingress.clone()))
-        .add_service(LogsServiceServer::new(ingress.clone()))
-        .add_service(TracesServiceServer::new(ingress))
+        .tls_config(tls)?
+        .add_service(MetricsServiceServer::new(ingress.clone()).accept_compressed(tonic::codec::CompressionEncoding::Gzip))
+        .add_service(LogsServiceServer::new(ingress.clone()).accept_compressed(tonic::codec::CompressionEncoding::Gzip))
+        .add_service(TracesServiceServer::new(ingress).accept_compressed(tonic::codec::CompressionEncoding::Gzip))
         .serve(addr)
         .await?;
 
