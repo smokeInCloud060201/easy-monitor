@@ -4,7 +4,7 @@ This document outlines the phased approach to building the **Easy Monitor** plat
 
 ---
 
-## Phase 1: Foundation & Core Infrastructure
+## Phase 1: Foundation & Core Infrastructure (Completed)
 **Target**: Set up the central Rust Cargo workspace, define internal gRPC protocols, and stub the scalable stream-processing architecture.
 
 ### Details & Requirements:
@@ -14,7 +14,7 @@ This document outlines the phased approach to building the **Easy Monitor** plat
 
 ---
 
-## Phase 2: Node Agent Ingestion (DogStatsD, Collector, APM)
+## Phase 2: Node Agent Ingestion (DogStatsD, Collector, APM) (Completed)
 **Target**: Implement Datadog-style ingestion directly from instrumented apps.
 
 ### Details & Requirements:
@@ -25,7 +25,7 @@ This document outlines the phased approach to building the **Easy Monitor** plat
 
 ---
 
-## Phase 3: Node Agent Forwarder & Master Ingress
+## Phase 3: Node Agent Forwarder & Master Ingress (Completed)
 **Target**: Transmit the buffered data reliably to the Master Service.
 
 ### Details & Requirements:
@@ -39,7 +39,7 @@ This document outlines the phased approach to building the **Easy Monitor** plat
 
 ---
 
-## Phase 4: Master Service Stream Processors & Database
+## Phase 4: Master Service Stream Processors & Database (Completed)
 **Target**: Process the streamed data synchronously without blocking ingestion.
 
 ### Details & Requirements:
@@ -49,7 +49,7 @@ This document outlines the phased approach to building the **Easy Monitor** plat
 
 ---
 
-## Phase 5: Master Service Queries & API Gateway
+## Phase 5: Master Service Queries & API Gateway (Completed)
 **Target**: Expose the synthesized data to the Dashboard via HTTP.
 
 ### Details & Requirements:
