@@ -1,5 +1,6 @@
 const express = require('express');
 const axios = require('axios');
+const logger = require('./udp_logger');
 const app = express();
 
 app.post('/api/checkout', async (req, res) => {
@@ -16,9 +17,9 @@ app.post('/api/checkout', async (req, res) => {
         }, Math.random() * 50 + 10);
         
     } catch (err) {
-        console.error("Checkout failed cascading backwards", err.message);
+        logger.error(`Checkout failed cascading backwards: ${err.message}`);
         res.status(500).json({ error: "Order Checkout failed due to cascading upstream services" });
     }
 });
 
-app.listen(8083, () => console.log('Order Service listening on 8083'));
+app.listen(8083, () => logger.info('Order Service natively spawned listening exclusively on 8083'));

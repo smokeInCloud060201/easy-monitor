@@ -7,7 +7,7 @@ use crate::bus::{EventBusRx, Event};
 use shared_proto::logs::LogEntry;
 use shared_proto::traces::Span;
 
-const CH_URL: &str = "http://localhost:8123";
+const CH_URL: &str = "http://localhost:8123/?user=default&password=password";
 
 pub async fn initialize_clickhouse(client: &Client) -> anyhow::Result<()> {
     info!("Initializing ClickHouse schema definitions...");
@@ -41,6 +41,7 @@ pub async fn initialize_clickhouse(client: &Client) -> anyhow::Result<()> {
         ORDER BY (service, timestamp);
     ";
 
+    let req_url = format!("{}&query=CREATE TABLE IF NOT EXISTS easy_monitor_logs...", CH_URL); // To avoid URI too long, we will use POST body
     client.post(CH_URL).body(create_logs.to_string()).send().await?.error_for_status()?;
     client.post(CH_URL).body(create_traces.to_string()).send().await?.error_for_status()?;
     
@@ -97,7 +98,7 @@ pub async fn start_clickhouse_writer(mut rx: EventBusRx) -> anyhow::Result<()> {
                         payload.push('\n');
                     }
                     
-                    let req = client.post(&format!("{}/?query=INSERT INTO easy_monitor_logs FORMAT JSONEachRow", CH_URL))
+                    let req = client.post(&format!("{}&query=INSERT INTO easy_monitor_logs FORMAT JSONEachRow", CH_URL))
                         .body(payload);
                     
                     if let Err(e) = req.send().await {
@@ -123,7 +124,7 @@ pub async fn start_clickhouse_writer(mut rx: EventBusRx) -> anyhow::Result<()> {
                         payload.push('\n');
                     }
                     
-                    let req = client.post(&format!("{}/?query=INSERT INTO easy_monitor_traces FORMAT JSONEachRow", CH_URL))
+                    let req = client.post(&format!("{}&query=INSERT INTO easy_monitor_traces FORMAT JSONEachRow", CH_URL))
                         .body(payload);
                     
                     if let Err(e) = req.send().await {

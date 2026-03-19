@@ -7,6 +7,9 @@ services:
     ports:
       - "8123:8123" # HTTP Port 
       - "9000:9000" # Native Port
+    environment:
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=password
     volumes:
       - clickhouse_data:/var/lib/clickhouse
     ulimits:
