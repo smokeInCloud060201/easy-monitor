@@ -58,6 +58,7 @@ pub async fn start_storage_writer(mut rx: EventBusRx) -> anyhow::Result<()> {
                     let _ = index_writer.commit();
                 }
                 Ok(Event::Metrics(_)) => {}
+                Ok(Event::Alerts(_, _)) => {}
                 Err(tokio::sync::broadcast::error::RecvError::Lagged(missed)) => {
                     error!("Storage writer lagged by {} events", missed);
                 }

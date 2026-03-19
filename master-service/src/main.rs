@@ -22,7 +22,8 @@ async fn main() -> anyhow::Result<()> {
 
     // Start Stream Processors
     processors::trace_metrics::start_trace_metrics_engine(tx.clone(), tx.subscribe()).await?;
-    processors::alerts::start_alerts_evaluator(tx.subscribe()).await?;
+    processors::alerts::start_alerts_evaluator(tx.clone(), tx.subscribe()).await?;
+    processors::notifications::start_notifications_engine(tx.subscribe()).await?;
     storage::start_storage_writer(tx.subscribe()).await?;
 
     // Open Tantivy Reader

@@ -9,6 +9,7 @@ pub enum Event {
     Metrics(Vec<MetricPayload>),
     Logs(Vec<LogEntry>),
     Traces(Vec<Span>),
+    Alerts(String, String),
 }
 
 pub type EventBusTx = broadcast::Sender<Event>;

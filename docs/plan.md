@@ -60,7 +60,7 @@ This document outlines the phased approach to building the **Easy Monitor** plat
 
 ---
 
-## Phase 6: Unified Dashboard UI (Frontend)
+## Phase 6: Unified Dashboard UI (Frontend) (Completed)
 **Target**: Datadog-inspired Single Pane of Glass.
 
 ### Details & Requirements:
@@ -70,7 +70,7 @@ This document outlines the phased approach to building the **Easy Monitor** plat
 
 ---
 
-## Phase 7: Alerting & RBAC
+## Phase 7: Alerting & RBAC (Completed)
 **Target**: Enterprise production readiness.
 
 ### Details & Requirements:

@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use axum::{Router, routing::{get, post}};
+use axum::{Router, routing::{get, post}, middleware};
 use dashmap::DashMap;
 use tantivy::IndexReader;
 use tower_http::cors::CorsLayer;
@@ -9,6 +9,7 @@ use crate::bus::{EventBusRx, Event};
 
 pub mod apm;
 pub mod queries;
+pub mod auth;
 
 #[derive(Clone)]
 pub struct ApiState {
@@ -21,7 +22,6 @@ pub async fn start_api_gateway(mut rx: EventBusRx, index_reader: Option<IndexRea
 
     let latest_metrics = Arc::new(DashMap::new());
 
-    // Background task to keep latest metrics in memory for instant API queries
     let metrics_cache = latest_metrics.clone();
     tokio::spawn(async move {
         loop {
@@ -31,9 +31,9 @@ pub async fn start_api_gateway(mut rx: EventBusRx, index_reader: Option<IndexRea
                         metrics_cache.insert(metric.name.clone(), metric.value);
                     }
                 }
-                Ok(_) => {} // Ignore logs/traces for the cache
+                Ok(_) => {} 
                 Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
-                Err(_) => {}
+                Err(_) => {} 
             }
         }
     });
@@ -43,11 +43,16 @@ pub async fn start_api_gateway(mut rx: EventBusRx, index_reader: Option<IndexRea
         latest_metrics,
     };
 
+    let api_routes = Router::new()
+        .route("/apm/services", get(apm::get_services))
+        .route("/apm/services/:name/resources", get(apm::get_resources))
+        .route("/traces/query", post(queries::query_traces))
+        .route("/metrics/query", post(queries::query_metrics))
+        .route_layer(middleware::from_fn(auth::require_jwt));
+
     let app = Router::new()
-        .route("/api/v1/apm/services", get(apm::get_services))
-        .route("/api/v1/apm/services/:name/resources", get(apm::get_resources))
-        .route("/api/v1/traces/query", post(queries::query_traces))
-        .route("/api/v1/metrics/query", post(queries::query_metrics))
+        .nest("/api/v1", api_routes)
+        .route("/api/v1/login", get(auth::login_stub))
         .layer(CorsLayer::permissive())
         .with_state(state);
 

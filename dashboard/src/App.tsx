@@ -1,7 +1,12 @@
 import { useEffect } from 'react';
+import axios from 'axios';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { Activity, Box, Flame } from 'lucide-react';
 import APMCatalog from './pages/APMCatalog';
+
+axios.get('http://localhost:3000/api/v1/login').then(res => {
+  axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
+});
 import TraceExplorer from './pages/TraceExplorer';
 
 function Sidebar() {
