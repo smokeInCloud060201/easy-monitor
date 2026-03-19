@@ -21,3 +21,4 @@ rmp-serde.workspace = true
 serde.workspace = true
 uuid = { version = "1.20.0", features = ["v4"] }
 serde_json.workspace = true
+hex = "0.4.3"

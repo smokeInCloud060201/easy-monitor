@@ -66,7 +66,8 @@ pub async fn query_logs(State(_state): State<ApiState>, Json(payload): Json<Logs
     let limit = payload.limit.unwrap_or(100);
     query.push_str(&format!(" ORDER BY timestamp DESC LIMIT {}", limit));
     
-    let ch_url = format!("http://localhost:8123/?user=default&password=password&query={} FORMAT JSON", urlencoding::encode(&query));
+    let full_query = format!("{} FORMAT JSON", query);
+    let ch_url = format!("http://localhost:8123/?user=default&password=password&query={}", urlencoding::encode(&full_query));
     
     if let Ok(res) = client.post(&ch_url).send().await {
         if let Ok(json_res) = res.json::<Value>().await {

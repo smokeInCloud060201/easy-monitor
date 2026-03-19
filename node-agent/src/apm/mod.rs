@@ -1,45 +1,283 @@
 use std::sync::Arc;
 use std::net::SocketAddr;
 use tonic::{transport::Server, Request, Response, Status};
-use tracing::info;
+use tracing::{info, error};
 
-use shared_proto::traces::{
-    traces_service_server::{TracesService, TracesServiceServer},
-    SyncTracesRequest, SyncTracesResponse,
+use shared_proto::opentelemetry::proto::collector::trace::v1::{
+    trace_service_server::{TraceService, TraceServiceServer},
+    ExportTraceServiceRequest, ExportTraceServiceResponse,
 };
+use shared_proto::opentelemetry::proto::collector::metrics::v1::{
+    metrics_service_server::{MetricsService, MetricsServiceServer},
+    ExportMetricsServiceRequest, ExportMetricsServiceResponse,
+};
+use shared_proto::opentelemetry::proto::collector::logs::v1::{
+    logs_service_server::{LogsService, LogsServiceServer},
+    ExportLogsServiceRequest, ExportLogsServiceResponse,
+};
+
 use crate::wal::WalBuffer;
 
+#[derive(Clone)]
 pub struct OTLPReceiver {
     wal: Arc<WalBuffer>,
 }
 
 #[tonic::async_trait]
-impl TracesService for OTLPReceiver {
-    async fn sync_traces(
+impl TraceService for OTLPReceiver {
+    async fn export(
         &self,
-        request: Request<SyncTracesRequest>,
-    ) -> Result<Response<SyncTracesResponse>, Status> {
-        let spans = request.into_inner().spans;
-        for span in spans {
-            if let Err(e) = self.wal.write_trace(span).await {
-                tracing::error!("Failed to write APM span to WAL: {}", e);
+        request: Request<ExportTraceServiceRequest>,
+    ) -> Result<Response<ExportTraceServiceResponse>, Status> {
+        let req = request.into_inner();
+        
+        for resource_span in req.resource_spans {
+            let service_name = extract_service_name(&resource_span.resource);
+            
+            for scope_span in resource_span.scope_spans {
+                for span in scope_span.spans {
+                    let trace_id = hex::encode(&span.trace_id);
+                    let span_id = hex::encode(&span.span_id);
+                    let parent_span_id = if span.parent_span_id.is_empty() {
+                        "".to_string()
+                    } else {
+                        hex::encode(&span.parent_span_id)
+                    };
+                    
+                    let duration_ms = if span.end_time_unix_nano > span.start_time_unix_nano {
+                        (span.end_time_unix_nano - span.start_time_unix_nano) / 1_000_000
+                    } else {
+                        0
+                    } as u64;
+
+                    let mut tags = std::collections::HashMap::new();
+                    for attr in span.attributes {
+                        if let Some(val) = &attr.value {
+                            let val_str = extract_any_value(val);
+                            tags.insert(attr.key.clone(), val_str);
+                        }
+                    }
+
+                    // Map generic status cleanly
+                    let error_status = if let Some(status) = &span.status {
+                        status.code == 2 // 2 corresponds to STATUS_CODE_ERROR in OTLP
+                    } else {
+                        false
+                    };
+
+                    let my_span = shared_proto::traces::Span {
+                        trace_id,
+                        span_id,
+                        parent_id: parent_span_id,
+                        name: span.name.clone(),
+                        service: service_name.clone(),
+                        resource: "otlp".to_string(), // OTLP generic generic bound
+                        start_time: (span.start_time_unix_nano / 1_000_000) as i64,
+                        duration: duration_ms as i64,
+                        meta: tags,
+                        error: if error_status { 1 } else { 0 },
+                        metrics: std::collections::HashMap::new(),
+                    };
+
+                    if let Err(e) = self.wal.write_trace(my_span).await {
+                        error!("Failed to write translated OTLP trace to WAL: {}", e);
+                    }
+                }
             }
         }
-        Ok(Response::new(SyncTracesResponse {
-            success: true,
-            message: "Spans accepted by Node Agent".to_string(),
+
+        Ok(Response::new(ExportTraceServiceResponse {
+            partial_success: None,
         }))
+    }
+}
+
+#[tonic::async_trait]
+impl MetricsService for OTLPReceiver {
+    async fn export(
+        &self,
+        request: Request<ExportMetricsServiceRequest>,
+    ) -> Result<Response<ExportMetricsServiceResponse>, Status> {
+        let req = request.into_inner();
+        
+        for resource_metric in req.resource_metrics {
+            let service_name = extract_service_name(&resource_metric.resource);
+            
+            for scope_metric in resource_metric.scope_metrics {
+                for metric in scope_metric.metrics {
+                    let name = metric.name.clone();
+                    
+                    // Natively handle basic Gauge and Sum metrics safely decoupling unhandled points
+                    if let Some(data) = metric.data {
+                        match data {
+                            shared_proto::opentelemetry::proto::metrics::v1::metric::Data::Gauge(gauge) => {
+                                for dp in gauge.data_points {
+                                    let mut tags = std::collections::HashMap::new();
+                                    tags.insert("service".to_string(), service_name.clone());
+                                    // Extract embedded attributes
+                                    for attr in dp.attributes {
+                                        if let Some(val) = &attr.value {
+                                            tags.insert(attr.key.clone(), extract_any_value(val));
+                                        }
+                                    }
+                                    
+                                    let value = if dp.value.is_some() {
+                                        match dp.value.unwrap() {
+                                            shared_proto::opentelemetry::proto::metrics::v1::number_data_point::Value::AsDouble(d) => d,
+                                            shared_proto::opentelemetry::proto::metrics::v1::number_data_point::Value::AsInt(i) => i as f64,
+                                        }
+                                    } else { 0.0 };
+
+                                    let mp = shared_proto::metrics::MetricPayload {
+                                        name: name.clone(),
+                                        value,
+                                        r#type: "gauge".to_string(),
+                                        timestamp: (dp.time_unix_nano / 1_000_000) as i64,
+                                        tags,
+                                    };
+                                    let _ = self.wal.write_metric(mp).await;
+                                }
+                            },
+                            shared_proto::opentelemetry::proto::metrics::v1::metric::Data::Sum(sum) => {
+                                for dp in sum.data_points {
+                                    let mut tags = std::collections::HashMap::new();
+                                    tags.insert("service".to_string(), service_name.clone());
+                                    for attr in dp.attributes {
+                                        if let Some(val) = &attr.value {
+                                            tags.insert(attr.key.clone(), extract_any_value(val));
+                                        }
+                                    }
+                                    
+                                    let value = if dp.value.is_some() {
+                                        match dp.value.unwrap() {
+                                            shared_proto::opentelemetry::proto::metrics::v1::number_data_point::Value::AsDouble(d) => d,
+                                            shared_proto::opentelemetry::proto::metrics::v1::number_data_point::Value::AsInt(i) => i as f64,
+                                        }
+                                    } else { 0.0 };
+
+                                    let mp = shared_proto::metrics::MetricPayload {
+                                        name: name.clone(),
+                                        value,
+                                        r#type: "count".to_string(),
+                                        timestamp: (dp.time_unix_nano / 1_000_000) as i64,
+                                        tags,
+                                    };
+                                    let _ = self.wal.write_metric(mp).await;
+                                }
+                            },
+                            _ => {} // Skip Histograms cleanly natively 
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(Response::new(ExportMetricsServiceResponse {
+            partial_success: None,
+        }))
+    }
+}
+
+#[tonic::async_trait]
+impl LogsService for OTLPReceiver {
+    async fn export(
+        &self,
+        request: Request<ExportLogsServiceRequest>,
+    ) -> Result<Response<ExportLogsServiceResponse>, Status> {
+        let req = request.into_inner();
+        
+        for resource_log in req.resource_logs {
+            let service_name = extract_service_name(&resource_log.resource);
+            
+            for scope_log in resource_log.scope_logs {
+                for log_record in scope_log.log_records {
+                    
+                    let message = if let Some(body) = log_record.body {
+                        extract_any_value(&body)
+                    } else {
+                        "".to_string()
+                    };
+                    
+                    let level = if log_record.severity_text.is_empty() {
+                        "INFO".to_string()
+                    } else {
+                        log_record.severity_text.clone()
+                    };
+
+                    let trace_id = if log_record.trace_id.is_empty() {
+                        uuid::Uuid::new_v4().to_string()
+                    } else {
+                        hex::encode(&log_record.trace_id)
+                    };
+                    
+                    let mut tags = std::collections::HashMap::new();
+                    for attr in log_record.attributes {
+                        if let Some(val) = &attr.value {
+                            tags.insert(attr.key.clone(), extract_any_value(val));
+                        }
+                    }
+
+                    let my_log = shared_proto::logs::LogEntry {
+                        service: service_name.clone(),
+                        level,
+                        message,
+                        tags,
+                        trace_id,
+                        timestamp: (log_record.time_unix_nano / 1_000_000) as i64,
+                    };
+
+                    if let Err(e) = self.wal.write_log(my_log).await {
+                        error!("Failed to write translated OTLP log to WAL: {}", e);
+                    }
+                }
+            }
+        }
+
+        Ok(Response::new(ExportLogsServiceResponse {
+            partial_success: None,
+        }))
+    }
+}
+
+// Helper to pull standard service names organically natively decoupled bounds
+fn extract_service_name(resource: &Option<shared_proto::opentelemetry::proto::resource::v1::Resource>) -> String {
+    if let Some(res) = resource {
+        for attr in &res.attributes {
+            if attr.key == "service.name" {
+                if let Some(val) = &attr.value {
+                    return extract_any_value(val);
+                }
+            }
+        }
+    }
+    "unknown-service".to_string()
+}
+
+// Helper to dynamically convert OTLP AnyValue structs accurately securely into strings natively
+fn extract_any_value(val: &shared_proto::opentelemetry::proto::common::v1::AnyValue) -> String {
+    if let Some(v) = &val.value {
+        match v {
+            shared_proto::opentelemetry::proto::common::v1::any_value::Value::StringValue(s) => s.clone(),
+            shared_proto::opentelemetry::proto::common::v1::any_value::Value::BoolValue(b) => b.to_string(),
+            shared_proto::opentelemetry::proto::common::v1::any_value::Value::IntValue(i) => i.to_string(),
+            shared_proto::opentelemetry::proto::common::v1::any_value::Value::DoubleValue(d) => d.to_string(),
+            _ => "complex_value".to_string(),
+        }
+    } else {
+        "".to_string()
     }
 }
 
 pub async fn start_apm_receiver(wal: Arc<WalBuffer>) -> anyhow::Result<()> {
     let addr: SocketAddr = "0.0.0.0:4317".parse()?;
-    info!("APM/OTLP Receiver listening on {}", addr);
+    info!("Universal OTLP Receiver natively bounding tightly mapping standard bounds on {}", addr);
 
     let svc = OTLPReceiver { wal };
 
     Server::builder()
-        .add_service(TracesServiceServer::new(svc))
+        .add_service(TraceServiceServer::new(svc.clone()))
+        .add_service(MetricsServiceServer::new(svc.clone()))
+        .add_service(LogsServiceServer::new(svc))
         .serve(addr)
         .await?;
 

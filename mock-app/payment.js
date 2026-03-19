@@ -1,5 +1,6 @@
 const express = require('express');
-const logger = require('./udp_logger');
+const winston = require('winston');
+const logger = winston.createLogger({ format: winston.format.json(), transports: [new winston.transports.Console()] });
 const app = express();
 
 app.post('/api/charge', (req, res) => {
