@@ -1,0 +1,23 @@
+syntax = "proto3";
+package easy_monitor.metrics;
+
+service MetricsService {
+    rpc SyncMetrics (SyncMetricsRequest) returns (SyncMetricsResponse);
+}
+
+message SyncMetricsRequest {
+    repeated MetricPayload payloads = 1;
+}
+
+message MetricPayload {
+    string name = 1;
+    double value = 2;
+    string type = 3; // "gauge", "count", "histogram"
+    map<string, string> tags = 4;
+    int64 timestamp = 5;
+}
+
+message SyncMetricsResponse {
+    bool success = 1;
+    string message = 2;
+}

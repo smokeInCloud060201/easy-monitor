@@ -1,0 +1,24 @@
+syntax = "proto3";
+package easy_monitor.logs;
+
+service LogsService {
+    rpc SyncLogs (SyncLogsRequest) returns (SyncLogsResponse);
+}
+
+message SyncLogsRequest {
+    repeated LogEntry entries = 1;
+}
+
+message LogEntry {
+    string service = 1;
+    string level = 2; // "INFO", "WARN", "ERROR", "DEBUG"
+    string message = 3;
+    map<string, string> tags = 4;
+    string trace_id = 5;
+    int64 timestamp = 6;
+}
+
+message SyncLogsResponse {
+    bool success = 1;
+    string message = 2;
+}

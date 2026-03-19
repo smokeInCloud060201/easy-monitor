@@ -1,0 +1,29 @@
+syntax = "proto3";
+package easy_monitor.traces;
+
+service TracesService {
+    rpc SyncTraces (SyncTracesRequest) returns (SyncTracesResponse);
+}
+
+message SyncTracesRequest {
+    repeated Span spans = 1;
+}
+
+message Span {
+    string trace_id = 1;
+    string span_id = 2;
+    string parent_id = 3;
+    string service = 4;
+    string name = 5; // e.g. "POST /login"
+    string resource = 6;
+    int64 start_time = 7;
+    int64 duration = 8;
+    int32 error = 9; // 0 for success, 1 for error
+    map<string, string> meta = 10;
+    map<string, double> metrics = 11;
+}
+
+message SyncTracesResponse {
+    bool success = 1;
+    string message = 2;
+}

@@ -1,0 +1,29 @@
+[workspace]
+members = [
+    "master-service",
+    "node-agent",
+    "shared-proto",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+authors = ["Karson Tang"]
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+tokio = { version = "1.36", features = ["full"] }
+tokio-stream = "0.1"
+tonic = "0.11"
+prost = "0.12"
+tonic-build = "0.11"
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+sled = "0.34"
+sysinfo = "0.30"
+notify = "6.1"
+serde = { version = "1.0", features = ["derive"] }
+rmp-serde = "1.1"
