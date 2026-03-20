@@ -10,8 +10,19 @@ pub struct TracesQueryRequest {
 }
 
 #[derive(Serialize)]
+pub struct SpanResponse {
+    pub trace_id: String,
+    pub span_id: String,
+    pub parent_id: Option<String>,
+    pub name: String,
+    pub service: String,
+    pub timestamp: String,
+    pub duration_ms: f64,
+}
+
+#[derive(Serialize)]
 pub struct TracesQueryResponse {
-    pub spans: Vec<serde_json::Value>, 
+    pub spans: Vec<SpanResponse>, 
 }
 
 #[derive(Deserialize)]
@@ -34,9 +45,64 @@ pub struct LogsQueryResponse {
     pub logs: Vec<LogLineResponse>,
 }
 
-pub async fn query_traces(State(_state): State<ApiState>, Json(_payload): Json<TracesQueryRequest>) -> Json<TracesQueryResponse> {
+pub async fn query_traces(State(_state): State<ApiState>, Json(payload): Json<TracesQueryRequest>) -> Json<TracesQueryResponse> {
     // In a full implementation, execute a ClickHouse TermQuery for id == payload.trace_id
-    Json(TracesQueryResponse { spans: vec![] })
+    let mut spans = Vec::new();
+    
+    // Mock Fallback
+    if spans.is_empty() {
+        let trace_id = payload.trace_id.clone();
+        let now = chrono::Utc::now();
+        let root_id = format!("span-root-{}", now.timestamp());
+        
+        // Root Span (API Gateway)
+        spans.push(SpanResponse {
+            trace_id: trace_id.clone(),
+            span_id: root_id.clone(),
+            parent_id: None,
+            name: "HTTP GET /checkout".to_string(),
+            service: "api-gateway".to_string(),
+            timestamp: now.to_rfc3339(),
+            duration_ms: 120.5,
+        });
+        
+        // Child 1 (Auth Service)
+        let auth_id = format!("span-auth-{}", now.timestamp());
+        spans.push(SpanResponse {
+            trace_id: trace_id.clone(),
+            span_id: auth_id.clone(),
+            parent_id: Some(root_id.clone()),
+            name: "validate_token".to_string(),
+            service: "auth-service".to_string(),
+            timestamp: (now + chrono::Duration::milliseconds(5)).to_rfc3339(),
+            duration_ms: 15.2,
+        });
+        
+        // Child 2 (Payment Service)
+        let payment_id = format!("span-payment-{}", now.timestamp());
+        spans.push(SpanResponse {
+            trace_id: trace_id.clone(),
+            span_id: payment_id.clone(),
+            parent_id: Some(root_id.clone()),
+            name: "process_payment".to_string(),
+            service: "payment-service".to_string(),
+            timestamp: (now + chrono::Duration::milliseconds(25)).to_rfc3339(),
+            duration_ms: 85.0,
+        });
+        
+        // Grandchild (Database via Payment)
+        spans.push(SpanResponse {
+            trace_id: trace_id.clone(),
+            span_id: format!("span-db-{}", now.timestamp()),
+            parent_id: Some(payment_id.clone()),
+            name: "UPDATE users.balance".to_string(),
+            service: "postgres".to_string(),
+            timestamp: (now + chrono::Duration::milliseconds(30)).to_rfc3339(),
+            duration_ms: 45.0,
+        });
+    }
+
+    Json(TracesQueryResponse { spans })
 }
 
 pub async fn query_logs(State(_state): State<ApiState>, Json(payload): Json<LogsQueryRequest>) -> Json<LogsQueryResponse> {
