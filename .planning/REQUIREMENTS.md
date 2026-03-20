@@ -18,8 +18,8 @@
 
 ### Distributed Tracing
 
-- [ ] **TRAC-01**: User can view a span waterfall chart for a specific request.
-- [ ] **TRAC-02**: User can navigate from a trace span directly to the logs generated during that span.
+- [x] **TRAC-01**: User can view a span waterfall chart for a specific request.
+- [x] **TRAC-02**: User can navigate from a trace span directly to the logs generated during that span.
 
 ### Deployment
 
@@ -43,8 +43,8 @@
 | DASH-01 | Phase 1 | Complete |
 | DASH-02 | Phase 1 | Complete |
 | DASH-03 | Phase 1 | Complete |
-| TRAC-01 | Phase 2 | Pending |
-| TRAC-02 | Phase 2 | Pending |
+| TRAC-01 | Phase 2 | Complete |
+| TRAC-02 | Phase 2 | Complete |
 | DEPL-01 | Phase 3 | Pending |
 | DEPL-02 | Phase 3 | Pending |
 
