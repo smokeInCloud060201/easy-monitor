@@ -23,8 +23,8 @@
 
 ### Deployment
 
-- [ ] **DEPL-01**: User can deploy the `master-service` and `dashboard` via a single `docker-compose up`.
-- [ ] **DEPL-02**: User can deploy the `node-agent` to a target host via a simple docker command.
+- [x] **DEPL-01**: User can deploy the `master-service` and `dashboard` via a single `docker-compose up`.
+- [x] **DEPL-02**: User can deploy the `node-agent` to a target host via a simple docker command.
 
 ## Out of Scope
 
@@ -45,8 +45,8 @@
 | DASH-03 | Phase 1 | Complete |
 | TRAC-01 | Phase 2 | Complete |
 | TRAC-02 | Phase 2 | Complete |
-| DEPL-01 | Phase 3 | Pending |
-| DEPL-02 | Phase 3 | Pending |
+| DEPL-01 | Phase 3 | Complete |
+| DEPL-02 | Phase 3 | Complete |
 
 **Coverage:**
 - v1 requirements: 9 total
