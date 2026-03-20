@@ -36,3 +36,29 @@ export async function fetchLogs(_from: string, _to: string, query: string = ''):
     return [];
   }
 }
+
+export interface SpanResponse {
+  trace_id: string;
+  span_id: string;
+  parent_id: string | null;
+  name: string;
+  service: string;
+  timestamp: string;
+  duration_ms: number;
+}
+
+export async function fetchTrace(traceId: string): Promise<SpanResponse[]> {
+  try {
+    const res = await fetch(`http://localhost:3000/api/v1/traces/query`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ trace_id: traceId })
+    });
+    if (!res.ok) throw new Error('Failed to fetch trace');
+    const data = await res.json();
+    return data.spans || [];
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
+}
