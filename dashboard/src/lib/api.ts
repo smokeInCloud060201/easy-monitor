@@ -14,3 +14,25 @@ export async function fetchMetrics(from: string, to: string): Promise<SystemMetr
     return [];
   }
 }
+
+export interface LogLineResponse {
+  trace_id: string;
+  service: string;
+  message: string;
+}
+
+export async function fetchLogs(_from: string, _to: string, query: string = ''): Promise<LogLineResponse[]> {
+  try {
+    const res = await fetch(`http://localhost:3000/api/v1/logs/query`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keyword: query, service: 'all', limit: 500 })
+    });
+    if (!res.ok) throw new Error('Failed to fetch logs');
+    const data = await res.json();
+    return data.logs || [];
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
+}

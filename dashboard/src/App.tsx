@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { MainLayout } from './components/layout/MainLayout';
 import { Dashboard } from './pages/Dashboard';
+import { Logs } from './pages/Logs';
 
 function App() {
   return (
@@ -8,7 +9,7 @@ function App() {
       <Routes>
         <Route element={<MainLayout />}>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/logs" element={<div className="p-8 text-2xl font-semibold text-white">Logs View Stub</div>} />
+          <Route path="/logs" element={<Logs />} />
         </Route>
       </Routes>
     </BrowserRouter>
