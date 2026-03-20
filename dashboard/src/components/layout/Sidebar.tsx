@@ -1,0 +1,34 @@
+import { NavLink } from 'react-router-dom';
+import { Activity, List } from 'lucide-react';
+
+export function Sidebar() {
+  return (
+    <div className="w-64 h-screen bg-gray-900 text-white flex flex-col pt-6 border-r border-gray-800">
+      <div className="px-6 mb-8 text-xl font-bold tracking-tight text-blue-400">EasyMonitor</div>
+      <nav className="flex-1 flex flex-col gap-2 px-3">
+        <NavLink 
+          to="/"
+          className={({ isActive }) => 
+            `flex items-center gap-3 px-3 py-2.5 rounded-md transition-all ${
+               isActive ? 'bg-blue-500/10 text-blue-400 font-medium' : 'text-gray-400 hover:bg-white/5 hover:text-white'
+            }`
+          }
+        >
+          <Activity size={18} />
+          <span>Metrics</span>
+        </NavLink>
+        <NavLink 
+          to="/logs"
+          className={({ isActive }) => 
+            `flex items-center gap-3 px-3 py-2.5 rounded-md transition-all ${
+               isActive ? 'bg-blue-500/10 text-blue-400 font-medium' : 'text-gray-400 hover:bg-white/5 hover:text-white'
+            }`
+          }
+        >
+          <List size={18} />
+          <span>Logs</span>
+        </NavLink>
+      </nav>
+    </div>
+  );
+}
