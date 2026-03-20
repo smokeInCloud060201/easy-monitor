@@ -15,22 +15,28 @@ A unified, low-effort observability platform (Datadog-lite) that brings together
 - ✓ **Embedded Storage** — `master-service` utilizing `sled` for lightweight fast-path persistent storage.
 - ✓ **Client telemetry ingestion** — `node-agent` designed to gather metrics (sysinfo), APM data, logs, and trace spans securely over TLS.
 - ✓ **Dashboard Foundation** — Frontend SPA (`dashboard`) using React and Vite, ready to visualize data components.
+- ✓ **Unified Dashboard UI** — Datadog-style intuitive UI to seamlessly pivot between traces, metrics, and logs in the same context (v1.0).
+- ✓ **Span Waterfall Visualization** — Request waterfalls mapping entire request lifecycles (v1.0).
+- ✓ **Docker/K8s Easy Integrations** — Zero-config docker compose scripts for frictionless `node-agent` and platform launches (v1.0).
 
 ### Active
-- [ ] **Unified Dashboard UI** — Complete the Datadog-style intuitive UI to seamlessly pivot between traces, metrics, and logs in the same context.
-- [ ] **Span Waterfall Visualization** — Implement request waterfalls (similar to Graylog tracing) mapping entire request lifecycles.
-- [ ] **Docker/K8s Easy Integrations** — Build zero-config helm charts / docker compose scripts so users can trivially launch the `node-agent` beside their workloads.
+- [ ] (Pending next milestone planning)
 
 ### Out of Scope
 - Complex horizontal-scaling Enterprise ELK clusters — this defeats the "easy" and "cost-effective" constraints. The goal is opinionated simplicity, not infinite configuration.
 - Complex third-party OAuth integrations (currently relying on stateless JWTs).
 
+## Context
+Shipped v1.0 MVP integrating Rust telemetry pipelines with a React SPA. Total unified observability platform stands at ~340k LOC (including distributions).
+
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| **Deployment Model** | Distributed. Opinionated `master-service` (managed SaaS or central node) with lightweight `node-agent` on user infrastructure. | — Pending |
-| **Tech Stack** | Rust for backend (performance, safety, memory footprint), React/Vite for Dashboard. | — Validated |
+| **Deployment Model** | Distributed. Opinionated `master-service` (managed SaaS or central node) with lightweight `node-agent` on user infrastructure. | ✓ Validated |
+| **Tech Stack** | Rust for backend (performance, safety, memory footprint), React/Vite for Dashboard. | ✓ Validated |
+| **Single Container UI** | Axum `ServeDir` embedding Vite static bundle to eliminate NGINX proxies. | ✓ Good |
+| **State Persistence** | ClickHouse as OLAP backend for massive trace/log scale. | ✓ Good |
 
 ---
-*Last updated: 2026-03-20 after initialization*
+*Last updated: 2026-03-20 after v1.0 milestone*
