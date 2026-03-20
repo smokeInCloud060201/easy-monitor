@@ -1,21 +1,25 @@
 version: '3.8'
 
 services:
+  master-node:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - RUST_LOG=info
+      # To test ClickHouse:
+      # - CLICKHOUSE_URL=http://clickhouse:8123
+    depends_on:
+      - clickhouse
+
   clickhouse:
     image: clickhouse/clickhouse-server:latest
-    container_name: easy-monitor-clickhouse
     ports:
-      - "8123:8123" # HTTP Port 
-      - "9000:9000" # Native Port
-    environment:
-      - CLICKHOUSE_USER=default
-      - CLICKHOUSE_PASSWORD=password
-    volumes:
-      - clickhouse_data:/var/lib/clickhouse
+      - "8123:8123"
+      - "9000:9000"
     ulimits:
       nofile:
         soft: 262144
         hard: 262144
-
-volumes:
-  clickhouse_data:
