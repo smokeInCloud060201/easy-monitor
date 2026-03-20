@@ -7,14 +7,14 @@
 
 ### Telemetry Ingestion
 
-- [ ] **INGST-01**: `node-agent` reliably collects and buffers host metrics, logs, and spans.
-- [ ] **INGST-02**: `master-service` receives, processes, and stores telemetry data via gRPC.
+- [x] **INGST-01**: `node-agent` reliably collects and buffers host metrics, logs, and spans.
+- [x] **INGST-02**: `master-service` receives, processes, and stores telemetry data via gRPC.
 
 ### Unified Dashboard
 
-- [ ] **DASH-01**: User can view a global time-series chart of host metrics.
-- [ ] **DASH-02**: User can search and filter centralized logs.
-- [ ] **DASH-03**: User can click a time window to see logs and traces from that exact moment (Unified Context).
+- [x] **DASH-01**: User can view a global time-series chart of host metrics.
+- [x] **DASH-02**: User can search and filter centralized logs.
+- [x] **DASH-03**: User can click a time window to see logs and traces from that exact moment (Unified Context).
 
 ### Distributed Tracing
 
@@ -38,11 +38,11 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INGST-01 | Phase 1 | Pending |
-| INGST-02 | Phase 1 | Pending |
-| DASH-01 | Phase 1 | Pending |
-| DASH-02 | Phase 1 | Pending |
-| DASH-03 | Phase 1 | Pending |
+| INGST-01 | Phase 1 | Complete |
+| INGST-02 | Phase 1 | Complete |
+| DASH-01 | Phase 1 | Complete |
+| DASH-02 | Phase 1 | Complete |
+| DASH-03 | Phase 1 | Complete |
 | TRAC-01 | Phase 2 | Pending |
 | TRAC-02 | Phase 2 | Pending |
 | DEPL-01 | Phase 3 | Pending |
