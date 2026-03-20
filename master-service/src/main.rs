@@ -16,6 +16,16 @@ async fn main() -> anyhow::Result<()> {
         .expect("setting default subscriber failed");
 
     info!("Starting Easy Monitor Master Service...");
+
+    // Read JWT secret from environment
+    let jwt_secret = std::env::var("JWT_SECRET")
+        .unwrap_or_else(|_| {
+            info!("JWT_SECRET not set, using default dev secret. Set JWT_SECRET in production!");
+            "dev-secret-key-change-in-production-minimum-32-chars".to_string()
+        });
+    if jwt_secret.len() < 32 {
+        panic!("JWT_SECRET must be at least 32 characters long");
+    }
     
     // Initialize Event Bus
     let (tx, _rx) = bus::init_event_bus();
@@ -28,8 +38,8 @@ async fn main() -> anyhow::Result<()> {
     // Mount ClickHouse Engine
     storage::start_storage_writer(tx.subscribe()).await?;
 
-    // Start Axum API Gateway without dependencies on Tantivy
-    api::start_api_gateway(tx.subscribe()).await?;
+    // Start Axum API Gateway
+    api::start_api_gateway(tx.subscribe(), jwt_secret).await?;
 
     // Start gRPC Ingress
     ingress::start_grpc_server(tx).await?;

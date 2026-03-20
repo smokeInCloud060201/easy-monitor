@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use axum::{Router, routing::{get, post}, middleware};
+use axum::{Router, routing::{get, post, delete}, middleware};
 use dashmap::DashMap;
 use tower_http::cors::CorsLayer;
 use tower_http::services::{ServeDir, ServeFile};
@@ -14,9 +14,11 @@ pub mod auth;
 #[derive(Clone)]
 pub struct ApiState {
     pub latest_metrics: Arc<DashMap<String, f64>>,
+    pub jwt_secret: String,
+    pub ch_client: reqwest::Client,
 }
 
-pub async fn start_api_gateway(mut rx: EventBusRx) -> anyhow::Result<()> {
+pub async fn start_api_gateway(mut rx: EventBusRx, jwt_secret: String) -> anyhow::Result<()> {
     info!("Starting Axum API Gateway on 0.0.0.0:3000");
 
     let latest_metrics = Arc::new(DashMap::new());
@@ -39,7 +41,15 @@ pub async fn start_api_gateway(mut rx: EventBusRx) -> anyhow::Result<()> {
 
     let state = ApiState {
         latest_metrics,
+        jwt_secret,
+        ch_client: reqwest::Client::new(),
     };
+
+    // Admin-only routes (behind both JWT + admin middleware)
+    let admin_routes = Router::new()
+        .route("/users", get(auth::list_users_handler).post(auth::create_user_handler))
+        .route("/users/*username", delete(auth::delete_user_handler))
+        .route_layer(middleware::from_fn(auth::require_admin));
 
     let api_routes = Router::new()
         .route("/apm/services", get(apm::get_services))
@@ -48,11 +58,13 @@ pub async fn start_api_gateway(mut rx: EventBusRx) -> anyhow::Result<()> {
         .route("/logs/query", post(queries::query_logs))
         .route("/metrics/query", post(queries::query_metrics))
         .route("/system/metrics", get(queries::get_system_metrics))
-        .route_layer(middleware::from_fn(auth::require_jwt));
+        .route("/auth/me", get(auth::me))
+        .nest("/admin", admin_routes)
+        .route_layer(middleware::from_fn_with_state(state.clone(), auth::require_jwt));
 
     let app = Router::new()
         .nest("/api/v1", api_routes)
-        .route("/api/v1/login", get(auth::login_stub))
+        .route("/api/v1/auth/login", post(auth::login))
         .layer(CorsLayer::permissive())
         .with_state(state)
         .fallback_service(

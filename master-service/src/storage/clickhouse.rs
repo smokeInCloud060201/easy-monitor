@@ -7,7 +7,7 @@ use crate::bus::{EventBusRx, Event};
 use shared_proto::logs::LogEntry;
 use shared_proto::traces::Span;
 
-const CH_URL: &str = "http://localhost:8123/?user=default&password=password";
+use super::CH_URL;
 
 pub async fn initialize_clickhouse(client: &Client) -> anyhow::Result<()> {
     info!("Initializing ClickHouse schema definitions...");
