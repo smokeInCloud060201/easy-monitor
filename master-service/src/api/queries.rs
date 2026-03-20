@@ -112,3 +112,34 @@ pub async fn query_metrics(State(state): State<ApiState>, Json(payload): Json<Me
         duration_sum,
     })
 }
+
+#[derive(Deserialize)]
+pub struct SystemMetricsRequest {
+    pub from: Option<String>,
+    pub to: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct SystemMetricPoint {
+    pub time: String,
+    pub cpu: f64,
+    pub ram: f64,
+}
+
+pub async fn get_system_metrics(axum::extract::Query(_query): axum::extract::Query<SystemMetricsRequest>) -> Json<Vec<SystemMetricPoint>> {
+    let mut data = Vec::new();
+    let now = chrono::Utc::now();
+    for i in (0..60).rev() {
+        let t = now - chrono::Duration::minutes(i);
+        let time_val = t.timestamp() as f64;
+        let cpu = 25.0 + (time_val / 200.0).sin() * 15.0; // Mock wave
+        let ram = 60.0 + (time_val / 150.0).cos() * 5.0;  // Mock wave
+        
+        data.push(SystemMetricPoint {
+            time: t.format("%H:%M").to_string(),
+            cpu,
+            ram,
+        });
+    }
+    Json(data)
+}

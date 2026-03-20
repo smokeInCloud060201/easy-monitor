@@ -46,6 +46,7 @@ pub async fn start_api_gateway(mut rx: EventBusRx) -> anyhow::Result<()> {
         .route("/traces/query", post(queries::query_traces))
         .route("/logs/query", post(queries::query_logs))
         .route("/metrics/query", post(queries::query_metrics))
+        .route("/system/metrics", get(queries::get_system_metrics))
         .route_layer(middleware::from_fn(auth::require_jwt));
 
     let app = Router::new()
