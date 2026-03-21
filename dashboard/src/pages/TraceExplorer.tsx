@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { Search, Filter, Zap } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Search, Filter, Zap, Loader2 } from 'lucide-react';
 import { searchTraces, fetchServices, type TraceSummary } from '../lib/api';
 
 export default function TraceExplorer() {
@@ -55,23 +55,23 @@ export default function TraceExplorer() {
   const maxDur = Math.max(...traces.map(t => t.duration_ms), 1);
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex justify-between items-end mb-8">
+    <div className="page-container">
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-4xl font-extrabold tracking-tight mb-2">Trace Explorer</h1>
-          <p className="text-gray-400">Search and analyze distributed traces across all services.</p>
+          <h1 className="page-title">Trace Explorer</h1>
+          <p className="text-[13px] text-gray-400 mt-1">Search and analyze distributed traces across all services.</p>
         </div>
-        <span className="px-3 py-1 glass-panel text-sm text-gray-300 font-mono shadow-md">{total} traces</span>
+        <span className="badge badge-info font-mono">{total} traces</span>
       </div>
 
       {/* Filter Bar */}
-      <div className="glass-panel p-4 mb-6 shadow-xl">
+      <div className="glass-panel p-4 mb-4">
         <div className="flex flex-wrap gap-3 items-center">
           <Filter className="w-4 h-4 text-gray-400" />
           
           {/* Service */}
           <select value={service} onChange={e => { setService(e.target.value); setOffset(0); }}
-            className="bg-surface/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-primary/50">
+            className="filter-select">
             <option value="">All Services</option>
             {services.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
@@ -91,14 +91,14 @@ export default function TraceExplorer() {
           {/* Duration */}
           <div className="flex items-center gap-1">
             <input type="number" placeholder="Min ms" value={minDuration} onChange={e => setMinDuration(e.target.value)}
-              className="bg-surface/50 border border-white/10 rounded-lg px-2 py-2 text-sm text-white w-20 focus:outline-none focus:border-primary/50" />
+              className="search-input px-2 w-20" />
             <span className="text-gray-500">—</span>
             <input type="number" placeholder="Max ms" value={maxDuration} onChange={e => setMaxDuration(e.target.value)}
-              className="bg-surface/50 border border-white/10 rounded-lg px-2 py-2 text-sm text-white w-20 focus:outline-none focus:border-primary/50" />
+              className="search-input px-2 w-20" />
           </div>
 
           <button onClick={() => { setOffset(0); doSearch(); }}
-            className="bg-primary hover:bg-primary/80 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-lg hover:shadow-primary/20">
+            className="btn-primary">
             Search
           </button>
 
@@ -107,63 +107,63 @@ export default function TraceExplorer() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
               <input type="text" placeholder="Trace ID..." value={traceIdInput} onChange={e => setTraceIdInput(e.target.value)}
-                className="bg-surface/50 border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm text-white w-44 focus:outline-none focus:border-primary/50 font-mono" />
+                className="search-input pl-9 pr-3 w-44 font-mono" />
             </div>
-            <button type="submit" className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-lg text-sm transition-all">Go</button>
+            <button type="submit" className="btn-ghost">Go</button>
           </form>
         </div>
       </div>
 
       {/* Results Table */}
-      <div className="glass-panel shadow-2xl overflow-hidden">
+      <div className="glass-panel overflow-hidden">
         {loading ? (
           <div className="flex justify-center items-center h-64">
-            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <Loader2 className="w-6 h-6 animate-spin text-brand-light" />
           </div>
         ) : traces.length === 0 ? (
           <div className="p-12 text-center">
-            <Zap className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-gray-300 mb-2">No traces found</h3>
-            <p className="text-gray-500">Adjust your filters or wait for new trace data.</p>
+            <Zap className="w-10 h-10 text-gray-600 mx-auto mb-3" />
+            <h3 className="text-sm font-semibold text-gray-300 mb-1">No traces found</h3>
+            <p className="text-[11px] text-gray-500">Adjust your filters or wait for new trace data.</p>
           </div>
         ) : (
           <>
-            <table className="w-full text-sm">
+            <table className="data-table">
               <thead>
-                <tr className="text-left text-gray-400 bg-black/30">
-                  <th className="px-4 py-3 font-semibold">Status</th>
-                  <th className="px-4 py-3 font-semibold">Trace ID</th>
-                  <th className="px-4 py-3 font-semibold">Service</th>
-                  <th className="px-4 py-3 font-semibold">Operation</th>
-                  <th className="px-4 py-3 font-semibold">Duration</th>
-                  <th className="px-4 py-3 font-semibold text-right">Spans</th>
-                  <th className="px-4 py-3 font-semibold text-right">Time</th>
+                <tr>
+                  <th>Status</th>
+                  <th>Trace ID</th>
+                  <th>Service</th>
+                  <th>Operation</th>
+                  <th>Duration</th>
+                  <th className="text-right">Spans</th>
+                  <th className="text-right">Time</th>
                 </tr>
               </thead>
               <tbody>
                 {traces.map(t => (
                   <tr key={t.trace_id}
                     onClick={() => navigate(`/traces/${t.trace_id}`)}
-                    className="border-t border-white/5 hover:bg-white/5 cursor-pointer transition-colors group">
-                    <td className="px-4 py-3">
-                      <span className={`w-2 h-2 rounded-full inline-block ${t.error ? 'bg-red-500' : 'bg-emerald-500'}`} />
+                    className="cursor-pointer group">
+                    <td>
+                      <span className={`w-2 h-2 rounded-full inline-block ${t.error ? 'bg-danger' : 'bg-success'}`} />
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-300 group-hover:text-primary transition-colors">
+                    <td className="font-mono text-[12px] text-gray-400 group-hover:text-brand-light transition-colors">
                       {t.trace_id.slice(0, 16)}
                     </td>
-                    <td className="px-4 py-3 text-primary font-semibold">{t.root_service}</td>
-                    <td className="px-4 py-3 text-gray-300 truncate max-w-[200px]">{t.root_name}</td>
-                    <td className="px-4 py-3">
+                    <td className="text-brand-light font-semibold">{t.root_service}</td>
+                    <td className="text-gray-300 truncate max-w-[200px]">{t.root_name}</td>
+                    <td>
                       <div className="flex items-center gap-2">
                         <div className="w-24 h-1.5 bg-black/40 rounded-full overflow-hidden">
-                          <div className={`h-full rounded-full ${t.error ? 'bg-red-500' : 'bg-primary'}`}
+                          <div className={`h-full rounded-full ${t.error ? 'bg-danger' : 'bg-brand'}`}
                             style={{ width: `${Math.min((t.duration_ms / maxDur) * 100, 100)}%` }} />
                         </div>
-                        <span className="font-mono text-xs text-amber-400">{t.duration_ms.toFixed(1)}ms</span>
+                        <span className="font-mono text-[12px] tabular-nums text-warning">{t.duration_ms.toFixed(1)}ms</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-right font-mono text-gray-500">{t.span_count}</td>
-                    <td className="px-4 py-3 text-right text-gray-500 text-xs">{new Date(t.timestamp).toLocaleTimeString()}</td>
+                    <td className="text-right font-mono text-[12px] tabular-nums text-gray-500">{t.span_count}</td>
+                    <td className="text-right text-gray-500 text-[11px]">{new Date(t.timestamp).toLocaleTimeString()}</td>
                   </tr>
                 ))}
               </tbody>

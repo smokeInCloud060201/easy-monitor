@@ -57,7 +57,7 @@ function ServiceCard({ service }: { service: string }) {
   if (!metrics) {
     return (
       <div className="glass-panel p-6 flex flex-col items-center justify-center min-h-[200px] animate-pulse">
-        <Loader2 className="w-8 h-8 animate-spin text-primary opacity-50" />
+        <Loader2 className="w-6 h-6 animate-spin text-brand-light opacity-50" />
       </div>
     );
   }
@@ -73,26 +73,26 @@ function ServiceCard({ service }: { service: string }) {
         
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <Server className="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors" />
-            <h3 className="text-xl font-bold">{service}</h3>
+            <Server className="w-5 h-5 text-gray-400 group-hover:text-brand-light transition-colors" />
+            <h3 className="text-sm font-bold">{service}</h3>
           </div>
           <div className="flex items-center gap-2">
-            {!isHealthy && <Activity className="w-5 h-5 text-danger animate-pulse" />}
-            <ChevronRight className="w-5 h-5 text-gray-600 group-hover:text-primary transition-colors" />
+            {!isHealthy && <Activity className="w-4 h-4 text-danger animate-pulse" />}
+            <ChevronRight className="w-4 h-4 text-gray-600 group-hover:text-brand-light transition-colors" />
           </div>
         </div>
         
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-gray-400 text-sm mb-1">Reqs / sec</p>
-            <p className="text-2xl font-mono text-gray-100">{metrics.rate.toFixed(1)}</p>
+            <p className="text-gray-500 text-[11px] uppercase tracking-wider mb-1">Reqs / sec</p>
+            <p className="text-lg font-mono tabular-nums text-gray-100">{metrics.rate.toFixed(1)}</p>
           </div>
           <div>
-            <p className="text-gray-400 text-sm mb-1">Avg Latency</p>
-            <p className="text-2xl font-mono text-gray-100">{avgLatency.toFixed(2)} ms</p>
+            <p className="text-gray-500 text-[11px] uppercase tracking-wider mb-1">Avg Latency</p>
+            <p className="text-lg font-mono tabular-nums text-gray-100">{avgLatency.toFixed(2)} ms</p>
           </div>
           <div className="col-span-2 mt-2">
-            <p className="text-gray-400 text-sm mb-1">Error Rate ({errorRate.toFixed(1)}%)</p>
+            <p className="text-gray-500 text-[11px] uppercase tracking-wider mb-1">Error Rate ({errorRate.toFixed(1)}%)</p>
             <div className="flex items-center gap-2">
               <div className="flex-1 h-2 bg-black/40 rounded-full overflow-hidden shadow-inner">
                 <div 
@@ -119,30 +119,30 @@ export default function APMCatalog() {
   }, []);
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex justify-between items-end mb-8">
+    <div className="page-container">
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-4xl font-extrabold tracking-tight mb-2">Service Catalog</h1>
-          <p className="text-gray-400">Real-time RED metrics driven by distributed trace analysis. Click a service to drill down.</p>
+          <h1 className="page-title">Service Catalog</h1>
+          <p className="text-[13px] text-gray-400 mt-1">Real-time RED metrics driven by distributed trace analysis.</p>
         </div>
-        <div className="flex gap-2 items-center">
-          <Link to="/traces" className="text-sm text-brand-light hover:underline">View all traces →</Link>
-          <span className="px-3 py-1 glass-panel border-primary/20 text-sm text-gray-300 font-mono shadow-md">Total Active: {services.length}</span>
+        <div className="flex gap-3 items-center">
+          <Link to="/traces" className="text-[13px] text-brand-light hover:underline">View all traces →</Link>
+          <span className="badge badge-info font-mono">Active: {services.length}</span>
         </div>
       </div>
 
       {loading ? (
         <div className="flex justify-center items-center h-64">
-           <Loader2 className="w-10 h-10 animate-spin text-primary" />
+           <Loader2 className="w-6 h-6 animate-spin text-brand-light" />
         </div>
       ) : services.length === 0 ? (
         <div className="glass-panel p-12 text-center border-dashed border-2 border-white/10 bg-transparent">
-          <Server className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-          <h3 className="text-xl font-bold mb-2 text-gray-300">No telemetry indexed</h3>
-          <p className="text-gray-500">Ensure application spans are being sent to the APM ingestion endpoint.</p>
+          <Server className="w-10 h-10 text-gray-600 mx-auto mb-3" />
+          <h3 className="text-sm font-semibold mb-1 text-gray-300">No telemetry indexed</h3>
+          <p className="text-[11px] text-gray-500">Ensure application spans are being sent to the APM ingestion endpoint.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {services.map(s => <ServiceCard key={s} service={s} />)}
         </div>
       )}
