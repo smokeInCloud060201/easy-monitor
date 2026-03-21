@@ -99,10 +99,12 @@ Plans:
 
 ### Phase 10: Update APM page — Modern Datadog-style multi-section service monitoring dashboard
 
-**Goal:** [To be planned]
+**Goal:** Complete rebuild of the APM service detail page with 7 Datadog-style sections: service health overview (5 metric cards), latency distribution histogram with percentile markers, requests & errors time-series, error tracking with top errors list, sortable endpoints/resources table, dependency mini-map (upstream → service → downstream), and recent traces. New backend endpoints for latency distribution and service dependencies.
 **Requirements**: TBD
 **Depends on:** Phase 9
-**Plans:** 0 plans
+**Plans:** 2 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 10 to break down)
+- [ ] Plan 1: APM Backend Enhancements — Latency Distribution & Service Dependencies API (Wave 1)
+- [ ] Plan 2: Modern APM Dashboard — Datadog-style Multi-Section Service Page (Wave 2)
+
