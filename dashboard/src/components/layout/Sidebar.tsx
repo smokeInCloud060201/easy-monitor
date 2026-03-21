@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Activity, List, Users, Server, Zap } from 'lucide-react';
+import { Activity, List, Users, Server, Zap, Network } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 export function Sidebar() {
@@ -21,6 +21,10 @@ export function Sidebar() {
         <NavLink to="/apm" className={linkClass}>
           <Server size={18} />
           <span>APM</span>
+        </NavLink>
+        <NavLink to="/service-map" className={linkClass}>
+          <Network size={18} />
+          <span>Service Map</span>
         </NavLink>
         <NavLink to="/traces" className={linkClass}>
           <Zap size={18} />

@@ -177,6 +177,42 @@ export async function fetchLogFields(filters: {
   }
 }
 
+// Service Map
+export interface ServiceMapNode {
+  service: string;
+  total_requests: number;
+  error_rate: number;
+  avg_duration_ms: number;
+  p95_duration_ms: number;
+  status: 'healthy' | 'warning' | 'error';
+  node_type: 'service' | 'database' | 'external' | 'cache';
+}
+
+export interface ServiceMapEdge {
+  source: string;
+  target: string;
+  requests: number;
+  error_rate: number;
+  avg_duration_ms: number;
+}
+
+export interface ServiceMapResponse {
+  nodes: ServiceMapNode[];
+  edges: ServiceMapEdge[];
+}
+
+export async function fetchServiceMap(from?: string): Promise<ServiceMapResponse> {
+  try {
+    const params = from ? `?from=${from}` : '';
+    const res = await apiFetch(`/api/v1/apm/service-map${params}`);
+    if (!res.ok) throw new Error('Failed to fetch service map');
+    return res.json();
+  } catch (err) {
+    console.error(err);
+    return { nodes: [], edges: [] };
+  }
+}
+
 // Traces
 export interface SpanResponse {
   trace_id: string;

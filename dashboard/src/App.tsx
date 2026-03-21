@@ -11,6 +11,7 @@ import APMCatalog from './pages/APMCatalog';
 import ServiceDetail from './pages/ServiceDetail';
 import ResourceDetail from './pages/ResourceDetail';
 import TraceExplorer from './pages/TraceExplorer';
+import { ServiceMap } from './pages/ServiceMap';
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
             <Route path="/traces" element={<TraceExplorer />} />
             <Route path="/traces/:traceId" element={<TraceDetail />} />
             <Route path="/logs" element={<Logs />} />
+            <Route path="/service-map" element={<ServiceMap />} />
             <Route element={<AdminGuard />}>
               <Route path="/admin/users" element={<Admin />} />
             </Route>
