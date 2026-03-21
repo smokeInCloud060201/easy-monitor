@@ -53,6 +53,7 @@ progress:
 - Phase 6 added: Add APM feature same as Datadog
 - Phase 7 added: Enhance mock app with realistic multi-step request flows for span waterfall testing
 - Phase 8 added: Logs feature — GrayLog-style UI and metadata
+- Phase 9 added: Feature service map — same as DataDog
 
 ## Session Info
 
