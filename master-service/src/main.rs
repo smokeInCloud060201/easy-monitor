@@ -6,6 +6,7 @@ mod bus;
 mod ingress;
 mod processors;
 mod storage;
+mod utils;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

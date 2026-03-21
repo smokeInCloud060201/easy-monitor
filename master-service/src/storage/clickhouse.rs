@@ -8,6 +8,7 @@ use shared_proto::logs::LogEntry;
 use shared_proto::traces::Span;
 
 use super::CH_URL;
+use crate::utils::sanitize_resource;
 
 pub async fn initialize_clickhouse(client: &Client) -> anyhow::Result<()> {
     info!("Initializing ClickHouse schema definitions...");
@@ -158,13 +159,15 @@ pub async fn start_clickhouse_writer(mut rx: EventBusRx) -> anyhow::Result<()> {
                 if !traces_batch.is_empty() {
                     let mut payload = String::new();
                     for span in traces_batch.drain(..) {
+                        let sanitized_resource = sanitize_resource(&span.resource);
+                        let sanitized_name = sanitize_resource(&span.name);
                         let row = json!({
                             "trace_id": span.trace_id,
                             "span_id": span.span_id,
                             "parent_id": span.parent_id,
                             "service": span.service,
-                            "name": span.name,
-                            "resource": span.resource,
+                            "name": sanitized_name,
+                            "resource": sanitized_resource,
                             "error": span.error,
                             "duration": span.duration,
                             "timestamp": span.start_time,

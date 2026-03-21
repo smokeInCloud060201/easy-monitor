@@ -10,6 +10,7 @@ use shared_proto::metrics::MetricPayload;
 use crate::bus::{EventBusTx, EventBusRx, Event};
 
 use crate::storage::CH_URL;
+use crate::utils::sanitize_resource;
 
 /// Per-resource aggregate bucket for one 10-second window
 struct ResourceBucket {
@@ -41,7 +42,8 @@ pub async fn start_trace_metrics_engine(tx: EventBusTx, mut rx: EventBusRx) -> a
             match rx.recv().await {
                 Ok(Event::Traces(spans)) => {
                     for span in spans {
-                        let key = format!("{}:{}", span.service, span.resource);
+                        let sanitized_resource = sanitize_resource(&span.resource);
+                        let key = format!("{}:{}", span.service, sanitized_resource);
                         let mut entry = buckets_clone.entry(key).or_insert_with(ResourceBucket::new);
                         entry.count += 1.0;
                         if span.error > 0 {
