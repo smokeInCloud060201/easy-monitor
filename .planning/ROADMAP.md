@@ -87,10 +87,12 @@ Plans:
 
 ### Phase 9: Feature service map — same as DataDog
 
-**Goal:** [To be planned]
+**Goal:** DataDog-style interactive service topology map — derive inter-service edges from trace parent-child spans, render as a graph with health-ringed nodes (RED metrics), directional edges showing traffic flow, clickable node detail panel, and auto-layout with zoom/pan.
 **Requirements**: TBD
 **Depends on:** Phase 8
-**Plans:** 0 plans
+**Plans:** 2 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 9 to break down)
+- [ ] Plan 1: Service Map Backend — Topology API with Edge Detection from Traces (Wave 1)
+- [ ] Plan 2: Service Map Dashboard — Interactive Topology Graph with Health Indicators (Wave 2)
+
