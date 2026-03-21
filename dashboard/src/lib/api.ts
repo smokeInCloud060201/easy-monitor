@@ -80,6 +80,8 @@ export interface SpanResponse {
   parent_id: string | null;
   name: string;
   service: string;
+  resource: string;
+  error: number;
   timestamp: string;
   duration_ms: number;
 }
@@ -97,6 +99,113 @@ export async function fetchTrace(traceId: string): Promise<SpanResponse[]> {
     console.error(err);
     return [];
   }
+}
+
+// ─── APM API ───
+
+export interface RedTimePoint {
+  timestamp: number;
+  requests: number;
+  errors: number;
+  avg_duration: number;
+  p95_duration: number;
+  p99_duration: number;
+}
+
+export interface ServiceSummary {
+  service: string;
+  total_requests: number;
+  total_errors: number;
+  avg_duration_ms: number;
+  p95_duration_ms: number;
+  p99_duration_ms: number;
+  timeseries: RedTimePoint[];
+}
+
+export interface ResourceWithMetrics {
+  resource: string;
+  requests: number;
+  errors: number;
+  avg_duration_ms: number;
+  p95_duration_ms: number;
+  error_rate: number;
+}
+
+export interface TraceSummary {
+  trace_id: string;
+  root_service: string;
+  root_name: string;
+  duration_ms: number;
+  span_count: number;
+  error: boolean;
+  timestamp: string;
+}
+
+export interface TraceSearchResponse {
+  traces: TraceSummary[];
+  total: number;
+}
+
+export interface ErrorEntry {
+  name: string;
+  resource: string;
+  count: number;
+  last_seen: string;
+}
+
+export async function fetchServices(): Promise<string[]> {
+  try {
+    const res = await apiFetch('/api/v1/apm/services');
+    if (!res.ok) throw new Error('Failed to fetch services');
+    const data = await res.json();
+    return data.services || [];
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
+}
+
+export async function fetchServiceSummary(service: string, from: string = '1h'): Promise<ServiceSummary> {
+  const res = await apiFetch(`/api/v1/apm/services/${service}/summary?from=${from}`);
+  if (!res.ok) throw new Error('Failed to fetch service summary');
+  return res.json();
+}
+
+export async function fetchResourcesWithMetrics(service: string): Promise<ResourceWithMetrics[]> {
+  const res = await apiFetch(`/api/v1/apm/services/${service}/resources`);
+  if (!res.ok) throw new Error('Failed to fetch resources');
+  const data = await res.json();
+  return data.resources || [];
+}
+
+export async function fetchResourceSummary(service: string, resource: string, from: string = '1h'): Promise<ServiceSummary> {
+  const res = await apiFetch(`/api/v1/apm/services/${service}/resources/${encodeURIComponent(resource)}/summary?from=${from}`);
+  if (!res.ok) throw new Error('Failed to fetch resource summary');
+  return res.json();
+}
+
+export async function searchTraces(filters: {
+  service?: string;
+  resource?: string;
+  status?: string;
+  min_duration_ms?: number;
+  max_duration_ms?: number;
+  limit?: number;
+  offset?: number;
+}): Promise<TraceSearchResponse> {
+  const res = await apiFetch('/api/v1/traces/search', {
+    method: 'POST',
+    body: JSON.stringify(filters),
+  });
+  if (!res.ok) throw new Error('Failed to search traces');
+  return res.json();
+}
+
+export async function fetchServiceErrors(service: string): Promise<ErrorEntry[]> {
+  const res = await apiFetch(`/api/v1/apm/services/${service}/errors`);
+  if (!res.ok) throw new Error('Failed to fetch errors');
+  const data = await res.json();
+  return data.errors || [];
 }
 
 // Admin API

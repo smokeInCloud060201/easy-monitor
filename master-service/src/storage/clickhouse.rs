@@ -41,11 +41,28 @@ pub async fn initialize_clickhouse(client: &Client) -> anyhow::Result<()> {
         ORDER BY (service, timestamp);
     ";
 
-    let req_url = format!("{}&query=CREATE TABLE IF NOT EXISTS easy_monitor_logs...", CH_URL); // To avoid URI too long, we will use POST body
+    let create_red_metrics = "
+        CREATE TABLE IF NOT EXISTS easy_monitor_red_metrics (
+            service String,
+            resource String,
+            timestamp Int64,
+            requests Float64,
+            errors Float64,
+            duration_sum Float64,
+            duration_avg Float64,
+            duration_p50 Float64,
+            duration_p95 Float64,
+            duration_p99 Float64,
+            count UInt64
+        ) ENGINE = MergeTree()
+        ORDER BY (service, resource, timestamp);
+    ";
+
     client.post(CH_URL).body(create_logs.to_string()).send().await?.error_for_status()?;
     client.post(CH_URL).body(create_traces.to_string()).send().await?.error_for_status()?;
+    client.post(CH_URL).body(create_red_metrics.to_string()).send().await?.error_for_status()?;
     
-    info!("ClickHouse OLAP tables heavily staged securely.");
+    info!("ClickHouse OLAP tables initialized (logs, traces, red_metrics).");
     Ok(())
 }
 

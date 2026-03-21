@@ -34,6 +34,9 @@ progress:
 ### Roadmap Evolution
 
 - Phase 4 added: Add authentication feature
+- Phase 5 added: Add services map
+- Phase 6 added: Add APM feature same as Datadog
+- Phase 7 added: Enhance mock app with realistic multi-step request flows for span waterfall testing
 
 ## Session Info
 
