@@ -140,3 +140,13 @@ Plans:
 
 Plans:
 - [ ] Plan 1: Resource Name Sanitization at Ingestion (Wave 1)
+
+### Phase 14: Filter out internal service logs and traces (master-service, node-agent)
+
+**Goal:** Drop logs and traces from internal infrastructure services (master-service, node-agent) at the gRPC ingress layer before they enter the event bus, preventing them from appearing in the dashboard.
+**Requirements**: TBD
+**Depends on:** Phase 13
+**Plans:** 1 plan
+
+Plans:
+- [ ] Plan 1: Filter Internal Services at Ingress (Wave 1)

@@ -58,6 +58,7 @@ progress:
 - Phase 11 added: Update dashboard UI — Datadog-style design system (colors, theme, typography, layout, components)
 - Phase 12 added: Fix logs query parser — structured search syntax support
 - Phase 13 added: Sanitize sensitive data in trace span resource names
+- Phase 14 added: Filter out internal service logs and traces (master-service, node-agent)
 
 ## Session Info
 
