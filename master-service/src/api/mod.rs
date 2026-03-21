@@ -57,6 +57,8 @@ pub async fn start_api_gateway(mut rx: EventBusRx, jwt_secret: String) -> anyhow
         .route("/apm/services/:name/summary", get(apm::get_service_summary))
         .route("/apm/services/:name/errors", get(apm::get_service_errors))
         .route("/apm/service-map", get(apm::get_service_map))
+        .route("/apm/services/:name/latency-distribution", get(apm::get_latency_distribution))
+        .route("/apm/services/:name/dependencies", get(apm::get_service_dependencies))
         .route("/apm/services/:name/resources/:resource/summary", get(apm::get_resource_summary))
         .route("/traces/query", post(queries::query_traces))
         .route("/traces/search", post(queries::search_traces))
