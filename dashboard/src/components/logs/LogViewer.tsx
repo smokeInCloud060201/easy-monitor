@@ -1,50 +1,95 @@
+import { useState, useCallback } from 'react';
 import { Virtuoso } from 'react-virtuoso';
-import { Link } from 'react-router-dom';
-import type { LogLineResponse } from '../../lib/api';
+import type { LogLine } from '../../lib/api';
+import { LogDetailPanel } from './LogDetailPanel';
 
-interface Props {
-  logs: LogLineResponse[];
+interface LogViewerProps {
+  logs: LogLine[];
+  onLoadMore?: () => void;
+  selectedLogIndex: number | null;
+  onSelectLog: (index: number | null) => void;
+  onFilterByService?: (service: string) => void;
 }
 
-export function LogViewer({ logs }: Props) {
+const levelColors: Record<string, { badge: string; border: string }> = {
+  ERROR: { badge: 'bg-red-500/20 text-red-400', border: 'border-l-red-500' },
+  WARN: { badge: 'bg-amber-500/20 text-amber-400', border: 'border-l-amber-500' },
+  INFO: { badge: 'bg-blue-500/20 text-blue-400', border: 'border-l-blue-500' },
+  DEBUG: { badge: 'bg-gray-600/30 text-gray-500', border: 'border-l-gray-600' },
+};
+
+export function LogViewer({ logs, onLoadMore, selectedLogIndex, onSelectLog, onFilterByService }: LogViewerProps) {
   if (!logs || logs.length === 0) {
-    return <div className="h-full flex items-center justify-center text-gray-500">No logs found</div>;
+    return (
+      <div className="h-full flex items-center justify-center text-gray-500 flex-col gap-2">
+        <span className="text-3xl">📭</span>
+        <span className="text-sm">No logs found</span>
+      </div>
+    );
   }
+
+  const formatTime = (ts: string) => {
+    try {
+      const d = new Date(ts);
+      return d.toLocaleTimeString('en-US', { hour12: false }) + '.' + String(d.getMilliseconds()).padStart(3, '0');
+    } catch {
+      return ts;
+    }
+  };
+
+  const handleEndReached = useCallback(() => {
+    onLoadMore?.();
+  }, [onLoadMore]);
 
   return (
     <Virtuoso
       style={{ height: '100%', width: '100%' }}
       data={logs}
-      followOutput="smooth"
-      itemContent={(_index, log) => {
-        // extract level from mock message format "[INFO] User login successful"
-        const match = log.message.match(/^\[(INFO|WARN|ERROR|DEBUG)\]\s*(.*)$/);
-        const level = match ? match[1] : 'INFO';
-        const text = match ? match[2] : log.message;
-
-        let levelColor = 'text-blue-400';
-        if (level === 'ERROR') levelColor = 'text-red-500';
-        if (level === 'WARN') levelColor = 'text-yellow-500';
-        if (level === 'DEBUG') levelColor = 'text-gray-500';
+      endReached={handleEndReached}
+      overscan={200}
+      itemContent={(index, log) => {
+        const colors = levelColors[log.level] || levelColors.INFO;
+        const isSelected = selectedLogIndex === index;
 
         return (
-          <div className="flex gap-4 py-1.5 border-b border-gray-800/60 font-mono text-sm hover:bg-white/5 transition-colors px-4">
-            <Link 
-              to={`/traces/${log.trace_id}`}
-              className="w-32 flex-shrink-0 text-blue-400/80 hover:text-blue-400 font-medium truncate underline underline-offset-2 decoration-blue-500/30 hover:decoration-blue-500" 
-              title={log.trace_id}
+          <div>
+            <div
+              onClick={() => onSelectLog(isSelected ? null : index)}
+              className={`flex items-center gap-3 px-4 py-1.5 cursor-pointer border-l-2 transition-all font-mono text-sm ${colors.border} ${
+                isSelected
+                  ? 'bg-blue-500/10 border-b-0'
+                  : 'hover:bg-white/5 border-b border-b-gray-800/40'
+              }`}
             >
-              {log.trace_id.split('-').slice(0, 2).join('-')}
-            </Link>
-            <div className="w-36 flex-shrink-0 text-gray-400 truncate" title={log.service}>
-              {log.service}
+              {/* Timestamp */}
+              <span className="text-gray-500 text-xs w-[95px] flex-shrink-0 tabular-nums">
+                {formatTime(log.timestamp)}
+              </span>
+
+              {/* Level Badge */}
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${colors.badge} w-[50px] text-center flex-shrink-0`}>
+                {log.level}
+              </span>
+
+              {/* Service */}
+              <span className="text-emerald-400/80 w-[130px] flex-shrink-0 truncate text-xs" title={log.service}>
+                {log.service}
+              </span>
+
+              {/* Message */}
+              <span className="text-gray-300 flex-1 truncate text-xs">
+                {log.message}
+              </span>
             </div>
-            <div className={`w-14 flex-shrink-0 font-bold ${levelColor}`}>
-              {level}
-            </div>
-            <div className="flex-1 text-gray-300 break-all">
-              {text}
-            </div>
+
+            {/* Expandable Detail */}
+            {isSelected && (
+              <LogDetailPanel
+                log={log}
+                onClose={() => onSelectLog(null)}
+                onFilterByService={onFilterByService}
+              />
+            )}
           </div>
         );
       }}

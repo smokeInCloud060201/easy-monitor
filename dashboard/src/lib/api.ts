@@ -51,13 +51,53 @@ export async function fetchMetrics(from: string, to: string): Promise<SystemMetr
   }
 }
 
-// Logs
+// Logs (GrayLog-style)
+/** @deprecated Use LogLine instead */
 export interface LogLineResponse {
   trace_id: string;
   service: string;
   message: string;
 }
 
+export interface LogLine {
+  trace_id: string;
+  span_id: string;
+  service: string;
+  level: string;
+  message: string;
+  pod_id: string;
+  namespace: string;
+  node_name: string;
+  host: string;
+  source: string;
+  attributes: Record<string, string>;
+  timestamp: string;
+  timestamp_ms: number;
+}
+
+export interface LogsResponse {
+  logs: LogLine[];
+  total: number;
+}
+
+export interface HistogramBucket {
+  timestamp: number;
+  count: number;
+  error_count: number;
+  warn_count: number;
+}
+
+export interface FieldStat {
+  field: string;
+  top_values: { value: string; count: number; percentage: number }[];
+}
+
+export interface LogFieldsResponse {
+  fields: FieldStat[];
+  total_logs: number;
+}
+
+/** @deprecated Use fetchLogsEnhanced instead */
 export async function fetchLogs(_from: string, _to: string, query: string = ''): Promise<LogLineResponse[]> {
   try {
     const res = await apiFetch(`/api/v1/logs/query`, {
@@ -70,6 +110,70 @@ export async function fetchLogs(_from: string, _to: string, query: string = ''):
   } catch (err) {
     console.error(err);
     return [];
+  }
+}
+
+export async function fetchLogsEnhanced(filters: {
+  keyword?: string;
+  service?: string;
+  level?: string;
+  pod_id?: string;
+  trace_id?: string;
+  from_ts?: number;
+  to_ts?: number;
+  limit?: number;
+  offset?: number;
+}): Promise<LogsResponse> {
+  try {
+    const res = await apiFetch('/api/v1/logs/query', {
+      method: 'POST',
+      body: JSON.stringify(filters),
+    });
+    if (!res.ok) throw new Error('Failed to fetch logs');
+    return res.json();
+  } catch (err) {
+    console.error(err);
+    return { logs: [], total: 0 };
+  }
+}
+
+export async function fetchLogHistogram(filters: {
+  service?: string;
+  level?: string;
+  keyword?: string;
+  from_ts?: number;
+  to_ts?: number;
+  interval?: string;
+}): Promise<HistogramBucket[]> {
+  try {
+    const res = await apiFetch('/api/v1/logs/histogram', {
+      method: 'POST',
+      body: JSON.stringify(filters),
+    });
+    if (!res.ok) throw new Error('Failed to fetch histogram');
+    const data = await res.json();
+    return data.buckets || [];
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
+}
+
+export async function fetchLogFields(filters: {
+  from_ts?: number;
+  to_ts?: number;
+  service?: string;
+}): Promise<LogFieldsResponse> {
+  try {
+    const res = await apiFetch('/api/v1/logs/fields', {
+      method: 'POST',
+      body: JSON.stringify(filters),
+    });
+    if (!res.ok) throw new Error('Failed to fetch fields');
+    return res.json();
+  } catch (err) {
+    console.error(err);
+    return { fields: [], total_logs: 0 };
   }
 }
 
