@@ -65,10 +65,10 @@ Plans:
 
 ### Phase 7: Enhance mock app with realistic multi-step request flows for span waterfall testing
 
-**Goal:** [To be planned]
+**Goal:** Enrich mock app services with manual child spans (DB queries, cache lookups, validation, fraud checks) to produce 8-12 span traces for rich waterfall visualization. Fix port conflict, add new endpoints for resource variety.
 **Requirements**: TBD
 **Depends on:** Phase 6
-**Plans:** 0 plans
+**Plans:** 1 plan
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 7 to break down)
+- [ ] Plan 1: Enrich Mock App with Deep Multi-Step Request Flows (Wave 1)
