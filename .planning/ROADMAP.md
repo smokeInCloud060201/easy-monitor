@@ -114,9 +114,19 @@ Plans:
 **Goal:** Overhaul the dashboard design system to match Datadog: purple brand palette (#632CA6), Inter/JetBrains Mono typography via Google Fonts, refined dark backgrounds, grouped sidebar navigation with purple accents, glass-panel component variants, and consistent page-level styling across all views.
 **Requirements**: TBD
 **Depends on:** Phase 10
-**Plans:** 2 plans
+**Plans:** 0/2 plans executed
 
 Plans:
 - [ ] Plan 1: Design System Foundation — Colors, Typography, Tailwind Tokens & CSS Variables (Wave 1)
 - [ ] Plan 2: UI Component Overhaul — Sidebar, Layout, Headers, and Page Refinements (Wave 2)
 
+
+### Phase 12: Fix logs query parser — structured search syntax support
+
+**Goal:** Fix logs search bar to support structured query syntax (`service:X AND message:"Y"`). Add frontend query parser that decomposes structured queries into individual API filter fields, extend backend to support additional filter columns (`host`, `source`, `namespace`, `node_name`).
+**Requirements**: TBD
+**Depends on:** Phase 11
+**Plans:** 1 plan
+
+Plans:
+- [ ] Plan 1: Structured Query Parser & Backend Filter Extensions (Wave 1)
