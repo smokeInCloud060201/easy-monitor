@@ -102,7 +102,7 @@ Plans:
 **Goal:** Complete rebuild of the APM service detail page with 7 Datadog-style sections: service health overview (5 metric cards), latency distribution histogram with percentile markers, requests & errors time-series, error tracking with top errors list, sortable endpoints/resources table, dependency mini-map (upstream → service → downstream), and recent traces. New backend endpoints for latency distribution and service dependencies.
 **Requirements**: TBD
 **Depends on:** Phase 9
-**Plans:** 2 plans
+**Plans:** 0/2 plans executed
 
 Plans:
 - [ ] Plan 1: APM Backend Enhancements — Latency Distribution & Service Dependencies API (Wave 1)
