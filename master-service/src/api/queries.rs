@@ -239,94 +239,417 @@ pub async fn search_traces(State(state): State<ApiState>, Json(payload): Json<Tr
     Json(TraceSearchResponse { traces, total })
 }
 
-// ─── Logs Query ───
+// ─── Logs Query (GrayLog-style) ───
 
 #[derive(Deserialize)]
 pub struct LogsQueryRequest {
     pub keyword: Option<String>,
     pub service: Option<String>,
+    pub level: Option<String>,
     pub pod_id: Option<String>,
+    pub trace_id: Option<String>,
+    pub from_ts: Option<i64>,
+    pub to_ts: Option<i64>,
     pub limit: Option<usize>,
+    pub offset: Option<usize>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub struct LogLineResponse {
     pub trace_id: String,
+    pub span_id: String,
     pub service: String,
+    pub level: String,
     pub message: String,
+    pub pod_id: String,
+    pub namespace: String,
+    pub node_name: String,
+    pub host: String,
+    pub source: String,
+    pub attributes: Value,
+    pub timestamp: String,
+    pub timestamp_ms: i64,
 }
 
 #[derive(Serialize)]
 pub struct LogsQueryResponse {
     pub logs: Vec<LogLineResponse>,
+    pub total: u64,
 }
 
-pub async fn query_logs(State(_state): State<ApiState>, Json(payload): Json<LogsQueryRequest>) -> Json<LogsQueryResponse> {
-    let client = reqwest::Client::new();
-    let mut logs = Vec::new();
-    
-    let mut query = String::from("SELECT trace_id, service, message FROM easy_monitor_logs WHERE 1=1");
-    
-    if let Some(svc) = payload.service {
+fn build_logs_where_clauses(payload: &LogsQueryRequest) -> Vec<String> {
+    let mut clauses = Vec::new();
+    if let Some(ref svc) = payload.service {
         if !svc.is_empty() && svc != "all" {
-            query.push_str(&format!(" AND service = '{}'", svc));
+            clauses.push(format!("service = '{}'", svc.replace('\'', "")));
         }
     }
-    
-    if let Some(pod) = payload.pod_id {
+    if let Some(ref lvl) = payload.level {
+        if !lvl.is_empty() && lvl != "all" {
+            clauses.push(format!("level = '{}'", lvl.replace('\'', "")));
+        }
+    }
+    if let Some(ref pod) = payload.pod_id {
         if !pod.is_empty() && pod != "all" {
-            query.push_str(&format!(" AND pod_id = '{}'", pod));
+            clauses.push(format!("pod_id = '{}'", pod.replace('\'', "")));
         }
     }
-    
-    if let Some(kw) = payload.keyword {
+    if let Some(ref tid) = payload.trace_id {
+        if !tid.is_empty() {
+            clauses.push(format!("trace_id = '{}'", tid.replace('\'', "")));
+        }
+    }
+    if let Some(kw) = &payload.keyword {
         if !kw.is_empty() {
-             query.push_str(&format!(" AND message ILIKE '%{}%'", kw));
+            clauses.push(format!("message ILIKE '%{}%'", kw.replace('\'', "")));
         }
     }
-    
-    let limit = payload.limit.unwrap_or(100);
-    query.push_str(&format!(" ORDER BY timestamp DESC LIMIT {}", limit));
-    
-    let full_query = format!("{} FORMAT JSON", query);
-    let ch_url = format!("{}&query={}", CH_URL, urlencoding::encode(&full_query));
-    
-    if let Ok(res) = client.get(&ch_url).send().await {
+    if let Some(from) = payload.from_ts {
+        clauses.push(format!("timestamp >= {}", from));
+    }
+    if let Some(to) = payload.to_ts {
+        clauses.push(format!("timestamp <= {}", to));
+    }
+    clauses
+}
+
+pub async fn query_logs(State(state): State<ApiState>, Json(payload): Json<LogsQueryRequest>) -> Json<LogsQueryResponse> {
+    let mut logs = Vec::new();
+    let mut total = 0u64;
+
+    let where_clauses = build_logs_where_clauses(&payload);
+    let where_str = if where_clauses.is_empty() { "1=1".to_string() } else { where_clauses.join(" AND ") };
+
+    let limit = payload.limit.unwrap_or(100).min(500);
+    let offset = payload.offset.unwrap_or(0);
+
+    // Main query
+    let query = format!(
+        "SELECT trace_id, span_id, service, level, message, pod_id, namespace, node_name, host, source, attributes, timestamp \
+         FROM easy_monitor_logs WHERE {} ORDER BY timestamp DESC LIMIT {} OFFSET {} FORMAT JSON",
+        where_str, limit, offset
+    );
+    let ch_url = format!("{}&query={}", CH_URL, urlencoding::encode(&query));
+
+    if let Ok(res) = state.ch_client.get(&ch_url).send().await {
         if let Ok(json_res) = res.json::<Value>().await {
             if let Some(data) = json_res.get("data").and_then(|d| d.as_array()) {
                 for row in data {
+                    let ts_raw = row.get("timestamp")
+                        .and_then(|v| v.as_str()).and_then(|s| s.parse::<i64>().ok())
+                        .or_else(|| row.get("timestamp").and_then(|v| v.as_i64()))
+                        .unwrap_or(0);
+                    let attrs_str = row.get("attributes").and_then(|v| v.as_str()).unwrap_or("{}");
+                    let attrs: Value = serde_json::from_str(attrs_str).unwrap_or(Value::Object(Default::default()));
+
                     logs.push(LogLineResponse {
                         trace_id: row.get("trace_id").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                        span_id: row.get("span_id").and_then(|v| v.as_str()).unwrap_or("").to_string(),
                         service: row.get("service").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                        level: row.get("level").and_then(|v| v.as_str()).unwrap_or("INFO").to_string(),
                         message: row.get("message").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                        pod_id: row.get("pod_id").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                        namespace: row.get("namespace").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                        node_name: row.get("node_name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                        host: row.get("host").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                        source: row.get("source").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                        attributes: attrs,
+                        timestamp: chrono::DateTime::from_timestamp_millis(ts_raw)
+                            .map(|dt| dt.to_rfc3339()).unwrap_or_default(),
+                        timestamp_ms: ts_raw,
                     });
                 }
             }
         }
     }
-    
+
+    // Count query for pagination
+    let count_query = format!(
+        "SELECT count() as cnt FROM easy_monitor_logs WHERE {} FORMAT JSON", where_str
+    );
+    let count_url = format!("{}&query={}", CH_URL, urlencoding::encode(&count_query));
+    if let Ok(res) = state.ch_client.get(&count_url).send().await {
+        if let Ok(json_res) = res.json::<Value>().await {
+            if let Some(data) = json_res.get("data").and_then(|d| d.as_array()).and_then(|a| a.first()) {
+                total = data.get("cnt")
+                    .and_then(|v| v.as_str()).and_then(|s| s.parse::<u64>().ok())
+                    .or_else(|| data.get("cnt").and_then(|v| v.as_u64()))
+                    .unwrap_or(0);
+            }
+        }
+    }
+
+    // Mock fallback when ClickHouse is empty
     if logs.is_empty() {
         let now = chrono::Utc::now();
         let levels = ["INFO", "WARN", "ERROR", "DEBUG"];
         let services = ["payment-service", "auth-service", "node-agent", "master-service"];
+        let pods = ["pod-abc123", "pod-def456", "pod-ghi789", "pod-jkl012"];
+        let hosts = ["worker-1", "worker-2", "worker-3"];
         let messages = [
             "User login successful",
             "Checkout cart processed",
             "Database connection timeout",
             "Received unexpected payload",
-            "Flushing pending metrics to WAL"
+            "Flushing pending metrics to WAL",
+            "Request processed in 45ms",
+            "Cache miss for key user:session",
+            "Retry attempt 2/3 for external API",
+            "Connection pool exhausted, waiting for release",
+            "Health check passed",
         ];
-        
+
         for i in 0..100 {
+            let ts = now - chrono::Duration::seconds((100 - i as i64) * 2);
+            let ts_ms = ts.timestamp_millis();
             logs.push(LogLineResponse {
-                trace_id: format!("trace-{}-{}", i, now.timestamp()),
+                trace_id: format!("trace-{:04x}-{:04x}-{:04x}-{:012x}", i, i*7, i*13, ts_ms),
+                span_id: format!("span-{:08x}", i * 31),
                 service: services[i % services.len()].to_string(),
-                message: format!("[{}] {}", levels[i % levels.len()], messages[i % messages.len()]),
+                level: levels[i % levels.len()].to_string(),
+                message: messages[i % messages.len()].to_string(),
+                pod_id: pods[i % pods.len()].to_string(),
+                namespace: "default".to_string(),
+                node_name: hosts[i % hosts.len()].to_string(),
+                host: hosts[i % hosts.len()].to_string(),
+                source: "stdout".to_string(),
+                attributes: serde_json::json!({"request_id": format!("req-{}", i), "env": "production"}),
+                timestamp: ts.to_rfc3339(),
+                timestamp_ms: ts_ms,
+            });
+        }
+        total = 100;
+    }
+
+    Json(LogsQueryResponse { logs, total })
+}
+
+// ─── Logs Histogram ───
+
+#[derive(Deserialize)]
+pub struct LogHistogramRequest {
+    pub service: Option<String>,
+    pub level: Option<String>,
+    pub keyword: Option<String>,
+    pub from_ts: Option<i64>,
+    pub to_ts: Option<i64>,
+    pub interval: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct HistogramBucket {
+    pub timestamp: i64,
+    pub count: u64,
+    pub error_count: u64,
+    pub warn_count: u64,
+}
+
+#[derive(Serialize)]
+pub struct LogHistogramResponse {
+    pub buckets: Vec<HistogramBucket>,
+}
+
+pub async fn log_histogram(State(state): State<ApiState>, Json(payload): Json<LogHistogramRequest>) -> Json<LogHistogramResponse> {
+    let mut buckets = Vec::new();
+
+    let bucket_fn = match payload.interval.as_deref() {
+        Some("hour") => "toStartOfHour",
+        Some("day") => "toStartOfDay",
+        _ => "toStartOfMinute",
+    };
+
+    let mut where_clauses = Vec::new();
+    if let Some(ref svc) = payload.service {
+        if !svc.is_empty() && svc != "all" {
+            where_clauses.push(format!("service = '{}'", svc.replace('\'', "")));
+        }
+    }
+    if let Some(ref lvl) = payload.level {
+        if !lvl.is_empty() && lvl != "all" {
+            where_clauses.push(format!("level = '{}'", lvl.replace('\'', "")));
+        }
+    }
+    if let Some(ref kw) = payload.keyword {
+        if !kw.is_empty() {
+            where_clauses.push(format!("message ILIKE '%{}%'", kw.replace('\'', "")));
+        }
+    }
+    if let Some(from) = payload.from_ts {
+        where_clauses.push(format!("timestamp >= {}", from));
+    }
+    if let Some(to) = payload.to_ts {
+        where_clauses.push(format!("timestamp <= {}", to));
+    }
+
+    let where_str = if where_clauses.is_empty() { "1=1".to_string() } else { where_clauses.join(" AND ") };
+
+    let query = format!(
+        "SELECT toUnixTimestamp({}(toDateTime(timestamp / 1000))) * 1000 as bucket, \
+         count() as count, \
+         countIf(level = 'ERROR') as error_count, \
+         countIf(level = 'WARN') as warn_count \
+         FROM easy_monitor_logs WHERE {} \
+         GROUP BY bucket ORDER BY bucket ASC FORMAT JSON",
+        bucket_fn, where_str
+    );
+    let ch_url = format!("{}&query={}", CH_URL, urlencoding::encode(&query));
+
+    if let Ok(res) = state.ch_client.get(&ch_url).send().await {
+        if let Ok(json_res) = res.json::<Value>().await {
+            if let Some(data) = json_res.get("data").and_then(|d| d.as_array()) {
+                for row in data {
+                    let ts = row.get("bucket")
+                        .and_then(|v| v.as_str()).and_then(|s| s.parse::<i64>().ok())
+                        .or_else(|| row.get("bucket").and_then(|v| v.as_i64()))
+                        .unwrap_or(0);
+                    let count = row.get("count")
+                        .and_then(|v| v.as_str()).and_then(|s| s.parse::<u64>().ok())
+                        .or_else(|| row.get("count").and_then(|v| v.as_u64()))
+                        .unwrap_or(0);
+                    let err = row.get("error_count")
+                        .and_then(|v| v.as_str()).and_then(|s| s.parse::<u64>().ok())
+                        .or_else(|| row.get("error_count").and_then(|v| v.as_u64()))
+                        .unwrap_or(0);
+                    let warn = row.get("warn_count")
+                        .and_then(|v| v.as_str()).and_then(|s| s.parse::<u64>().ok())
+                        .or_else(|| row.get("warn_count").and_then(|v| v.as_u64()))
+                        .unwrap_or(0);
+                    buckets.push(HistogramBucket { timestamp: ts, count, error_count: err, warn_count: warn });
+                }
+            }
+        }
+    }
+
+    // Mock fallback
+    if buckets.is_empty() {
+        let now = chrono::Utc::now();
+        for i in 0..60 {
+            let ts = now - chrono::Duration::minutes(60 - i);
+            let base = (10.0 + (i as f64 * 0.5).sin() * 8.0) as u64;
+            buckets.push(HistogramBucket {
+                timestamp: ts.timestamp_millis(),
+                count: base + (i as u64 % 5),
+                error_count: if i % 7 == 0 { 2 } else { (i as u64 % 3).min(1) },
+                warn_count: if i % 4 == 0 { 3 } else { 1 },
             });
         }
     }
-    
-    Json(LogsQueryResponse { logs })
+
+    Json(LogHistogramResponse { buckets })
+}
+
+// ─── Logs Field Statistics ───
+
+#[derive(Deserialize)]
+pub struct LogFieldsRequest {
+    pub from_ts: Option<i64>,
+    pub to_ts: Option<i64>,
+    pub service: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct FieldValue {
+    pub value: String,
+    pub count: u64,
+    pub percentage: f64,
+}
+
+#[derive(Serialize)]
+pub struct FieldStat {
+    pub field: String,
+    pub top_values: Vec<FieldValue>,
+}
+
+#[derive(Serialize)]
+pub struct LogFieldsResponse {
+    pub fields: Vec<FieldStat>,
+    pub total_logs: u64,
+}
+
+pub async fn log_fields(State(state): State<ApiState>, Json(payload): Json<LogFieldsRequest>) -> Json<LogFieldsResponse> {
+    let mut fields = Vec::new();
+    let mut total_logs = 0u64;
+
+    let mut where_clauses = Vec::new();
+    if let Some(ref svc) = payload.service {
+        if !svc.is_empty() && svc != "all" {
+            where_clauses.push(format!("service = '{}'", svc.replace('\'', "")));
+        }
+    }
+    if let Some(from) = payload.from_ts {
+        where_clauses.push(format!("timestamp >= {}", from));
+    }
+    if let Some(to) = payload.to_ts {
+        where_clauses.push(format!("timestamp <= {}", to));
+    }
+    let where_str = if where_clauses.is_empty() { "1=1".to_string() } else { where_clauses.join(" AND ") };
+
+    // Get total count
+    let count_q = format!("SELECT count() as cnt FROM easy_monitor_logs WHERE {} FORMAT JSON", where_str);
+    let count_url = format!("{}&query={}", CH_URL, urlencoding::encode(&count_q));
+    if let Ok(res) = state.ch_client.get(&count_url).send().await {
+        if let Ok(json_res) = res.json::<Value>().await {
+            if let Some(data) = json_res.get("data").and_then(|d| d.as_array()).and_then(|a| a.first()) {
+                total_logs = data.get("cnt")
+                    .and_then(|v| v.as_str()).and_then(|s| s.parse::<u64>().ok())
+                    .or_else(|| data.get("cnt").and_then(|v| v.as_u64()))
+                    .unwrap_or(0);
+            }
+        }
+    }
+
+    // Query top values for each field
+    let field_names = ["service", "level", "pod_id", "namespace", "node_name", "host", "source"];
+    for field_name in &field_names {
+        let q = format!(
+            "SELECT {} as val, count() as cnt FROM easy_monitor_logs WHERE {} GROUP BY val ORDER BY cnt DESC LIMIT 10 FORMAT JSON",
+            field_name, where_str
+        );
+        let url = format!("{}&query={}", CH_URL, urlencoding::encode(&q));
+
+        let mut top_values = Vec::new();
+        if let Ok(res) = state.ch_client.get(&url).send().await {
+            if let Ok(json_res) = res.json::<Value>().await {
+                if let Some(data) = json_res.get("data").and_then(|d| d.as_array()) {
+                    for row in data {
+                        let val = row.get("val").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                        let cnt = row.get("cnt")
+                            .and_then(|v| v.as_str()).and_then(|s| s.parse::<u64>().ok())
+                            .or_else(|| row.get("cnt").and_then(|v| v.as_u64()))
+                            .unwrap_or(0);
+                        if !val.is_empty() {
+                            let pct = if total_logs > 0 { (cnt as f64 / total_logs as f64) * 100.0 } else { 0.0 };
+                            top_values.push(FieldValue { value: val, count: cnt, percentage: pct });
+                        }
+                    }
+                }
+            }
+        }
+
+        if !top_values.is_empty() {
+            fields.push(FieldStat { field: field_name.to_string(), top_values });
+        }
+    }
+
+    // Mock fallback
+    if fields.is_empty() {
+        let mock_fields = vec![
+            ("service", vec![("payment-service", 35), ("auth-service", 28), ("node-agent", 22), ("master-service", 15)]),
+            ("level", vec![("INFO", 50), ("WARN", 25), ("ERROR", 15), ("DEBUG", 10)]),
+            ("pod_id", vec![("pod-abc123", 30), ("pod-def456", 25), ("pod-ghi789", 25), ("pod-jkl012", 20)]),
+            ("namespace", vec![("default", 80), ("monitoring", 20)]),
+            ("host", vec![("worker-1", 40), ("worker-2", 35), ("worker-3", 25)]),
+        ];
+        total_logs = 100;
+        for (field, values) in mock_fields {
+            let top_values = values.into_iter().map(|(val, cnt)| {
+                FieldValue { value: val.to_string(), count: cnt, percentage: cnt as f64 }
+            }).collect();
+            fields.push(FieldStat { field: field.to_string(), top_values });
+        }
+    }
+
+    Json(LogFieldsResponse { fields, total_logs })
 }
 
 // ─── RED Metrics Query ───

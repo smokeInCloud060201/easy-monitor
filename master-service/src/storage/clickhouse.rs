@@ -15,16 +15,28 @@ pub async fn initialize_clickhouse(client: &Client) -> anyhow::Result<()> {
     let create_logs = "
         CREATE TABLE IF NOT EXISTS easy_monitor_logs (
             trace_id String,
+            span_id String DEFAULT '',
             service String,
             level String,
             message String,
             pod_id String,
             namespace String,
             node_name String,
+            host String DEFAULT '',
+            source String DEFAULT '',
+            attributes String DEFAULT '{}',
             timestamp Int64
         ) ENGINE = MergeTree()
         ORDER BY (service, timestamp);
     ";
+
+    // Idempotent migrations for existing tables
+    let alter_logs_migrations = vec![
+        "ALTER TABLE easy_monitor_logs ADD COLUMN IF NOT EXISTS span_id String DEFAULT ''",
+        "ALTER TABLE easy_monitor_logs ADD COLUMN IF NOT EXISTS host String DEFAULT ''",
+        "ALTER TABLE easy_monitor_logs ADD COLUMN IF NOT EXISTS source String DEFAULT ''",
+        "ALTER TABLE easy_monitor_logs ADD COLUMN IF NOT EXISTS attributes String DEFAULT '{}'",
+    ];
 
     let create_traces = "
         CREATE TABLE IF NOT EXISTS easy_monitor_traces (
@@ -61,6 +73,11 @@ pub async fn initialize_clickhouse(client: &Client) -> anyhow::Result<()> {
     client.post(CH_URL).body(create_logs.to_string()).send().await?.error_for_status()?;
     client.post(CH_URL).body(create_traces.to_string()).send().await?.error_for_status()?;
     client.post(CH_URL).body(create_red_metrics.to_string()).send().await?.error_for_status()?;
+
+    // Run idempotent ALTER TABLE migrations for logs metadata columns
+    for migration in alter_logs_migrations {
+        let _ = client.post(CH_URL).body(migration.to_string()).send().await;
+    }
     
     info!("ClickHouse OLAP tables initialized (logs, traces, red_metrics).");
     Ok(())
@@ -100,15 +117,30 @@ pub async fn start_clickhouse_writer(mut rx: EventBusRx) -> anyhow::Result<()> {
                         let pod_id = log.tags.get("pod_id").cloned().unwrap_or_default();
                         let namespace = log.tags.get("namespace").cloned().unwrap_or_default();
                         let node_name = log.tags.get("node_name").cloned().unwrap_or_default();
-                        
+                        let host = log.tags.get("host").cloned().unwrap_or_default();
+                        let source = log.tags.get("source").cloned().unwrap_or_default();
+                        let span_id = log.tags.get("span_id").cloned().unwrap_or_default();
+
+                        // Build attributes JSON from remaining tags
+                        let known_keys = ["pod_id", "namespace", "node_name", "host", "source", "span_id"];
+                        let extra_attrs: serde_json::Map<String, serde_json::Value> = log.tags.iter()
+                            .filter(|(k, _)| !known_keys.contains(&k.as_str()))
+                            .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
+                            .collect();
+                        let attributes_json = serde_json::to_string(&extra_attrs).unwrap_or_else(|_| "{}".to_string());
+
                         let row = json!({
                             "trace_id": log.trace_id,
+                            "span_id": span_id,
                             "service": log.service,
                             "level": log.level,
                             "message": log.message,
                             "pod_id": pod_id,
                             "namespace": namespace,
                             "node_name": node_name,
+                            "host": host,
+                            "source": source,
+                            "attributes": attributes_json,
                             "timestamp": log.timestamp,
                         });
                         payload.push_str(&row.to_string());

@@ -60,6 +60,8 @@ pub async fn start_api_gateway(mut rx: EventBusRx, jwt_secret: String) -> anyhow
         .route("/traces/query", post(queries::query_traces))
         .route("/traces/search", post(queries::search_traces))
         .route("/logs/query", post(queries::query_logs))
+        .route("/logs/histogram", post(queries::log_histogram))
+        .route("/logs/fields", post(queries::log_fields))
         .route("/metrics/query", post(queries::query_metrics))
         .route("/system/metrics", get(queries::get_system_metrics))
         .route("/auth/me", get(auth::me))
