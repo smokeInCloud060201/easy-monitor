@@ -213,6 +213,63 @@ export async function fetchServiceMap(from?: string): Promise<ServiceMapResponse
   }
 }
 
+// APM Latency & Dependencies
+export interface LatencyBucket {
+  range_label: string;
+  min_ms: number;
+  max_ms: number;
+  count: number;
+  percentage: number;
+}
+
+export interface LatencyDistribution {
+  service: string;
+  buckets: LatencyBucket[];
+  total_requests: number;
+  p50_ms: number;
+  p90_ms: number;
+  p95_ms: number;
+  p99_ms: number;
+}
+
+export interface ServiceDependencyItem {
+  service: string;
+  direction: 'upstream' | 'downstream';
+  requests: number;
+  error_rate: number;
+  avg_duration_ms: number;
+}
+
+export interface ServiceDependencies {
+  service: string;
+  upstream: ServiceDependencyItem[];
+  downstream: ServiceDependencyItem[];
+}
+
+export async function fetchLatencyDistribution(service: string, from?: string): Promise<LatencyDistribution> {
+  try {
+    const params = from ? `?from=${from}` : '';
+    const res = await apiFetch(`/api/v1/apm/services/${encodeURIComponent(service)}/latency-distribution${params}`);
+    if (!res.ok) throw new Error('Failed');
+    return res.json();
+  } catch (err) {
+    console.error(err);
+    return { service, buckets: [], total_requests: 0, p50_ms: 0, p90_ms: 0, p95_ms: 0, p99_ms: 0 };
+  }
+}
+
+export async function fetchServiceDependencies(service: string, from?: string): Promise<ServiceDependencies> {
+  try {
+    const params = from ? `?from=${from}` : '';
+    const res = await apiFetch(`/api/v1/apm/services/${encodeURIComponent(service)}/dependencies${params}`);
+    if (!res.ok) throw new Error('Failed');
+    return res.json();
+  } catch (err) {
+    console.error(err);
+    return { service, upstream: [], downstream: [] };
+  }
+}
+
 // Traces
 export interface SpanResponse {
   trace_id: string;
