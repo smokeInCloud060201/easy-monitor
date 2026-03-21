@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTimeRange } from '../hooks/useTimeRange';
 import { fetchMetrics, type SystemMetricPoint } from '../lib/api';
 import { TimeSeriesChart } from '../components/metrics/TimeSeriesChart';
+import { Activity, Cpu, TrendingUp } from 'lucide-react';
 
 export function Dashboard() {
   const { from, to } = useTimeRange();
@@ -11,7 +12,7 @@ export function Dashboard() {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    
+
     fetchMetrics(from, to).then(result => {
       if (active) {
         setData(result);
@@ -23,38 +24,41 @@ export function Dashboard() {
   }, [from, to]);
 
   return (
-    <div className="flex-1 flex flex-col p-6 overflow-hidden">
+    <div className="flex-1 flex flex-col p-6 overflow-hidden animate-fade-in">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-white tracking-tight">System Metrics</h1>
-        <div className="flex items-center gap-2 bg-gray-900 border border-gray-800 rounded-lg px-4 py-2 text-sm text-gray-400">
+        <h1 className="text-xl font-semibold text-white tracking-tight">System Metrics</h1>
+        <div className="flex items-center gap-2 glass-panel px-4 py-2 text-[13px] text-gray-400">
           <span>Time Range:</span>
           <span className="text-gray-200 font-medium">{from}</span>
           <span>to</span>
           <span className="text-gray-200 font-medium">{to}</span>
         </div>
       </div>
-      
-      <div className="grid grid-cols-3 gap-6 mb-6">
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 shadow-sm">
-          <div className="text-gray-400 text-sm font-medium mb-1">Active Nodes</div>
-          <div className="text-3xl font-bold text-white">4</div>
-        </div>
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 shadow-sm">
-          <div className="text-gray-400 text-sm font-medium mb-1">Ingestion Rate</div>
-          <div className="text-3xl font-bold text-white">12.4k/s</div>
-        </div>
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 shadow-sm">
-          <div className="text-gray-400 text-sm font-medium mb-1">System Health</div>
-          <div className="text-3xl font-bold text-emerald-400">Excellent</div>
-        </div>
+
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <MetricCard icon={<Cpu size={16} />} label="Active Nodes" value="4" accent="text-brand-light" />
+        <MetricCard icon={<TrendingUp size={16} />} label="Ingestion Rate" value="12.4k/s" accent="text-brand-light" />
+        <MetricCard icon={<Activity size={16} />} label="System Health" value="Excellent" accent="text-success" />
       </div>
 
-      <div className="flex-1 bg-gray-900 border border-gray-800 rounded-xl p-6 shadow-sm min-h-[300px]">
-        <div className="mb-4 text-gray-100 font-semibold">Cluster Resource Utilization</div>
+      <div className="flex-1 glass-panel p-6 min-h-[300px]">
+        <div className="mb-4 text-gray-100 font-semibold text-sm">Cluster Resource Utilization</div>
         <div className="h-[calc(100%-2rem)]">
           <TimeSeriesChart data={data} loading={loading} />
         </div>
       </div>
+    </div>
+  );
+}
+
+function MetricCard({ icon, label, value, accent }: { icon: React.ReactNode; label: string; value: string; accent: string }) {
+  return (
+    <div className="glass-panel-hover p-5">
+      <div className="flex items-center gap-2 mb-2">
+        <span className={accent}>{icon}</span>
+        <span className="text-gray-400 text-[12px] font-medium uppercase tracking-wider">{label}</span>
+      </div>
+      <div className={`text-2xl font-bold font-mono ${accent}`}>{value}</div>
     </div>
   );
 }

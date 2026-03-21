@@ -4,11 +4,14 @@ import { UserMenu } from './UserMenu';
 
 export function MainLayout() {
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-gray-950 text-gray-100 font-sans selection:bg-blue-500/30">
+    <div className="flex h-screen w-screen overflow-hidden bg-background text-gray-100 font-sans">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top bar with user menu */}
-        <header className="flex items-center justify-end px-4 py-2 border-b border-gray-800/50" style={{ minHeight: '48px' }}>
+        {/* Top bar */}
+        <header className="flex items-center justify-between px-6 border-b border-sidebar-border bg-surface-dark/50 backdrop-blur-sm" style={{ minHeight: '48px' }}>
+          <div className="text-[11px] text-gray-600 tracking-wide">
+            OBSERVABILITY PLATFORM
+          </div>
           <UserMenu />
         </header>
         {/* Main content */}

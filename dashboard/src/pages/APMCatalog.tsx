@@ -68,7 +68,7 @@ function ServiceCard({ service }: { service: string }) {
 
   return (
     <Link to={`/apm/services/${service}`} className="block">
-      <div className="glass-panel p-6 cursor-pointer hover:border-primary/50 hover:bg-surface transition-all group relative overflow-hidden shadow-lg hover:shadow-primary/20 hover:scale-[1.02]">
+      <div className="glass-panel-hover p-6 cursor-pointer group relative overflow-hidden">
         <div className={`absolute top-0 w-full left-0 h-1 ${isHealthy ? 'bg-success' : 'bg-danger'}`} />
         
         <div className="flex items-center justify-between mb-6">
@@ -126,7 +126,7 @@ export default function APMCatalog() {
           <p className="text-gray-400">Real-time RED metrics driven by distributed trace analysis. Click a service to drill down.</p>
         </div>
         <div className="flex gap-2 items-center">
-          <Link to="/traces" className="text-sm text-primary hover:underline">View all traces →</Link>
+          <Link to="/traces" className="text-sm text-brand-light hover:underline">View all traces →</Link>
           <span className="px-3 py-1 glass-panel border-primary/20 text-sm text-gray-300 font-mono shadow-md">Total Active: {services.length}</span>
         </div>
       </div>
