@@ -119,6 +119,10 @@ export async function fetchLogsEnhanced(filters: {
   level?: string;
   pod_id?: string;
   trace_id?: string;
+  host?: string;
+  source?: string;
+  namespace?: string;
+  node_name?: string;
   from_ts?: number;
   to_ts?: number;
   limit?: number;
@@ -141,6 +145,9 @@ export async function fetchLogHistogram(filters: {
   service?: string;
   level?: string;
   keyword?: string;
+  host?: string;
+  source?: string;
+  namespace?: string;
   from_ts?: number;
   to_ts?: number;
   interval?: string;

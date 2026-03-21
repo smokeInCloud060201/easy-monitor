@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Search, RefreshCcw, Loader2 } from 'lucide-react';
 import { fetchLogsEnhanced, fetchLogHistogram, fetchLogFields } from '../lib/api';
+import { parseLogQuery } from '../lib/queryParser';
 import type { LogLine, HistogramBucket, FieldStat } from '../lib/api';
 import { LogViewer } from '../components/logs/LogViewer';
 import { LogHistogram } from '../components/logs/LogHistogram';
@@ -13,6 +14,11 @@ interface Filters {
   service: string | null;
   level: string | null;
   pod_id: string | null;
+  trace_id: string | null;
+  host: string | null;
+  source: string | null;
+  namespace: string | null;
+  node_name: string | null;
   from_ts: number | null;
   to_ts: number | null;
 }
@@ -26,7 +32,9 @@ export function Logs() {
   const [loading, setLoading] = useState(false);
   const [selectedLogIndex, setSelectedLogIndex] = useState<number | null>(null);
   const [filters, setFilters] = useState<Filters>({
-    keyword: '', service: null, level: null, pod_id: null, from_ts: null, to_ts: null,
+    keyword: '', service: null, level: null, pod_id: null, trace_id: null,
+    host: null, source: null, namespace: null, node_name: null,
+    from_ts: null, to_ts: null,
   });
   const [searchInput, setSearchInput] = useState('');
 
@@ -39,6 +47,11 @@ export function Logs() {
       service: filters.service || undefined,
       level: filters.level || undefined,
       pod_id: filters.pod_id || undefined,
+      trace_id: filters.trace_id || undefined,
+      host: filters.host || undefined,
+      source: filters.source || undefined,
+      namespace: filters.namespace || undefined,
+      node_name: filters.node_name || undefined,
       from_ts: filters.from_ts || undefined,
       to_ts: filters.to_ts || undefined,
       limit: 200,
@@ -51,6 +64,9 @@ export function Logs() {
           service: apiFilters.service,
           level: apiFilters.level,
           keyword: apiFilters.keyword,
+          host: apiFilters.host,
+          source: apiFilters.source,
+          namespace: apiFilters.namespace,
           from_ts: apiFilters.from_ts,
           to_ts: apiFilters.to_ts,
         }),
@@ -77,7 +93,19 @@ export function Logs() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setFilters(prev => ({ ...prev, keyword: searchInput }));
+    const parsed = parseLogQuery(searchInput);
+    setFilters(prev => ({
+      ...prev,
+      keyword: parsed.keyword || '',
+      service: parsed.service || prev.service,
+      level: parsed.level || prev.level,
+      pod_id: parsed.pod_id || prev.pod_id,
+      trace_id: parsed.trace_id || prev.trace_id,
+      host: parsed.host || prev.host,
+      source: parsed.source || prev.source,
+      namespace: parsed.namespace || prev.namespace,
+      node_name: parsed.node_name || prev.node_name,
+    }));
   };
 
   const handleLevelChange = (level: string) => {
@@ -103,6 +131,10 @@ export function Logs() {
   if (filters.service) activeFilters.service = filters.service;
   if (filters.level) activeFilters.level = filters.level;
   if (filters.pod_id) activeFilters.pod_id = filters.pod_id;
+  if (filters.host) activeFilters.host = filters.host;
+  if (filters.source) activeFilters.source = filters.source;
+  if (filters.namespace) activeFilters.namespace = filters.namespace;
+  if (filters.node_name) activeFilters.node_name = filters.node_name;
 
   const activeFilterCount = Object.keys(activeFilters).length + (filters.keyword ? 1 : 0);
 
@@ -142,7 +174,7 @@ export function Logs() {
           {activeFilterCount > 0 && (
             <button
               onClick={() => {
-                setFilters({ keyword: '', service: null, level: null, pod_id: null, from_ts: null, to_ts: null });
+              setFilters({ keyword: '', service: null, level: null, pod_id: null, trace_id: null, host: null, source: null, namespace: null, node_name: null, from_ts: null, to_ts: null });
                 setSearchInput('');
               }}
               className="text-xs text-blue-400 hover:text-blue-300"

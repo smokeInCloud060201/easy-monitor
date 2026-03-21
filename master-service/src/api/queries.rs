@@ -248,6 +248,10 @@ pub struct LogsQueryRequest {
     pub level: Option<String>,
     pub pod_id: Option<String>,
     pub trace_id: Option<String>,
+    pub host: Option<String>,
+    pub source: Option<String>,
+    pub namespace: Option<String>,
+    pub node_name: Option<String>,
     pub from_ts: Option<i64>,
     pub to_ts: Option<i64>,
     pub limit: Option<usize>,
@@ -302,6 +306,26 @@ fn build_logs_where_clauses(payload: &LogsQueryRequest) -> Vec<String> {
     if let Some(kw) = &payload.keyword {
         if !kw.is_empty() {
             clauses.push(format!("message ILIKE '%{}%'", kw.replace('\'', "")));
+        }
+    }
+    if let Some(ref host) = payload.host {
+        if !host.is_empty() {
+            clauses.push(format!("host = '{}'", host.replace('\'', "")));
+        }
+    }
+    if let Some(ref source) = payload.source {
+        if !source.is_empty() {
+            clauses.push(format!("source = '{}'", source.replace('\'', "")));
+        }
+    }
+    if let Some(ref ns) = payload.namespace {
+        if !ns.is_empty() {
+            clauses.push(format!("namespace = '{}'", ns.replace('\'', "")));
+        }
+    }
+    if let Some(ref node) = payload.node_name {
+        if !node.is_empty() {
+            clauses.push(format!("node_name = '{}'", node.replace('\'', "")));
         }
     }
     if let Some(from) = payload.from_ts {
@@ -383,7 +407,7 @@ pub async fn query_logs(State(state): State<ApiState>, Json(payload): Json<LogsQ
     if logs.is_empty() {
         let now = chrono::Utc::now();
         let levels = ["INFO", "WARN", "ERROR", "DEBUG"];
-        let services = ["payment-service", "auth-service", "node-agent", "master-service"];
+        let services = ["payment-service", "auth-service", "node-agent", "master-service", "order-service", "api-gateway"];
         let pods = ["pod-abc123", "pod-def456", "pod-ghi789", "pod-jkl012"];
         let hosts = ["worker-1", "worker-2", "worker-3"];
         let messages = [
@@ -399,10 +423,11 @@ pub async fn query_logs(State(state): State<ApiState>, Json(payload): Json<LogsQ
             "Health check passed",
         ];
 
+        let mut all_mock = Vec::new();
         for i in 0..100 {
             let ts = now - chrono::Duration::seconds((100 - i as i64) * 2);
             let ts_ms = ts.timestamp_millis();
-            logs.push(LogLineResponse {
+            all_mock.push(LogLineResponse {
                 trace_id: format!("trace-{:04x}-{:04x}-{:04x}-{:012x}", i, i*7, i*13, ts_ms),
                 span_id: format!("span-{:08x}", i * 31),
                 service: services[i % services.len()].to_string(),
@@ -418,7 +443,41 @@ pub async fn query_logs(State(state): State<ApiState>, Json(payload): Json<LogsQ
                 timestamp_ms: ts_ms,
             });
         }
-        total = 100;
+
+        // Apply filters to mock data (same logic as ClickHouse WHERE clauses)
+        let filtered: Vec<LogLineResponse> = all_mock.into_iter().filter(|log| {
+            if let Some(ref svc) = payload.service {
+                if !svc.is_empty() && svc != "all" && log.service != *svc { return false; }
+            }
+            if let Some(ref lvl) = payload.level {
+                if !lvl.is_empty() && lvl != "all" && log.level != *lvl { return false; }
+            }
+            if let Some(ref pod) = payload.pod_id {
+                if !pod.is_empty() && pod != "all" && log.pod_id != *pod { return false; }
+            }
+            if let Some(ref tid) = payload.trace_id {
+                if !tid.is_empty() && log.trace_id != *tid { return false; }
+            }
+            if let Some(ref kw) = payload.keyword {
+                if !kw.is_empty() && !log.message.to_lowercase().contains(&kw.to_lowercase()) { return false; }
+            }
+            if let Some(ref h) = payload.host {
+                if !h.is_empty() && log.host != *h { return false; }
+            }
+            if let Some(ref s) = payload.source {
+                if !s.is_empty() && log.source != *s { return false; }
+            }
+            if let Some(ref ns) = payload.namespace {
+                if !ns.is_empty() && log.namespace != *ns { return false; }
+            }
+            if let Some(ref node) = payload.node_name {
+                if !node.is_empty() && log.node_name != *node { return false; }
+            }
+            true
+        }).collect();
+
+        total = filtered.len() as u64;
+        logs = filtered;
     }
 
     Json(LogsQueryResponse { logs, total })
@@ -431,6 +490,9 @@ pub struct LogHistogramRequest {
     pub service: Option<String>,
     pub level: Option<String>,
     pub keyword: Option<String>,
+    pub host: Option<String>,
+    pub source: Option<String>,
+    pub namespace: Option<String>,
     pub from_ts: Option<i64>,
     pub to_ts: Option<i64>,
     pub interval: Option<String>,
@@ -472,6 +534,21 @@ pub async fn log_histogram(State(state): State<ApiState>, Json(payload): Json<Lo
     if let Some(ref kw) = payload.keyword {
         if !kw.is_empty() {
             where_clauses.push(format!("message ILIKE '%{}%'", kw.replace('\'', "")));
+        }
+    }
+    if let Some(ref host) = payload.host {
+        if !host.is_empty() {
+            where_clauses.push(format!("host = '{}'", host.replace('\'', "")));
+        }
+    }
+    if let Some(ref source) = payload.source {
+        if !source.is_empty() {
+            where_clauses.push(format!("source = '{}'", source.replace('\'', "")));
+        }
+    }
+    if let Some(ref ns) = payload.namespace {
+        if !ns.is_empty() {
+            where_clauses.push(format!("namespace = '{}'", ns.replace('\'', "")));
         }
     }
     if let Some(from) = payload.from_ts {
