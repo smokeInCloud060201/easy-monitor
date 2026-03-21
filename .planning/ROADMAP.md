@@ -108,3 +108,13 @@ Plans:
 - [ ] Plan 1: APM Backend Enhancements — Latency Distribution & Service Dependencies API (Wave 1)
 - [ ] Plan 2: Modern APM Dashboard — Datadog-style Multi-Section Service Page (Wave 2)
 
+
+### Phase 11: Update dashboard UI — Datadog-style design system (colors, theme, typography, layout, components)
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 10
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 11 to break down)
