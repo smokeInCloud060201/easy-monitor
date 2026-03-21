@@ -128,6 +128,15 @@ fn is_uuid_at(chars: &[char], start: usize) -> bool {
     true
 }
 
+/// Services that are part of the monitoring infrastructure itself.
+/// Logs and traces from these services are filtered out at ingress.
+const INTERNAL_SERVICES: &[&str] = &["master-service", "node-agent"];
+
+/// Check if a service name belongs to internal monitoring infrastructure.
+pub fn is_internal_service(service: &str) -> bool {
+    INTERNAL_SERVICES.contains(&service)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -186,5 +195,18 @@ mod tests {
             sanitize_resource("cache.GET"),
             "cache.GET"
         );
+    }
+
+    #[test]
+    fn test_internal_service_detected() {
+        assert!(is_internal_service("master-service"));
+        assert!(is_internal_service("node-agent"));
+    }
+
+    #[test]
+    fn test_app_service_not_internal() {
+        assert!(!is_internal_service("auth-service"));
+        assert!(!is_internal_service("payment-service"));
+        assert!(!is_internal_service("order-service"));
     }
 }

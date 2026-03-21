@@ -16,6 +16,7 @@ use shared_proto::traces::{
 };
 
 use crate::bus::{Event, EventBusTx};
+use crate::utils::is_internal_service;
 
 #[derive(Clone)]
 pub struct GrpcIngress {
@@ -54,10 +55,14 @@ impl LogsService for GrpcIngress {
         request: Request<SyncLogsRequest>,
     ) -> Result<Response<SyncLogsResponse>, Status> {
         let req = request.into_inner();
-        let entries = req.entries;
+        let entries: Vec<_> = req.entries.into_iter()
+            .filter(|e| !is_internal_service(&e.service))
+            .collect();
         
-        info!("Received {} logs", entries.len());
-        let _ = self.tx.send(Event::Logs(entries));
+        if !entries.is_empty() {
+            info!("Received {} logs", entries.len());
+            let _ = self.tx.send(Event::Logs(entries));
+        }
 
         Ok(Response::new(SyncLogsResponse {
             success: true,
@@ -73,10 +78,14 @@ impl TracesService for GrpcIngress {
         request: Request<SyncTracesRequest>,
     ) -> Result<Response<SyncTracesResponse>, Status> {
         let req = request.into_inner();
-        let spans = req.spans;
+        let spans: Vec<_> = req.spans.into_iter()
+            .filter(|s| !is_internal_service(&s.service))
+            .collect();
         
-        info!("Received {} spans", spans.len());
-        let _ = self.tx.send(Event::Traces(spans));
+        if !spans.is_empty() {
+            info!("Received {} spans", spans.len());
+            let _ = self.tx.send(Event::Traces(spans));
+        }
 
         Ok(Response::new(SyncTracesResponse {
             success: true,
