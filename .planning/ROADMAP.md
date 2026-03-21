@@ -111,10 +111,12 @@ Plans:
 
 ### Phase 11: Update dashboard UI — Datadog-style design system (colors, theme, typography, layout, components)
 
-**Goal:** [To be planned]
+**Goal:** Overhaul the dashboard design system to match Datadog: purple brand palette (#632CA6), Inter/JetBrains Mono typography via Google Fonts, refined dark backgrounds, grouped sidebar navigation with purple accents, glass-panel component variants, and consistent page-level styling across all views.
 **Requirements**: TBD
 **Depends on:** Phase 10
-**Plans:** 0 plans
+**Plans:** 2 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 11 to break down)
+- [ ] Plan 1: Design System Foundation — Colors, Typography, Tailwind Tokens & CSS Variables (Wave 1)
+- [ ] Plan 2: UI Component Overhaul — Sidebar, Layout, Headers, and Page Refinements (Wave 2)
+
