@@ -130,3 +130,13 @@ Plans:
 
 Plans:
 - [ ] Plan 1: Structured Query Parser & Backend Filter Extensions (Wave 1)
+
+### Phase 13: Sanitize sensitive data in trace span resource names
+
+**Goal:** Replace dynamic tokens (numeric IDs, UUIDs, hex strings, transaction IDs) in span resource names with `?` at ingestion time. Prevents high-cardinality RED metric keys and hides sensitive data in the traces UI.
+**Requirements**: TBD
+**Depends on:** Phase 12
+**Plans:** 1 plan
+
+Plans:
+- [ ] Plan 1: Resource Name Sanitization at Ingestion (Wave 1)

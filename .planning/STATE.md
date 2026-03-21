@@ -57,6 +57,7 @@ progress:
 - Phase 10 added: Update APM page — Modern Datadog-style multi-section service monitoring dashboard
 - Phase 11 added: Update dashboard UI — Datadog-style design system (colors, theme, typography, layout, components)
 - Phase 12 added: Fix logs query parser — structured search syntax support
+- Phase 13 added: Sanitize sensitive data in trace span resource names
 
 ## Session Info
 
