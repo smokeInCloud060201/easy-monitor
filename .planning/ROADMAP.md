@@ -96,3 +96,13 @@ Plans:
 - [ ] Plan 1: Service Map Backend — Topology API with Edge Detection from Traces (Wave 1)
 - [ ] Plan 2: Service Map Dashboard — Interactive Topology Graph with Health Indicators (Wave 2)
 
+
+### Phase 10: Update APM page — Modern Datadog-style multi-section service monitoring dashboard
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 9
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 10 to break down)
