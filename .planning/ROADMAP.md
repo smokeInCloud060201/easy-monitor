@@ -72,3 +72,15 @@ Plans:
 
 Plans:
 - [ ] Plan 1: Enrich Mock App with Deep Multi-Step Request Flows (Wave 1)
+
+### Phase 8: Logs feature — GrayLog-style UI and metadata
+
+**Goal:** Full GrayLog-style log exploration — rich metadata pipeline, timeline histogram, field statistics sidebar, expandable log detail with all metadata, and field-based filtering. Replace minimal log viewer with production-grade log analysis UX.
+**Requirements**: TBD
+**Depends on:** Phase 7
+**Plans:** 2 plans
+
+Plans:
+- [ ] Plan 1: Logs Backend — Rich Metadata API & ClickHouse Schema Enhancement (Wave 1)
+- [ ] Plan 2: Logs Dashboard — GrayLog-Style UI with Histogram, Fields Sidebar & Expandable Detail (Wave 2)
+
