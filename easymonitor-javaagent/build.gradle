@@ -1,0 +1,24 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.easymonitor.agent'
+version = '1.0.0-SNAPSHOT'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // API for writing SPI extensions
+    compileOnly 'io.opentelemetry:opentelemetry-sdk-extension-autoconfigure-spi:1.33.0'
+}
+
+jar {
+    archiveBaseName.set('easymonitor-extension')
+}

@@ -70,7 +70,10 @@ cd "$SCRIPT_DIR/checkout-service"
 OTEL_SERVICE_NAME=checkout-service \
 OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4317 \
 OTEL_EXPORTER_OTLP_PROTOCOL=grpc \
-java -jar build/libs/checkout-service.jar \
+OTEL_LOGS_EXPORTER=otlp \
+OTEL_METRICS_EXPORTER=otlp \
+java -javaagent:opentelemetry-javaagent.jar \
+     -jar build/libs/checkout-service.jar \
      --server.port=8080 \
      > "$LOG_DIR/checkout.log" 2>&1 &
 PIDS+=($!)
@@ -104,15 +107,15 @@ for svc in "checkout-service:8080" "category-service:8081" "payment-service:8082
     name="${svc%%:*}"
     port="${svc##*:}"
     if curl -sf "http://localhost:$port/api/health" > /dev/null 2>&1; then
-        echo "   ✅ $name (:$port) — healthy"
+        echo "   $name (:$port) — healthy"
     else
-        echo "   ⚠️  $name (:$port) — not ready yet (may need more time)"
+        echo "   $name (:$port) — not ready yet (may need more time)"
     fi
 done
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  📊 All services running! Generating traffic..."
+echo " All services running! Generating traffic..."
 echo "  Press Ctrl+C to stop all services."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
