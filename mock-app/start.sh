@@ -31,30 +31,22 @@ echo ""
 # ─── 1. Build Services ───
 echo "📦 Building checkout-service (Java/Spring Boot)..."
 cd "$SCRIPT_DIR/checkout-service"
-if [ ! -f build/libs/checkout-service.jar ]; then
-    ./gradlew bootJar -q 2>&1
-fi
+./gradlew bootJar -q 2>&1
 echo "   ✅ checkout-service.jar ready"
 
 echo "📦 Building category-service (Go)..."
 cd "$SCRIPT_DIR/category-service"
-if [ ! -f category-service ]; then
-    go build -o category-service . 2>&1
-fi
+go build -o category-service . 2>&1
 echo "   ✅ category-service binary ready"
 
 echo "📦 Installing payment-service deps (Bun)..."
 cd "$SCRIPT_DIR/payment-service"
-if [ ! -d node_modules ]; then
-    bun install --silent 2>&1
-fi
+bun install --silent 2>&1
 echo "   ✅ payment-service deps ready"
 
 echo "📦 Building notification-service (Rust)..."
 cd "$SCRIPT_DIR/notification-service"
-if [ ! -f target/debug/notification-service ]; then
-    cargo build 2>&1
-fi
+cargo build -q 2>&1
 echo "   ✅ notification-service binary ready"
 
 echo ""
@@ -72,7 +64,7 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4317 \
 OTEL_EXPORTER_OTLP_PROTOCOL=grpc \
 OTEL_LOGS_EXPORTER=otlp \
 OTEL_METRICS_EXPORTER=otlp \
-java -javaagent:opentelemetry-javaagent.jar \
+java -javaagent:../../agents/java/opentelemetry-javaagent.jar \
      -jar build/libs/checkout-service.jar \
      --server.port=8080 \
      > "$LOG_DIR/checkout.log" 2>&1 &
@@ -87,7 +79,8 @@ PIDS+=($!)
 # payment-service (Bun)
 echo "🥟 Starting payment-service on :8082..."
 cd "$SCRIPT_DIR/payment-service"
-bun run src/index.ts > "$LOG_DIR/payment.log" 2>&1 &
+OTEL_SERVICE_NAME=payment-service \
+bun run --preload ../../agents/node/instrumentation.ts src/index.ts > "$LOG_DIR/payment.log" 2>&1 &
 PIDS+=($!)
 
 # notification-service (Rust)

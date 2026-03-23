@@ -1,5 +1,5 @@
 [workspace]
-members = [
+members = ["agents/rust/easymonitor-agent",
     "master-service",
     "node-agent",
     "shared-proto",

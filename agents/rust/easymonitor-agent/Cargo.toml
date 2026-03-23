@@ -1,0 +1,9 @@
+[package]
+name = "easymonitor-agent"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+opentelemetry = "0.22"
+opentelemetry_sdk = { version = "0.22", features = ["rt-tokio", "logs"] }
+opentelemetry-otlp = { version = "0.15", features = ["tonic", "logs"] }
