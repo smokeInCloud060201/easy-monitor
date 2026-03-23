@@ -71,7 +71,7 @@ impl TraceService for OTLPReceiver {
                         parent_id: parent_span_id,
                         name: span.name.clone(),
                         service: service_name.clone(),
-                        resource: "otlp".to_string(), // OTLP generic generic bound
+                        resource: if span.name.is_empty() { "unknown".to_string() } else { span.name.clone() },
                         start_time: (span.start_time_unix_nano / 1_000_000) as i64,
                         duration: duration_ms as i64,
                         meta: tags,

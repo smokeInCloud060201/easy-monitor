@@ -17,12 +17,43 @@ pub struct ServicesResponse {
 pub async fn get_services(State(state): State<ApiState>) -> Json<ServicesResponse> {
     let mut services = HashSet::new();
     
+    // In-memory metrics
     for entry in state.latest_metrics.iter() {
         let key = entry.key();
         if key.starts_with("apm.") {
             let parts: Vec<&str> = key[4..].split(':').collect();
             if !parts.is_empty() {
                 services.insert(parts[0].to_string());
+            }
+        }
+    }
+
+    // Also query ClickHouse for services in RED metrics
+    let red_query = "SELECT DISTINCT service FROM easy_monitor_red_metrics FORMAT JSON";
+    let red_url = format!("{}\u{0026}query={}", CH_URL, urlencoding::encode(red_query));
+    if let Ok(res) = state.ch_client.get(&red_url).send().await {
+        if let Ok(json_res) = res.json::<Value>().await {
+            if let Some(data) = json_res.get("data").and_then(|d| d.as_array()) {
+                for row in data {
+                    if let Some(svc) = row.get("service").and_then(|v| v.as_str()) {
+                        services.insert(svc.to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    // Also query ClickHouse for services in traces
+    let trace_query = "SELECT DISTINCT service FROM easy_monitor_traces FORMAT JSON";
+    let trace_url = format!("{}\u{0026}query={}", CH_URL, urlencoding::encode(trace_query));
+    if let Ok(res) = state.ch_client.get(&trace_url).send().await {
+        if let Ok(json_res) = res.json::<Value>().await {
+            if let Some(data) = json_res.get("data").and_then(|d| d.as_array()) {
+                for row in data {
+                    if let Some(svc) = row.get("service").and_then(|v| v.as_str()) {
+                        services.insert(svc.to_string());
+                    }
+                }
             }
         }
     }
@@ -453,6 +484,34 @@ pub async fn get_service_map(
         }
     }
 
+    // Also include services from RED metrics that have no cross-service edges
+    let standalone_query = format!(
+        "SELECT DISTINCT service FROM easy_monitor_red_metrics WHERE timestamp >= {} FORMAT JSON",
+        from_ms
+    );
+    let standalone_url = format!("{}\u{0026}query={}", CH_URL, urlencoding::encode(&standalone_query));
+    if let Ok(res) = state.ch_client.get(&standalone_url).send().await {
+        if let Ok(json_res) = res.json::<Value>().await {
+            if let Some(data) = json_res.get("data").and_then(|d| d.as_array()) {
+                let existing: HashSet<String> = nodes.iter().map(|n| n.service.clone()).collect();
+                for row in data {
+                    if let Some(svc) = row.get("service").and_then(|v| v.as_str()) {
+                        if !existing.contains(svc) {
+                            nodes.push(ServiceMapNode {
+                                service: svc.to_string(),
+                                total_requests: 0.0,
+                                error_rate: 0.0,
+                                avg_duration_ms: 0.0,
+                                p95_duration_ms: 0.0,
+                                status: "healthy".to_string(),
+                                node_type: infer_node_type(svc),
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     Json(ServiceMapResponse { nodes, edges })
 }
