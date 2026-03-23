@@ -87,20 +87,7 @@ pub async fn query_traces(State(state): State<ApiState>, Json(payload): Json<Tra
         }
     }
 
-    // Mock fallback when ClickHouse is empty or unavailable
-    let trace_id = payload.trace_id.clone();
-    let now = chrono::Utc::now();
-    let root_id = format!("span-root-{}", now.timestamp());
-    let payment_id = format!("span-payment-{}", now.timestamp());
-    
-    let spans = vec![
-        SpanResponse { trace_id: trace_id.clone(), span_id: root_id.clone(), parent_id: None, name: "HTTP GET /checkout".into(), service: "api-gateway".into(), resource: "/checkout".into(), error: 0, timestamp: now.to_rfc3339(), duration_ms: 120.5 },
-        SpanResponse { trace_id: trace_id.clone(), span_id: format!("span-auth-{}", now.timestamp()), parent_id: Some(root_id.clone()), name: "validate_token".into(), service: "auth-service".into(), resource: "validate_token".into(), error: 0, timestamp: (now + chrono::Duration::milliseconds(5)).to_rfc3339(), duration_ms: 15.2 },
-        SpanResponse { trace_id: trace_id.clone(), span_id: payment_id.clone(), parent_id: Some(root_id.clone()), name: "process_payment".into(), service: "payment-service".into(), resource: "process_payment".into(), error: 0, timestamp: (now + chrono::Duration::milliseconds(25)).to_rfc3339(), duration_ms: 85.0 },
-        SpanResponse { trace_id: trace_id.clone(), span_id: format!("span-db-{}", now.timestamp()), parent_id: Some(payment_id), name: "UPDATE users.balance".into(), service: "postgres".into(), resource: "users.balance".into(), error: 0, timestamp: (now + chrono::Duration::milliseconds(30)).to_rfc3339(), duration_ms: 45.0 },
-    ];
-
-    Json(TracesQueryResponse { spans })
+    Json(TracesQueryResponse { spans: Vec::new() })
 }
 
 // ─── Trace Search (Task 1.4) ───
@@ -403,83 +390,6 @@ pub async fn query_logs(State(state): State<ApiState>, Json(payload): Json<LogsQ
         }
     }
 
-    // Mock fallback when ClickHouse is empty
-    if logs.is_empty() {
-        let now = chrono::Utc::now();
-        let levels = ["INFO", "WARN", "ERROR", "DEBUG"];
-        let services = ["payment-service", "auth-service", "node-agent", "master-service", "order-service", "api-gateway"];
-        let pods = ["pod-abc123", "pod-def456", "pod-ghi789", "pod-jkl012"];
-        let hosts = ["worker-1", "worker-2", "worker-3"];
-        let messages = [
-            "User login successful",
-            "Checkout cart processed",
-            "Database connection timeout",
-            "Received unexpected payload",
-            "Flushing pending metrics to WAL",
-            "Request processed in 45ms",
-            "Cache miss for key user:session",
-            "Retry attempt 2/3 for external API",
-            "Connection pool exhausted, waiting for release",
-            "Health check passed",
-        ];
-
-        let mut all_mock = Vec::new();
-        for i in 0..100 {
-            let ts = now - chrono::Duration::seconds((100 - i as i64) * 2);
-            let ts_ms = ts.timestamp_millis();
-            all_mock.push(LogLineResponse {
-                trace_id: format!("trace-{:04x}-{:04x}-{:04x}-{:012x}", i, i*7, i*13, ts_ms),
-                span_id: format!("span-{:08x}", i * 31),
-                service: services[i % services.len()].to_string(),
-                level: levels[i % levels.len()].to_string(),
-                message: messages[i % messages.len()].to_string(),
-                pod_id: pods[i % pods.len()].to_string(),
-                namespace: "default".to_string(),
-                node_name: hosts[i % hosts.len()].to_string(),
-                host: hosts[i % hosts.len()].to_string(),
-                source: "stdout".to_string(),
-                attributes: serde_json::json!({"request_id": format!("req-{}", i), "env": "production"}),
-                timestamp: ts.to_rfc3339(),
-                timestamp_ms: ts_ms,
-            });
-        }
-
-        // Apply filters to mock data (same logic as ClickHouse WHERE clauses)
-        let filtered: Vec<LogLineResponse> = all_mock.into_iter().filter(|log| {
-            if let Some(ref svc) = payload.service {
-                if !svc.is_empty() && svc != "all" && log.service != *svc { return false; }
-            }
-            if let Some(ref lvl) = payload.level {
-                if !lvl.is_empty() && lvl != "all" && log.level != *lvl { return false; }
-            }
-            if let Some(ref pod) = payload.pod_id {
-                if !pod.is_empty() && pod != "all" && log.pod_id != *pod { return false; }
-            }
-            if let Some(ref tid) = payload.trace_id {
-                if !tid.is_empty() && log.trace_id != *tid { return false; }
-            }
-            if let Some(ref kw) = payload.keyword {
-                if !kw.is_empty() && !log.message.to_lowercase().contains(&kw.to_lowercase()) { return false; }
-            }
-            if let Some(ref h) = payload.host {
-                if !h.is_empty() && log.host != *h { return false; }
-            }
-            if let Some(ref s) = payload.source {
-                if !s.is_empty() && log.source != *s { return false; }
-            }
-            if let Some(ref ns) = payload.namespace {
-                if !ns.is_empty() && log.namespace != *ns { return false; }
-            }
-            if let Some(ref node) = payload.node_name {
-                if !node.is_empty() && log.node_name != *node { return false; }
-            }
-            true
-        }).collect();
-
-        total = filtered.len() as u64;
-        logs = filtered;
-    }
-
     Json(LogsQueryResponse { logs, total })
 }
 
@@ -597,20 +507,6 @@ pub async fn log_histogram(State(state): State<ApiState>, Json(payload): Json<Lo
         }
     }
 
-    // Mock fallback
-    if buckets.is_empty() {
-        let now = chrono::Utc::now();
-        for i in 0..60 {
-            let ts = now - chrono::Duration::minutes(60 - i);
-            let base = (10.0 + (i as f64 * 0.5).sin() * 8.0) as u64;
-            buckets.push(HistogramBucket {
-                timestamp: ts.timestamp_millis(),
-                count: base + (i as u64 % 5),
-                error_count: if i % 7 == 0 { 2 } else { (i as u64 % 3).min(1) },
-                warn_count: if i % 4 == 0 { 3 } else { 1 },
-            });
-        }
-    }
 
     Json(LogHistogramResponse { buckets })
 }
@@ -708,23 +604,6 @@ pub async fn log_fields(State(state): State<ApiState>, Json(payload): Json<LogFi
         }
     }
 
-    // Mock fallback
-    if fields.is_empty() {
-        let mock_fields = vec![
-            ("service", vec![("payment-service", 35), ("auth-service", 28), ("node-agent", 22), ("master-service", 15)]),
-            ("level", vec![("INFO", 50), ("WARN", 25), ("ERROR", 15), ("DEBUG", 10)]),
-            ("pod_id", vec![("pod-abc123", 30), ("pod-def456", 25), ("pod-ghi789", 25), ("pod-jkl012", 20)]),
-            ("namespace", vec![("default", 80), ("monitoring", 20)]),
-            ("host", vec![("worker-1", 40), ("worker-2", 35), ("worker-3", 25)]),
-        ];
-        total_logs = 100;
-        for (field, values) in mock_fields {
-            let top_values = values.into_iter().map(|(val, cnt)| {
-                FieldValue { value: val.to_string(), count: cnt, percentage: cnt as f64 }
-            }).collect();
-            fields.push(FieldStat { field: field.to_string(), top_values });
-        }
-    }
 
     Json(LogFieldsResponse { fields, total_logs })
 }
@@ -774,19 +653,5 @@ pub struct SystemMetricPoint {
 }
 
 pub async fn get_system_metrics(axum::extract::Query(_query): axum::extract::Query<SystemMetricsRequest>) -> Json<Vec<SystemMetricPoint>> {
-    let mut data = Vec::new();
-    let now = chrono::Utc::now();
-    for i in (0..60).rev() {
-        let t = now - chrono::Duration::minutes(i);
-        let time_val = t.timestamp() as f64;
-        let cpu = 25.0 + (time_val / 200.0).sin() * 15.0;
-        let ram = 60.0 + (time_val / 150.0).cos() * 5.0;
-        
-        data.push(SystemMetricPoint {
-            time: t.format("%H:%M").to_string(),
-            cpu,
-            ram,
-        });
-    }
-    Json(data)
+    Json(Vec::new())
 }

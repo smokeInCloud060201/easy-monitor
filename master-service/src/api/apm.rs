@@ -453,37 +453,6 @@ pub async fn get_service_map(
         }
     }
 
-    // Mock fallback
-    if nodes.is_empty() {
-        let mock_nodes = vec![
-            ("api-gateway", 1250.0, 1.2, 45.0, 120.0, "healthy", "service"),
-            ("auth-service", 800.0, 0.5, 30.0, 85.0, "healthy", "service"),
-            ("payment-service", 420.0, 8.5, 95.0, 280.0, "warning", "service"),
-            ("notification-service", 310.0, 2.1, 60.0, 150.0, "healthy", "service"),
-            ("order-service", 650.0, 3.2, 75.0, 200.0, "healthy", "service"),
-            ("category-service", 500.0, 0.8, 25.0, 65.0, "healthy", "service"),
-            ("redis-cache", 2000.0, 0.1, 2.0, 5.0, "healthy", "cache"),
-            ("postgres-db", 1800.0, 0.3, 15.0, 40.0, "healthy", "database"),
-        ];
-        nodes = mock_nodes.into_iter().map(|(s, r, e, a, p, st, nt)| ServiceMapNode {
-            service: s.to_string(), total_requests: r, error_rate: e,
-            avg_duration_ms: a, p95_duration_ms: p, status: st.to_string(), node_type: nt.to_string(),
-        }).collect();
-
-        edges = vec![
-            ("api-gateway", "auth-service", 800.0, 0.5, 30.0),
-            ("api-gateway", "order-service", 650.0, 3.2, 75.0),
-            ("api-gateway", "category-service", 500.0, 0.8, 25.0),
-            ("order-service", "payment-service", 420.0, 8.5, 95.0),
-            ("order-service", "notification-service", 310.0, 2.1, 60.0),
-            ("payment-service", "notification-service", 200.0, 1.0, 40.0),
-            ("auth-service", "redis-cache", 600.0, 0.1, 2.0),
-            ("order-service", "postgres-db", 650.0, 0.3, 15.0),
-            ("payment-service", "postgres-db", 420.0, 0.2, 12.0),
-        ].into_iter().map(|(s, t, r, e, a)| ServiceMapEdge {
-            source: s.to_string(), target: t.to_string(), requests: r, error_rate: e, avg_duration_ms: a,
-        }).collect();
-    }
 
     Json(ServiceMapResponse { nodes, edges })
 }
@@ -633,25 +602,9 @@ pub async fn get_latency_distribution(
         }
     }
 
-    // Mock fallback
-    let total = 5000u64;
-    let mock_buckets = vec![
-        ("0-10ms", 0.0, 10.0, 1200u64),
-        ("10-50ms", 10.0, 50.0, 2100),
-        ("50-100ms", 50.0, 100.0, 850),
-        ("100-250ms", 100.0, 250.0, 450),
-        ("250-500ms", 250.0, 500.0, 220),
-        ("500ms-1s", 500.0, 1000.0, 130),
-        ("1s+", 1000.0, 10000.0, 50),
-    ];
-    let buckets = mock_buckets.into_iter().map(|(label, min, max, count)| LatencyBucket {
-        range_label: label.to_string(), min_ms: min, max_ms: max, count,
-        percentage: (count as f64 / total as f64) * 100.0,
-    }).collect();
-
     Json(LatencyDistributionResponse {
-        service: service_name, buckets, total_requests: total,
-        p50_ms: 28.5, p90_ms: 145.0, p95_ms: 320.0, p99_ms: 850.0,
+        service: service_name, buckets: Vec::new(), total_requests: 0,
+        p50_ms: 0.0, p90_ms: 0.0, p95_ms: 0.0, p99_ms: 0.0,
     })
 }
 
@@ -748,18 +701,6 @@ pub async fn get_service_dependencies(
         }
     }
 
-    // Mock fallback
-    if upstream.is_empty() && downstream.is_empty() {
-        upstream = vec![
-            ServiceDependency { service: "api-gateway".into(), direction: "upstream".into(), requests: 1200.0, error_rate: 1.5, avg_duration_ms: 45.0 },
-            ServiceDependency { service: "web-frontend".into(), direction: "upstream".into(), requests: 800.0, error_rate: 0.5, avg_duration_ms: 30.0 },
-        ];
-        downstream = vec![
-            ServiceDependency { service: "postgres-db".into(), direction: "downstream".into(), requests: 950.0, error_rate: 0.2, avg_duration_ms: 12.0 },
-            ServiceDependency { service: "redis-cache".into(), direction: "downstream".into(), requests: 2100.0, error_rate: 0.1, avg_duration_ms: 2.0 },
-            ServiceDependency { service: "notification-service".into(), direction: "downstream".into(), requests: 300.0, error_rate: 3.0, avg_duration_ms: 85.0 },
-        ];
-    }
 
     Json(ServiceDependenciesResponse { service: service_name, upstream, downstream })
 }
