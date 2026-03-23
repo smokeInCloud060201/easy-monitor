@@ -4,13 +4,13 @@ import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-grpc';
 import { BatchLogRecordProcessor, LoggerProvider } from '@opentelemetry/sdk-logs';
 import { logs } from '@opentelemetry/api-logs';
-import { resourceFromAttributes } from '@opentelemetry/resources';
+import { Resource } from '@opentelemetry/resources';
+import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
 
 // Set up log provider with service.name resource
 const logExporter = new OTLPLogExporter({ url: 'http://localhost:4317' });
-const logResource = resourceFromAttributes({ 'service.name': 'payment-service' });
 const logProvider = new LoggerProvider({
-  resource: logResource,
+  resource: new Resource({ [ATTR_SERVICE_NAME]: 'payment-service' }),
   processors: [new BatchLogRecordProcessor(logExporter)],
 });
 logs.setGlobalLoggerProvider(logProvider);
