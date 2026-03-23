@@ -7,6 +7,22 @@ import { Resource } from '@opentelemetry/resources';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
 import { BatchLogRecordProcessor, LoggerProvider } from '@opentelemetry/sdk-logs';
 import { logs } from '@opentelemetry/api-logs';
+import { Hook } from 'require-in-the-middle';
+import { OpenTelemetryTransportV3 } from '@opentelemetry/winston-transport';
+
+new Hook(['winston'], (winston: any) => {
+    const originalCreateLogger = winston.createLogger;
+    winston.createLogger = function (options: any) {
+        options = options || {};
+        options.transports = options.transports || [];
+        if (!Array.isArray(options.transports)) {
+            options.transports = [options.transports];
+        }
+        options.transports.push(new OpenTelemetryTransportV3());
+        return originalCreateLogger.call(this, options);
+    };
+    return winston;
+});
 
 const endpoint = 'http://127.0.0.1:4317';
 const resource = new Resource({

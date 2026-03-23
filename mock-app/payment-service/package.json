@@ -5,11 +5,8 @@
     "start": "bun run src/index.ts"
   },
   "dependencies": {
-    "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/api-logs": "^0.213.0",
-    "@opentelemetry/exporter-logs-otlp-grpc": "^0.213.0",
-    "@opentelemetry/exporter-trace-otlp-grpc": "^0.52.0",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "winston": "^3.19.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.6"

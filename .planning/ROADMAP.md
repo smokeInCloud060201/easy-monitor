@@ -210,3 +210,13 @@ Plans:
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 20 to break down)
+
+### Phase 21: Refactor agents to support true zero-code Datadog-style pure injection removing application OTel dependencies
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 20
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 21 to break down)

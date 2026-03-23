@@ -3,8 +3,6 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use tracing_actix_web::TracingLogger;
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::Registry;
 
 #[derive(Deserialize)]
 struct NotifyRequest {
@@ -35,10 +33,7 @@ struct NotificationStatus {
 }
 
 fn init_telemetry() {
-    let tracer = easymonitor_agent::init_telemetry("notification-service");
-    let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
-    let subscriber = Registry::default().with(telemetry);
-    tracing::subscriber::set_global_default(subscriber).unwrap();
+    easymonitor_agent::init_telemetry("notification-service");
 }
 
 async fn simulate_sleep(min_ms: u64, max_ms: u64) {
@@ -52,7 +47,7 @@ async fn handle_notify(_req: HttpRequest, body: web::Json<NotifyRequest>) -> Htt
     let notify_type = body.r#type.clone().unwrap_or_else(|| "order_confirmation".to_string());
     let notification_id = format!("notif_{}", &uuid::Uuid::new_v4().to_string()[..8]);
 
-    println!("[INFO] POST /api/notify - order={} email={} type={}", order_id, email, notify_type);
+    tracing::info!("POST /api/notify - order={} email={} type={}", order_id, email, notify_type);
 
     // Step 1: Lookup user preferences in DB
     simulate_sleep(10, 40).await;
@@ -61,7 +56,7 @@ async fn handle_notify(_req: HttpRequest, body: web::Json<NotifyRequest>) -> Htt
     simulate_sleep(5, 15).await;
     let fail = { rand::thread_rng().gen::<f64>() < 0.03 };
     if fail {
-        println!("[ERROR] POST /api/notify - template render failed order={}", order_id);
+        tracing::error!("POST /api/notify - template render failed order={}", order_id);
         return HttpResponse::InternalServerError().json(NotifyResponse {
             status: "failed".to_string(),
             notification_id,
@@ -74,7 +69,7 @@ async fn handle_notify(_req: HttpRequest, body: web::Json<NotifyRequest>) -> Htt
     simulate_sleep(50, 200).await;
     let timeout = { rand::thread_rng().gen::<f64>() < 0.05 };
     if timeout {
-        println!("[ERROR] POST /api/notify - SMTP timeout order={}", order_id);
+        tracing::error!("POST /api/notify - SMTP timeout order={}", order_id);
         return HttpResponse::GatewayTimeout().json(NotifyResponse {
             status: "timeout".to_string(),
             notification_id,
@@ -82,7 +77,7 @@ async fn handle_notify(_req: HttpRequest, body: web::Json<NotifyRequest>) -> Htt
             channel: "email".to_string(),
         });
     } else {
-        println!("[INFO] POST /api/notify - SMTP sent to={} order={}", email, order_id);
+        tracing::info!("POST /api/notify - SMTP sent to={} order={}", email, order_id);
     }
 
     // Step 4: Record in DB
@@ -91,7 +86,7 @@ async fn handle_notify(_req: HttpRequest, body: web::Json<NotifyRequest>) -> Htt
     // Step 5: Update cache
     simulate_sleep(1, 5).await;
 
-    println!("[INFO] POST /api/notify - COMPLETED notification_id={} order={}", notification_id, order_id);
+    tracing::info!("POST /api/notify - COMPLETED notification_id={} order={}", notification_id, order_id);
 
     HttpResponse::Ok().json(NotifyResponse {
         status: "sent".to_string(),
@@ -104,7 +99,7 @@ async fn handle_notify(_req: HttpRequest, body: web::Json<NotifyRequest>) -> Htt
 async fn handle_get_notification(_req: HttpRequest, path: web::Path<String>) -> HttpResponse {
     let order_id = path.into_inner();
 
-    println!("[INFO] GET /api/notifications/{} - started", order_id);
+    tracing::info!("GET /api/notifications/{} - started", order_id);
 
     // Cache lookup
     simulate_sleep(1, 5).await;
@@ -112,13 +107,13 @@ async fn handle_get_notification(_req: HttpRequest, path: web::Path<String>) -> 
     // DB fallback (30% cache miss)
     let miss = { rand::thread_rng().gen::<f64>() > 0.7 };
     if miss {
-        println!("[INFO] GET /api/notifications/{} - cache miss, querying DB", order_id);
+        tracing::info!("GET /api/notifications/{} - cache miss, querying DB", order_id);
         simulate_sleep(10, 35).await;
     }
 
     let safe_id = if order_id.len() > 4 { &order_id[4..order_id.len().min(12)] } else { &order_id };
 
-    println!("[INFO] GET /api/notifications/{} - 200 OK", order_id);
+    tracing::info!("GET /api/notifications/{} - 200 OK", order_id);
 
     HttpResponse::Ok().json(NotificationStatus {
         notification_id: format!("notif_{}", safe_id),

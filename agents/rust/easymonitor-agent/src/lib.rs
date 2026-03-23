@@ -3,9 +3,12 @@ use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::propagation::TraceContextPropagator;
 use opentelemetry_sdk::trace as sdktrace;
 use opentelemetry_sdk::Resource;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::Registry;
+use tracing_subscriber::EnvFilter;
 
 /// Initializes the EasyMonitor unified OpenTelemetry tracer and logger pipelines
-pub fn init_telemetry(service_name: &str) -> sdktrace::Tracer {
+pub fn init_telemetry(service_name: &str) {
     // Trace exporter
     let trace_exporter = opentelemetry_otlp::new_exporter()
         .tonic()
@@ -41,11 +44,21 @@ pub fn init_telemetry(service_name: &str) -> sdktrace::Tracer {
     // Set global propagator for W3C TraceContext
     opentelemetry::global::set_text_map_propagator(TraceContextPropagator::new());
 
+    // Bind tracer and logger into the global tracing registry directly inside the agent!
+    let env_filter = EnvFilter::new("info,h2=off,hyper=off,tonic=off,reqwest=off");
+    let telemetry = tracing_opentelemetry::layer().with_tracer(_tracer);
+    let log_layer = opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge::new(&_log_provider.provider().clone());
+
+    let subscriber = Registry::default()
+        .with(env_filter)
+        .with(telemetry)
+        .with(log_layer);
+        
+    tracing::subscriber::set_global_default(subscriber).expect("Failed to install tracing subscriber");
+
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     println!("  🚀 [EasyMonitor] Rust Agent attached to {}!", service_name);
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-
-    _tracer
 }
 
 #[cfg(test)]

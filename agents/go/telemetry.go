@@ -10,10 +10,15 @@ import (
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	otellog "go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/resource"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
+	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+
+    "go.opentelemetry.io/contrib/bridges/otelslog"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+    "log/slog"
+    "net/http"
 )
 
 // Init sets up the global easy-monitor OpenTelemetry trace and log providers.
@@ -61,9 +66,18 @@ func Init(serviceName string) (func(context.Context) error, func(context.Context
 	)
 	otellog.SetLoggerProvider(lp)
 
+	// Set global slog provider gracefully bypassing app
+	slogger := otelslog.NewLogger(serviceName)
+	slog.SetDefault(slogger)
+
 	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	fmt.Printf("  [EasyMonitor] Go Agent successfully attached to %s!\n", serviceName)
 	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
 	return tp.Shutdown, lp.Shutdown, nil
+}
+
+// WrapHTTPHandler encapsulates the OpenTelemetry native span tracing HTTP middleware natively.
+func WrapHTTPHandler(handler http.Handler, serviceName string) http.Handler {
+    return otelhttp.NewHandler(handler, serviceName)
 }

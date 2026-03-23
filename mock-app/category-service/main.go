@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
 	"math/rand"
 	"net/http"
 	"os"
@@ -12,7 +13,6 @@ import (
 	"time"
 
 	"github.com/easymonitor/agents/go"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 type Category struct {
@@ -34,7 +34,7 @@ var categories = map[string]Category{
 func main() {
 	ctx := context.Background()
 	
-    // EasyMonitor GO Agent Initialization
+    // EasyMonitor GO Agent Initialization completely encapsulating config and span hooking
     tpShutdown, lpShutdown, err := telemetry.Init("category-service")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to init telemetry: %v\n", err)
@@ -48,8 +48,10 @@ func main() {
 	mux.HandleFunc("/api/category/search", handleSearch)
 	mux.HandleFunc("/api/health", handleHealth)
 
-	handler := otelhttp.NewHandler(mux, "category-service")
-	log.Println("Category Service (Go) running on :8081")
+    // Securely delegate HTTP span boundary tracing completely to the centralized agent
+	handler := telemetry.WrapHTTPHandler(mux, "category-service")
+    
+	slog.Info("Category Service (Go) running on :8081")
 	if err := http.ListenAndServe(":8081", handler); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
@@ -63,7 +65,7 @@ func handleGetCategory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	start := time.Now()
-	log.Printf("Request started: GET /api/category/%s", categoryID)
+	slog.Info(fmt.Sprintf("Request started: GET /api/category/%s", categoryID))
 
 	// Step 1: Cache lookup
 	cacheHit := rand.Float64() < 0.7
@@ -76,7 +78,7 @@ func handleGetCategory(w http.ResponseWriter, r *http.Request) {
 	cat, exists := categories[categoryID]
 	if !exists {
 		cat = categories["electronics"]
-		log.Printf("Category not found, using fallback electronics")
+		slog.Warn("Category not found, using fallback electronics")
 	}
 
 	if !cacheHit {
@@ -92,13 +94,13 @@ func handleGetCategory(w http.ResponseWriter, r *http.Request) {
 
 	// 5% stock unavailable error
 	if rand.Float64() < 0.05 {
-		log.Printf("Stock unavailable for %s", categoryID)
+		slog.Error(fmt.Sprintf("Stock unavailable for %s", categoryID))
 		w.WriteHeader(http.StatusConflict)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Stock unavailable", "category": categoryID})
 		return
 	}
 
-	log.Printf("Request completed in %dms - cacheHit: %v", time.Since(start).Milliseconds(), cacheHit)
+	slog.Info(fmt.Sprintf("Request completed in %dms - cacheHit: %v", time.Since(start).Milliseconds(), cacheHit))
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(cat)
 }
@@ -106,7 +108,7 @@ func handleGetCategory(w http.ResponseWriter, r *http.Request) {
 func handleSearch(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
 	start := time.Now()
-	log.Printf("Search started: %s", q)
+	slog.Info(fmt.Sprintf("Search started: %s", q))
 
 	time.Sleep(time.Duration(2+rand.Intn(6)) * time.Millisecond)
 
@@ -118,7 +120,7 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 		result = append(result, c)
 	}
 
-	log.Printf("Search completed in %dms", time.Since(start).Milliseconds())
+	slog.Info(fmt.Sprintf("Search completed in %dms", time.Since(start).Milliseconds()))
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{"results": result, "total": len(result)})
 }
