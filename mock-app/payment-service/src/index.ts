@@ -1,8 +1,15 @@
-import './instrumentation';
+import { otelLogger } from './instrumentation';
 import { trace, SpanStatusCode, context as otelContext, propagation } from '@opentelemetry/api';
+import { SeverityNumber } from '@opentelemetry/api-logs';
 
 const tracer = trace.getTracer('payment-service');
 const PORT = 8082;
+
+function emitLog(level: 'INFO' | 'WARN' | 'ERROR', message: string, attrs: Record<string, string | number> = {}) {
+  const sevMap = { INFO: SeverityNumber.INFO, WARN: SeverityNumber.WARN, ERROR: SeverityNumber.ERROR };
+  otelLogger.emit({ severityNumber: sevMap[level], severityText: level, body: message, attributes: attrs });
+  console.log(`[${level}] ${message}`);
+}
 
 // ─── Helpers ───
 function randomMs(min: number, max: number): number {
@@ -83,7 +90,7 @@ const server = Bun.serve({
           const body = await req.json() as { amount?: number; currency?: string; order_id?: string };
           const txnId = 'txn_' + Date.now();
           const ctx = trace.setSpan(otelContext.active(), rootSpan);
-          console.log(`[INFO] POST /api/charge - order=${body.order_id || 'unknown'} amount=${body.amount || 149.99} started`);
+          emitLog('INFO', `POST /api/charge - order=${body.order_id || 'unknown'} amount=${body.amount || 149.99} started`, { 'order.id': body.order_id || 'unknown', 'payment.amount': body.amount || 149.99 });
 
           // Step 1: Validate card
           await simulateSpan(ctx, 'validate_card', 10, 30, {
@@ -91,7 +98,7 @@ const server = Bun.serve({
             'payment.last4': '4242',
           });
           if (Math.random() < 0.05) {
-            console.log(`[ERROR] POST /api/charge - card validation FAILED took=${Date.now() - startTime}ms`);
+            emitLog('ERROR', `POST /api/charge - card validation FAILED took=${Date.now() - startTime}ms`, { 'duration_ms': Date.now() - startTime });
             rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: 'Card validation failed' });
             rootSpan.end();
             return Response.json({ success: false, error: 'Card validation failed' }, { status: 400 });
@@ -104,7 +111,7 @@ const server = Bun.serve({
             'fraud.provider': 'stripe_radar',
           });
           if (Math.random() < 0.03) {
-            console.log(`[WARN] POST /api/charge - fraud detected score=${fraudScore.toFixed(1)} took=${Date.now() - startTime}ms`);
+            emitLog('WARN', `POST /api/charge - fraud detected score=${fraudScore.toFixed(1)} took=${Date.now() - startTime}ms`, { 'fraud.score': fraudScore, 'duration_ms': Date.now() - startTime });
             rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: 'Flagged by fraud detection' });
             rootSpan.end();
             return Response.json({ success: false, error: 'Flagged by fraud detection' }, { status: 400 });
@@ -123,7 +130,7 @@ const server = Bun.serve({
               `INSERT INTO transactions (id, amount, status, card_last4) VALUES ('${txnId}', ${body.amount || 149.99}, 'completed', '4242')`,
               10, 35);
             await simulateCacheSpan(ctx, 'SET', 'balance:merchant_001');
-            console.log(`[INFO] POST /api/charge - COMPLETED txn=${txnId} amount=${body.amount || 149.99} took=${Date.now() - startTime}ms`);
+            emitLog('INFO', `POST /api/charge - COMPLETED txn=${txnId} amount=${body.amount || 149.99} took=${Date.now() - startTime}ms`, { 'transaction.id': txnId, 'payment.amount': body.amount || 149.99, 'duration_ms': Date.now() - startTime });
             rootSpan.setStatus({ code: SpanStatusCode.OK });
             rootSpan.end();
             return Response.json({ success: true, transaction_id: txnId, amount: body.amount || 149.99, status: 'completed' });
@@ -131,13 +138,13 @@ const server = Bun.serve({
             await simulateDbSpan(ctx, 'INSERT', 'transactions',
               `INSERT INTO transactions (id, amount, status) VALUES ('${txnId}', ${body.amount || 149.99}, 'declined')`,
               8, 20);
-            console.log(`[WARN] POST /api/charge - DECLINED txn=${txnId} took=${Date.now() - startTime}ms`);
+            emitLog('WARN', `POST /api/charge - DECLINED txn=${txnId} took=${Date.now() - startTime}ms`, { 'transaction.id': txnId, 'duration_ms': Date.now() - startTime });
             rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: 'Payment declined' });
             rootSpan.end();
             return Response.json({ success: false, error: 'Payment declined', transaction_id: txnId }, { status: 400 });
           }
         } catch (err: any) {
-          console.log(`[ERROR] POST /api/charge - exception: ${err.message} took=${Date.now() - startTime}ms`);
+          emitLog('ERROR', `POST /api/charge - exception: ${err.message} took=${Date.now() - startTime}ms`, { 'error.message': err.message, 'duration_ms': Date.now() - startTime });
           rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: err.message });
           rootSpan.end();
           return Response.json({ error: 'Payment processing error', detail: err.message }, { status: 500 });
@@ -158,7 +165,7 @@ const server = Bun.serve({
           }
           rootSpan.setStatus({ code: SpanStatusCode.OK });
           rootSpan.end();
-          console.log(`[INFO] GET /api/payment/status/${id} - 200 OK cacheHit=${cacheHit}`);
+          emitLog('INFO', `GET /api/payment/status/${id} - 200 OK cacheHit=${cacheHit}`, { 'transaction.id': id, 'cache.hit': cacheHit ? 'true' : 'false' });
           return Response.json({ transaction_id: id, status: 'completed', amount: 149.99, created_at: new Date().toISOString() });
         } catch (err: any) {
           rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: err.message });

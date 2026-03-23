@@ -1,7 +1,8 @@
 use actix_web::{web, App, HttpServer, HttpResponse, HttpRequest};
-use opentelemetry::trace::{Span, Tracer, SpanKind, Status, TraceContextExt};
+use opentelemetry::trace::{Span, Tracer, SpanKind, Status};
 use opentelemetry::{Context, KeyValue};
 use opentelemetry::propagation::TextMapPropagator;
+use opentelemetry::logs::{LogRecord, Logger, LoggerProvider as _, Severity};
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::propagation::TraceContextPropagator;
 use opentelemetry_sdk::trace as sdktrace;
@@ -39,14 +40,15 @@ struct NotificationStatus {
     sent_at: String,
 }
 
-fn init_tracer() {
-    let exporter = opentelemetry_otlp::new_exporter()
+fn init_telemetry() {
+    // Trace exporter
+    let trace_exporter = opentelemetry_otlp::new_exporter()
         .tonic()
         .with_endpoint("http://localhost:4317");
 
     let _tracer = opentelemetry_otlp::new_pipeline()
         .tracing()
-        .with_exporter(exporter)
+        .with_exporter(trace_exporter)
         .with_trace_config(
             sdktrace::config().with_resource(Resource::new(vec![
                 KeyValue::new("service.name", "notification-service"),
@@ -55,8 +57,43 @@ fn init_tracer() {
         .install_batch(opentelemetry_sdk::runtime::Tokio)
         .expect("Failed to init tracer");
 
+    // Log exporter
+    let log_exporter = opentelemetry_otlp::new_exporter()
+        .tonic()
+        .with_endpoint("http://localhost:4317");
+
+    let _log_provider = opentelemetry_otlp::new_pipeline()
+        .logging()
+        .with_exporter(log_exporter)
+        .with_log_config(
+            opentelemetry_sdk::logs::config().with_resource(Resource::new(vec![
+                KeyValue::new("service.name", "notification-service"),
+            ])),
+        )
+        .install_batch(opentelemetry_sdk::runtime::Tokio)
+        .expect("Failed to init log provider");
+
     // Set global propagator for W3C TraceContext
     opentelemetry::global::set_text_map_propagator(TraceContextPropagator::new());
+}
+
+/// Emit a log record via OTLP
+fn emit_log(severity: Severity, message: &str) {
+    let provider = opentelemetry::global::logger_provider();
+    let logger = provider.logger("notification-service");
+    let sev_text = match severity {
+        Severity::Info | Severity::Info2 | Severity::Info3 | Severity::Info4 => "INFO",
+        Severity::Warn | Severity::Warn2 | Severity::Warn3 | Severity::Warn4 => "WARN",
+        Severity::Error | Severity::Error2 | Severity::Error3 | Severity::Error4 => "ERROR",
+        _ => "INFO",
+    };
+    let record = opentelemetry::logs::LogRecord::builder()
+        .with_severity_number(severity)
+        .with_severity_text(sev_text)
+        .with_body(opentelemetry::logs::AnyValue::String(message.to_string().into()))
+        .build();
+    logger.emit(record);
+    println!("{}", message);
 }
 
 async fn simulate_sleep(min_ms: u64, max_ms: u64) {
@@ -84,7 +121,8 @@ async fn handle_notify(req: HttpRequest, body: web::Json<NotifyRequest>) -> Http
     let notify_type = body.r#type.clone().unwrap_or_else(|| "order_confirmation".to_string());
     let notification_id = format!("notif_{}", &uuid::Uuid::new_v4().to_string()[..8]);
 
-    println!("[INFO] POST /api/notify - order={} email={} type={}", order_id, email, notify_type);
+    emit_log(Severity::Info, &format!(
+        "[INFO] POST /api/notify - order={} email={} type={}", order_id, email, notify_type));
 
     // Create root span as child of incoming context
     let mut root = tracer.span_builder("POST /api/notify")
@@ -114,6 +152,8 @@ async fn handle_notify(req: HttpRequest, body: web::Json<NotifyRequest>) -> Http
         simulate_sleep(5, 15).await;
         let fail = { rand::thread_rng().gen::<f64>() < 0.01 };
         if fail {
+            emit_log(Severity::Error, &format!(
+                "[ERROR] POST /api/notify - template render failed order={}", order_id));
             span.set_status(Status::error("Template render failed"));
         } else {
             span.set_status(Status::Ok);
@@ -132,10 +172,12 @@ async fn handle_notify(req: HttpRequest, body: web::Json<NotifyRequest>) -> Http
         simulate_sleep(50, 200).await;
         let timeout = { rand::thread_rng().gen::<f64>() < 0.03 };
         if timeout {
-            println!("[ERROR] POST /api/notify - SMTP timeout order={}", order_id);
+            emit_log(Severity::Error, &format!(
+                "[ERROR] POST /api/notify - SMTP timeout order={}", order_id));
             span.set_status(Status::error("SMTP connection timeout"));
         } else {
-            println!("[INFO] POST /api/notify - SMTP sent to={} order={}", email, order_id);
+            emit_log(Severity::Info, &format!(
+                "[INFO] POST /api/notify - SMTP sent to={} order={}", email, order_id));
             span.set_status(Status::Ok);
         }
         span.end();
@@ -171,7 +213,8 @@ async fn handle_notify(req: HttpRequest, body: web::Json<NotifyRequest>) -> Http
     root.set_status(Status::Ok);
     root.end();
 
-    println!("[INFO] POST /api/notify - COMPLETED notification_id={} order={}", notification_id, order_id);
+    emit_log(Severity::Info, &format!(
+        "[INFO] POST /api/notify - COMPLETED notification_id={} order={}", notification_id, order_id));
 
     HttpResponse::Ok().json(NotifyResponse {
         status: "sent".to_string(),
@@ -190,7 +233,8 @@ async fn handle_get_notification(req: HttpRequest, path: web::Path<String>) -> H
         .with_kind(SpanKind::Server)
         .start_with_context(&tracer, &parent_ctx);
 
-    println!("[INFO] GET /api/notifications/{} - started", order_id);
+    emit_log(Severity::Info, &format!(
+        "[INFO] GET /api/notifications/{} - started", order_id));
 
     // Cache lookup
     {
@@ -206,6 +250,8 @@ async fn handle_get_notification(req: HttpRequest, path: web::Path<String>) -> H
     // DB fallback (30% cache miss)
     let miss = { rand::thread_rng().gen::<f64>() > 0.7 };
     if miss {
+        emit_log(Severity::Info, &format!(
+            "[INFO] GET /api/notifications/{} - cache miss, querying DB", order_id));
         let mut span = tracer.span_builder("db.query SELECT notifications")
             .with_kind(SpanKind::Internal).start(&tracer);
         span.set_attribute(KeyValue::new("db.system", "postgresql"));
@@ -221,7 +267,8 @@ async fn handle_get_notification(req: HttpRequest, path: web::Path<String>) -> H
     root.set_status(Status::Ok);
     root.end();
 
-    println!("[INFO] GET /api/notifications/{} - 200 OK", order_id);
+    emit_log(Severity::Info, &format!(
+        "[INFO] GET /api/notifications/{} - 200 OK", order_id));
 
     HttpResponse::Ok().json(NotificationStatus {
         notification_id: format!("notif_{}", safe_id),
@@ -241,8 +288,8 @@ async fn handle_health() -> HttpResponse {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    init_tracer();
-    println!("Notification Service (Rust) running on :8083");
+    init_telemetry();
+    emit_log(Severity::Info, "[INFO] Notification Service (Rust) running on :8083");
 
     HttpServer::new(|| {
         App::new()
