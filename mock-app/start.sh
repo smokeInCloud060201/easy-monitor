@@ -70,8 +70,7 @@ cd "$SCRIPT_DIR/checkout-service"
 OTEL_SERVICE_NAME=checkout-service \
 OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4317 \
 OTEL_EXPORTER_OTLP_PROTOCOL=grpc \
-java -javaagent:opentelemetry-javaagent.jar \
-     -jar build/libs/checkout-service.jar \
+java -jar build/libs/checkout-service.jar \
      --server.port=8080 \
      > "$LOG_DIR/checkout.log" 2>&1 &
 PIDS+=($!)

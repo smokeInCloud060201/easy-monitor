@@ -7,15 +7,20 @@ import org.springframework.web.client.RestTemplate;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @RestController
 public class CheckoutController {
 
+    private static final Logger log = LoggerFactory.getLogger(CheckoutController.class);
     private final RestTemplate restTemplate = new RestTemplate();
 
     // ─── POST /api/checkout ───
     @PostMapping("/api/checkout")
     public ResponseEntity<Map<String, Object>> checkout(@RequestBody Map<String, Object> body) {
         String orderId = "ord_" + System.currentTimeMillis();
+        log.info("Processing checkout for order: {}", orderId);
 
         try {
             // Step 1: Validate request
@@ -51,8 +56,7 @@ public class CheckoutController {
                 Map<String, Object> chargeBody = Map.of(
                         "amount", total,
                         "currency", "USD",
-                        "order_id", orderId
-                );
+                        "order_id", orderId);
                 HttpEntity<Map<String, Object>> entity = new HttpEntity<>(chargeBody, headers);
                 ResponseEntity<Map> resp = restTemplate.postForEntity(
                         "http://localhost:8082/api/charge", entity, Map.class);
@@ -60,8 +64,7 @@ public class CheckoutController {
             } catch (Exception e) {
                 return ResponseEntity.status(500).body(Map.of(
                         "error", "Payment failed",
-                        "detail", e.getMessage()
-                ));
+                        "detail", e.getMessage()));
             }
 
             // Step 5: Record order in DB
@@ -78,8 +81,7 @@ public class CheckoutController {
                         "order_id", orderId,
                         "email", "customer@example.com",
                         "type", "order_confirmation",
-                        "total", total
-                );
+                        "total", total);
                 HttpEntity<Map<String, Object>> entity = new HttpEntity<>(notifyBody, headers);
                 restTemplate.postForEntity("http://localhost:8083/api/notify", entity, Map.class);
             } catch (Exception e) {
@@ -91,14 +93,12 @@ public class CheckoutController {
                     "status", "completed",
                     "total", total,
                     "payment", chargeResult != null ? chargeResult : Map.of(),
-                    "items", items.size()
-            ));
+                    "items", items.size()));
 
         } catch (Exception e) {
             return ResponseEntity.status(500).body(Map.of(
                     "error", "Checkout failed",
-                    "detail", e.getMessage()
-            ));
+                    "detail", e.getMessage()));
         }
     }
 
@@ -117,8 +117,7 @@ public class CheckoutController {
                 "id", id,
                 "status", "completed",
                 "total", 149.99,
-                "created_at", new Date().toString()
-        ));
+                "created_at", new Date().toString()));
     }
 
     // ─── GET /api/health ───

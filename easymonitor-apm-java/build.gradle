@@ -1,0 +1,43 @@
+plugins {
+    id 'java-library'
+    id 'org.springframework.boot' version '3.3.0'
+    id 'io.spring.dependency-management' version '1.1.5'
+    id 'maven-publish'
+}
+
+group = 'com.easymonitor'
+version = '1.0.0-SNAPSHOT'
+
+java {
+    sourceCompatibility = '17'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter'
+    api 'io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter'
+    api 'io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.2:2.4.0-alpha'
+    
+    // Enable autoconfiguration processor
+    annotationProcessor 'org.springframework.boot:spring-boot-autoconfigure-processor'
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+}
+
+// Ensure the JAR doesn't repackage like an executable Spring Boot fat JAR, 
+// since this is a library meant to be included in other projects.
+tasks.named("bootJar") {
+    enabled = false
+}
+tasks.named("jar") {
+    enabled = true
+}

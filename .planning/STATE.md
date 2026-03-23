@@ -62,6 +62,8 @@ progress:
 - Phase 15 added: APM Traces section - replace Recent Traces with HTTP request list and span detail view
 - Phase 16 added: Fix service map empty and APM list missing services (orderservice, categoryservice, notification-service)
 - Phase 17 added: Rebuild mock-app as polyglot microservices — Spring Boot (checkout), Go (category), Bun (payment), Rust (notification) with full checkout flow and OTLP tracing
+- Phase 18 added: Feature: Create easymonitor-apm-java Spring Boot Starter library
+- Phase 19 added: Enhance easymonitor APM to function as a true Datadog-like Java Agent with comprehensive tracing, metrics, and log correlation
 
 ## Session Info
 

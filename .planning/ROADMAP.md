@@ -180,3 +180,23 @@ Plans:
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 17 to break down)
+
+### Phase 18: Feature: Create easymonitor-apm-java Spring Boot Starter library
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 17
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 18 to break down)
+
+### Phase 19: Enhance easymonitor APM to function as a true Datadog-like Java Agent with comprehensive tracing, metrics, and log correlation
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 18
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 19 to break down)
