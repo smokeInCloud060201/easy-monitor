@@ -1,11 +1,14 @@
-use actix_web::{web, App, HttpServer, HttpResponse};
-use opentelemetry::trace::{Span, Tracer, SpanKind, Status};
-use opentelemetry::KeyValue;
+use actix_web::{web, App, HttpServer, HttpResponse, HttpRequest};
+use opentelemetry::trace::{Span, Tracer, SpanKind, Status, TraceContextExt};
+use opentelemetry::{Context, KeyValue};
+use opentelemetry::propagation::TextMapPropagator;
 use opentelemetry_otlp::WithExportConfig;
+use opentelemetry_sdk::propagation::TraceContextPropagator;
 use opentelemetry_sdk::trace as sdktrace;
 use opentelemetry_sdk::Resource;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::time::Duration;
 
 #[derive(Deserialize)]
@@ -51,6 +54,9 @@ fn init_tracer() {
         )
         .install_batch(opentelemetry_sdk::runtime::Tokio)
         .expect("Failed to init tracer");
+
+    // Set global propagator for W3C TraceContext
+    opentelemetry::global::set_text_map_propagator(TraceContextPropagator::new());
 }
 
 async fn simulate_sleep(min_ms: u64, max_ms: u64) {
@@ -58,12 +64,30 @@ async fn simulate_sleep(min_ms: u64, max_ms: u64) {
     tokio::time::sleep(Duration::from_millis(ms)).await;
 }
 
-async fn handle_notify(body: web::Json<NotifyRequest>) -> HttpResponse {
+/// Extract W3C trace context from incoming HTTP request headers
+fn extract_context(req: &HttpRequest) -> Context {
+    let propagator = TraceContextPropagator::new();
+    let mut carrier = HashMap::new();
+    for (key, value) in req.headers() {
+        if let (Ok(k), Ok(v)) = (key.as_str().parse::<String>(), value.to_str()) {
+            carrier.insert(k, v.to_string());
+        }
+    }
+    propagator.extract(&carrier)
+}
+
+async fn handle_notify(req: HttpRequest, body: web::Json<NotifyRequest>) -> HttpResponse {
+    let parent_ctx = extract_context(&req);
     let tracer = opentelemetry::global::tracer("notification-service");
     let order_id = body.order_id.clone().unwrap_or_else(|| "unknown".to_string());
     let email = body.email.clone().unwrap_or_else(|| "customer@example.com".to_string());
     let notify_type = body.r#type.clone().unwrap_or_else(|| "order_confirmation".to_string());
     let notification_id = format!("notif_{}", &uuid::Uuid::new_v4().to_string()[..8]);
+
+    // Create root span as child of incoming context
+    let mut root = tracer.span_builder("POST /api/notify")
+        .with_kind(SpanKind::Server)
+        .start_with_context(&tracer, &parent_ctx);
 
     // Step 1: Lookup user preferences in DB
     {
@@ -140,6 +164,9 @@ async fn handle_notify(body: web::Json<NotifyRequest>) -> HttpResponse {
         span.end();
     }
 
+    root.set_status(Status::Ok);
+    root.end();
+
     HttpResponse::Ok().json(NotifyResponse {
         status: "sent".to_string(),
         notification_id,
@@ -148,9 +175,14 @@ async fn handle_notify(body: web::Json<NotifyRequest>) -> HttpResponse {
     })
 }
 
-async fn handle_get_notification(path: web::Path<String>) -> HttpResponse {
+async fn handle_get_notification(req: HttpRequest, path: web::Path<String>) -> HttpResponse {
+    let parent_ctx = extract_context(&req);
     let order_id = path.into_inner();
     let tracer = opentelemetry::global::tracer("notification-service");
+
+    let mut root = tracer.span_builder(format!("GET /api/notifications/{}", order_id))
+        .with_kind(SpanKind::Server)
+        .start_with_context(&tracer, &parent_ctx);
 
     // Cache lookup
     {
@@ -177,6 +209,9 @@ async fn handle_get_notification(path: web::Path<String>) -> HttpResponse {
     }
 
     let safe_id = if order_id.len() > 4 { &order_id[4..order_id.len().min(12)] } else { &order_id };
+
+    root.set_status(Status::Ok);
+    root.end();
 
     HttpResponse::Ok().json(NotificationStatus {
         notification_id: format!("notif_{}", safe_id),

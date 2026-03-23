@@ -10,7 +10,6 @@ import { LatencyDistributionChart } from '../components/apm/LatencyDistribution'
 import { ErrorsSection } from '../components/apm/ErrorsSection';
 import { DependencyMiniMap } from '../components/apm/DependencyMiniMap';
 import { EndpointsTable } from '../components/apm/EndpointsTable';
-import { TracesSection } from '../components/apm/TracesSection';
 
 function formatTime(ts: number) {
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -194,8 +193,6 @@ export default function ServiceDetail() {
         />
       )}
 
-      {/* ─── SECTION 7: Traces ─── */}
-      <TracesSection serviceName={name || ''} timeRange={timeRange} />
     </div>
   );
 }
