@@ -3,13 +3,14 @@ import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Zap, AlertTriangle, Clock, Activity, Server, TrendingUp } from 'lucide-react';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import {
-  fetchServiceSummary, fetchResourcesWithMetrics, fetchServiceErrors, fetchLatencyDistribution, fetchServiceDependencies, searchTraces,
-  type ServiceSummary, type ResourceWithMetrics, type TraceSummary, type LatencyDistribution, type ServiceDependencies,
+  fetchServiceSummary, fetchResourcesWithMetrics, fetchServiceErrors, fetchLatencyDistribution, fetchServiceDependencies,
+  type ServiceSummary, type ResourceWithMetrics, type LatencyDistribution, type ServiceDependencies,
 } from '../lib/api';
 import { LatencyDistributionChart } from '../components/apm/LatencyDistribution';
 import { ErrorsSection } from '../components/apm/ErrorsSection';
 import { DependencyMiniMap } from '../components/apm/DependencyMiniMap';
 import { EndpointsTable } from '../components/apm/EndpointsTable';
+import { TracesSection } from '../components/apm/TracesSection';
 
 function formatTime(ts: number) {
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -21,7 +22,6 @@ export default function ServiceDetail() {
   const { name } = useParams<{ name: string }>();
   const [summary, setSummary] = useState<ServiceSummary | null>(null);
   const [resources, setResources] = useState<ResourceWithMetrics[]>([]);
-  const [traces, setTraces] = useState<TraceSummary[]>([]);
   const [errors, setErrors] = useState<ErrorEntry[]>([]);
   const [latencyDist, setLatencyDist] = useState<LatencyDistribution | null>(null);
   const [deps, setDeps] = useState<ServiceDependencies | null>(null);
@@ -34,15 +34,13 @@ export default function ServiceDetail() {
     Promise.all([
       fetchServiceSummary(name, timeRange).catch(() => null),
       fetchResourcesWithMetrics(name).catch(() => []),
-      searchTraces({ service: name, limit: 10 }).then(r => r.traces).catch(() => []),
-      fetchServiceErrors(name).catch(() => ({ errors: [] })),
+      fetchServiceErrors(name).catch(() => []),
       fetchLatencyDistribution(name, timeRange),
       fetchServiceDependencies(name, timeRange),
-    ]).then(([s, r, t, e, ld, d]) => {
+    ]).then(([s, r, e, ld, d]) => {
       setSummary(s);
       setResources(r);
-      setTraces(t);
-      setErrors(e.errors || []);
+      setErrors(e || []);
       setLatencyDist(ld);
       setDeps(d);
       setLoading(false);
@@ -196,44 +194,8 @@ export default function ServiceDetail() {
         />
       )}
 
-      {/* ─── SECTION 7: Recent Traces ─── */}
-      <div className="glass-panel p-4 shadow-xl">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-            <Zap className="w-4 h-4 text-amber-400" /> Recent Traces
-          </h3>
-          <Link to={`/traces?service=${name}`} className="text-xs text-primary hover:underline">
-            View all traces →
-          </Link>
-        </div>
-        {traces.length === 0 ? (
-          <p className="text-gray-500 text-center py-6 text-sm">No traces found.</p>
-        ) : (
-          <div className="space-y-1">
-            {traces.map(t => {
-              const maxDuration = Math.max(...traces.map(tr => tr.duration_ms), 1);
-              return (
-                <Link key={t.trace_id} to={`/traces/${t.trace_id}`}
-                  className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/5 transition-colors group">
-                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.error ? 'bg-red-500' : 'bg-emerald-500'}`} />
-                  <span className="font-mono text-[10px] text-gray-500 w-24 truncate">{t.trace_id.slice(0, 12)}…</span>
-                  <span className="text-gray-300 flex-1 truncate text-xs">{t.root_name}</span>
-                  <span className="text-gray-600 text-[10px]">{t.span_count} spans</span>
-                  <div className="w-20 flex items-center gap-1.5">
-                    <div className="flex-1 h-1 bg-black/40 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${t.error ? 'bg-red-500' : 'bg-blue-500'}`}
-                        style={{ width: `${(t.duration_ms / maxDuration) * 100}%` }}
-                      />
-                    </div>
-                    <span className="font-mono text-[10px] text-amber-400 tabular-nums w-14 text-right">{t.duration_ms.toFixed(1)}ms</span>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      {/* ─── SECTION 7: Traces ─── */}
+      <TracesSection serviceName={name || ''} timeRange={timeRange} />
     </div>
   );
 }
