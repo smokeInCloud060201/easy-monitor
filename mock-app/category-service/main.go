@@ -92,12 +92,16 @@ func handleGetCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	start := time.Now()
+	log.Printf("[INFO] GET /api/category/%s - started", categoryID)
+
 	// Step 1: Cache lookup
 	cacheHit := simulateCacheSpan(ctx, "GET", "category:"+categoryID)
 
 	cat, exists := categories[categoryID]
 	if !exists {
 		cat = categories["electronics"]
+		log.Printf("[WARN] Category '%s' not found, using fallback 'electronics'", categoryID)
 	}
 
 	if !cacheHit {
@@ -117,17 +121,22 @@ func handleGetCategory(w http.ResponseWriter, r *http.Request) {
 
 	// 5% stock unavailable error
 	if rand.Float64() < 0.05 {
+		log.Printf("[ERROR] GET /api/category/%s - stock unavailable (409) took=%s", categoryID, time.Since(start))
 		w.WriteHeader(http.StatusConflict)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Stock unavailable", "category": categoryID})
 		return
 	}
 
+	log.Printf("[INFO] GET /api/category/%s - 200 OK products=%d took=%s", categoryID, cat.Products, time.Since(start))
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(cat)
 }
 
 func handleSearch(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	q := r.URL.Query().Get("q")
+	start := time.Now()
+	log.Printf("[INFO] GET /api/category/search?q=%s - started", q)
 
 	// Parse search query
 	_, span := tracer.Start(ctx, "parse_search_query")
@@ -143,6 +152,7 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 		result = append(result, c)
 	}
 
+	log.Printf("[INFO] GET /api/category/search?q=%s - 200 OK results=%d took=%s", q, len(result), time.Since(start))
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{"results": result, "total": len(result)})
 }
@@ -168,6 +178,7 @@ func simulateDbSpan(ctx context.Context, op, table, statement string, minMs, max
 
 	// 2% error rate
 	if rand.Float64() < 0.02 {
+		log.Printf("[ERROR] DB %s %s - connection timeout after %v", op, table, duration)
 		span.SetStatus(codes.Error, "connection timeout")
 		span.RecordError(fmt.Errorf("DB connection timeout after %v", duration))
 	} else {
@@ -189,8 +200,10 @@ func simulateCacheSpan(ctx context.Context, op, key string) bool {
 
 	if hit {
 		time.Sleep(time.Duration(1+rand.Intn(5)) * time.Millisecond)
+		log.Printf("[DEBUG] Cache %s %s - HIT", op, key)
 	} else {
 		time.Sleep(time.Duration(2+rand.Intn(8)) * time.Millisecond)
+		log.Printf("[DEBUG] Cache %s %s - MISS", op, key)
 	}
 	span.SetStatus(codes.Ok, "")
 	return hit

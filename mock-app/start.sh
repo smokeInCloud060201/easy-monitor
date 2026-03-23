@@ -61,6 +61,8 @@ echo ""
 echo "─── Starting Services ───"
 
 # ─── 2. Start Services ───
+LOG_DIR="$SCRIPT_DIR/.logs"
+mkdir -p "$LOG_DIR"
 
 # checkout-service (Java + OTel Java Agent)
 echo "☕ Starting checkout-service on :8080..."
@@ -71,25 +73,25 @@ OTEL_EXPORTER_OTLP_PROTOCOL=grpc \
 java -javaagent:opentelemetry-javaagent.jar \
      -jar build/libs/checkout-service.jar \
      --server.port=8080 \
-     > /dev/null 2>&1 &
+     > "$LOG_DIR/checkout.log" 2>&1 &
 PIDS+=($!)
 
 # category-service (Go)
 echo "🐹 Starting category-service on :8081..."
 cd "$SCRIPT_DIR/category-service"
-./category-service > /dev/null 2>&1 &
+./category-service > "$LOG_DIR/category.log" 2>&1 &
 PIDS+=($!)
 
 # payment-service (Bun)
 echo "🥟 Starting payment-service on :8082..."
 cd "$SCRIPT_DIR/payment-service"
-bun run src/index.ts > /dev/null 2>&1 &
+bun run src/index.ts > "$LOG_DIR/payment.log" 2>&1 &
 PIDS+=($!)
 
 # notification-service (Rust)
 echo "🦀 Starting notification-service on :8083..."
 cd "$SCRIPT_DIR/notification-service"
-./target/debug/notification-service > /dev/null 2>&1 &
+./target/debug/notification-service > "$LOG_DIR/notification.log" 2>&1 &
 PIDS+=($!)
 
 echo ""
@@ -116,13 +118,23 @@ echo "  Press Ctrl+C to stop all services."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-# ─── 4. Traffic Generator ───
+# ─── 4. Tail Service Logs ───
+echo "📝 Streaming service logs..."
+echo ""
+tail -f "$LOG_DIR"/*.log 2>/dev/null &
+PIDS+=($!)
+sleep 1
+
+# ─── 5. Traffic Generator ───
 ITEMS='[
   {"id":"electronics","qty":2,"price":49.99},
   {"id":"clothing","qty":1,"price":89.99}
 ]'
 
+TICK=0
 while true; do
+    TICK=$((TICK + 1))
+
     # Full checkout flow: checkout → category → payment → notification
     curl -sf -X POST http://localhost:8080/api/checkout \
          -H "Content-Type: application/json" \

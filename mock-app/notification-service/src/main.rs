@@ -84,6 +84,8 @@ async fn handle_notify(req: HttpRequest, body: web::Json<NotifyRequest>) -> Http
     let notify_type = body.r#type.clone().unwrap_or_else(|| "order_confirmation".to_string());
     let notification_id = format!("notif_{}", &uuid::Uuid::new_v4().to_string()[..8]);
 
+    println!("[INFO] POST /api/notify - order={} email={} type={}", order_id, email, notify_type);
+
     // Create root span as child of incoming context
     let mut root = tracer.span_builder("POST /api/notify")
         .with_kind(SpanKind::Server)
@@ -130,8 +132,10 @@ async fn handle_notify(req: HttpRequest, body: web::Json<NotifyRequest>) -> Http
         simulate_sleep(50, 200).await;
         let timeout = { rand::thread_rng().gen::<f64>() < 0.03 };
         if timeout {
+            println!("[ERROR] POST /api/notify - SMTP timeout order={}", order_id);
             span.set_status(Status::error("SMTP connection timeout"));
         } else {
+            println!("[INFO] POST /api/notify - SMTP sent to={} order={}", email, order_id);
             span.set_status(Status::Ok);
         }
         span.end();
@@ -167,6 +171,8 @@ async fn handle_notify(req: HttpRequest, body: web::Json<NotifyRequest>) -> Http
     root.set_status(Status::Ok);
     root.end();
 
+    println!("[INFO] POST /api/notify - COMPLETED notification_id={} order={}", notification_id, order_id);
+
     HttpResponse::Ok().json(NotifyResponse {
         status: "sent".to_string(),
         notification_id,
@@ -183,6 +189,8 @@ async fn handle_get_notification(req: HttpRequest, path: web::Path<String>) -> H
     let mut root = tracer.span_builder(format!("GET /api/notifications/{}", order_id))
         .with_kind(SpanKind::Server)
         .start_with_context(&tracer, &parent_ctx);
+
+    println!("[INFO] GET /api/notifications/{} - started", order_id);
 
     // Cache lookup
     {
@@ -212,6 +220,8 @@ async fn handle_get_notification(req: HttpRequest, path: web::Path<String>) -> H
 
     root.set_status(Status::Ok);
     root.end();
+
+    println!("[INFO] GET /api/notifications/{} - 200 OK", order_id);
 
     HttpResponse::Ok().json(NotificationStatus {
         notification_id: format!("notif_{}", safe_id),

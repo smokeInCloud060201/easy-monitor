@@ -32,3 +32,6 @@ mock-app/category-service/category-service
 
 # OS
 .DS_Store
+
+# Mock service logs
+mock-app/.logs/
