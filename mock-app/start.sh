@@ -31,8 +31,8 @@ echo ""
 # ─── 1. Build Services ───
 echo "📦 Building checkout-service (Java/Spring Boot)..."
 cd "$SCRIPT_DIR/checkout-service"
-if [ ! -f target/checkout-service.jar ]; then
-    ./mvnw package -DskipTests -q 2>&1
+if [ ! -f build/libs/checkout-service.jar ]; then
+    ./gradlew bootJar -q 2>&1
 fi
 echo "   ✅ checkout-service.jar ready"
 
@@ -69,7 +69,7 @@ OTEL_SERVICE_NAME=checkout-service \
 OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4317 \
 OTEL_EXPORTER_OTLP_PROTOCOL=grpc \
 java -javaagent:opentelemetry-javaagent.jar \
-     -jar target/checkout-service.jar \
+     -jar build/libs/checkout-service.jar \
      --server.port=8080 \
      > /dev/null 2>&1 &
 PIDS+=($!)
