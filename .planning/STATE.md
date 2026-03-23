@@ -59,6 +59,9 @@ progress:
 - Phase 12 added: Fix logs query parser — structured search syntax support
 - Phase 13 added: Sanitize sensitive data in trace span resource names
 - Phase 14 added: Filter out internal service logs and traces (master-service, node-agent)
+- Phase 15 added: APM Traces section - replace Recent Traces with HTTP request list and span detail view
+- Phase 16 added: Fix service map empty and APM list missing services (orderservice, categoryservice, notification-service)
+- Phase 17 added: Rebuild mock-app as polyglot microservices — Spring Boot (checkout), Go (category), Bun (payment), Rust (notification) with full checkout flow and OTLP tracing
 
 ## Session Info
 

@@ -4,6 +4,9 @@ members = [
     "node-agent",
     "shared-proto",
 ]
+exclude = [
+    "mock-app/notification-service",
+]
 resolver = "2"
 
 [workspace.package]

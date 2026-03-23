@@ -150,3 +150,33 @@ Plans:
 
 Plans:
 - [ ] Plan 1: Filter Internal Services at Ingress (Wave 1)
+
+### Phase 15: APM Traces section - replace Recent Traces with HTTP request list and span detail view
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 14
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 15 to break down)
+
+### Phase 16: Fix service map empty and APM list missing services (orderservice, categoryservice, notification-service)
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 15
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 16 to break down)
+
+### Phase 17: Rebuild mock-app as polyglot microservices — Spring Boot (checkout), Go (category), Bun (payment), Rust (notification) with full checkout flow and OTLP tracing
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 16
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 17 to break down)
