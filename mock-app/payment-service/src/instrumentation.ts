@@ -4,15 +4,12 @@ import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-grpc';
 import { BatchLogRecordProcessor, LoggerProvider } from '@opentelemetry/sdk-logs';
 import { logs } from '@opentelemetry/api-logs';
-import { Resource } from '@opentelemetry/resources';
 
-// Set up resource
-const resource = new Resource({ 'service.name': 'payment-service' });
-
-// Set up log provider separately (avoids NodeSDK type conflicts)
+// Set up log provider via constructor (addLogRecordProcessor not available in this version)
 const logExporter = new OTLPLogExporter({ url: 'http://localhost:4317' });
-const logProvider = new LoggerProvider({ resource });
-logProvider.addLogRecordProcessor(new BatchLogRecordProcessor(logExporter));
+const logProvider = new LoggerProvider({
+  processors: [new BatchLogRecordProcessor(logExporter)],
+});
 logs.setGlobalLoggerProvider(logProvider);
 
 // Set up traces via NodeSDK
