@@ -17,7 +17,7 @@ function formatNum(n: number): string {
 }
 
 function isApiEndpoint(resource: string): boolean {
-  if (resource.includes('.request ') || resource.includes('.server ')) return true;
+  if (resource.includes('.request') || resource.includes('.server')) return true;
   const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
   for (const m of methods) {
     if (resource.startsWith(`${m} `)) return true;

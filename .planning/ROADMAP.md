@@ -240,3 +240,13 @@ Plans:
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 23 to break down)
+
+### Phase 24: Datadog Style Trace Name Synthesis
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 23
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 24 to break down)

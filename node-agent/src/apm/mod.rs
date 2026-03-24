@@ -63,6 +63,7 @@ impl TraceService for OTLPReceiver {
                     let route = tags.get("http.route").or(tags.get("url.path")).or(tags.get("http.target"));
                     let db_system = tags.get("db.system");
                     let db_operation = tags.get("db.operation");
+                    let db_statement = tags.get("db.statement");
                     let rpc_system = tags.get("rpc.system");
                     let rpc_method = tags.get("rpc.method");
 
@@ -79,20 +80,34 @@ impl TraceService for OTLPReceiver {
                             } else {
                                 "http.server.request"
                             };
-                            derived_name = format!("{} {} {}", prefix, m, r);
+                            derived_name = format!("{} · {} {}", prefix, m, r);
                         } else if span.kind == 3 {
-                            derived_name = format!("http.request {} {}", m, r);
+                            derived_name = format!("http.client · {} {}", m, r);
                         } else {
-                            derived_name = format!("http {} {}", m, r);
+                            derived_name = format!("http · {} {}", m, r);
                         }
                     } else if let Some(sys) = db_system {
-                        if let Some(op) = db_operation {
-                            derived_name = format!("{}.query {}", sys, op);
+                        let query_desc = if let Some(stmt) = db_statement {
+                            stmt.clone()
+                        } else if let Some(op) = db_operation {
+                            op.clone()
                         } else {
+                            "".to_string()
+                        };
+                        
+                        let safe_desc = if query_desc.len() > 1000 {
+                            format!("{}...", &query_desc[0..1000])
+                        } else {
+                            query_desc
+                        };
+
+                        if safe_desc.is_empty() {
                             derived_name = format!("{}.query", sys);
+                        } else {
+                            derived_name = format!("{}.query · {}", sys, safe_desc);
                         }
                     } else if let (Some(sys), Some(meth)) = (rpc_system, rpc_method) {
-                        derived_name = format!("{}.request {}", sys, meth);
+                        derived_name = format!("{}.request · {}", sys, meth);
                     }
 
                     // Map generic status cleanly
