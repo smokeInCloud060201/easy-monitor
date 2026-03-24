@@ -288,6 +288,7 @@ export interface SpanResponse {
   error: number;
   timestamp: string;
   duration_ms: number;
+  attributes: Record<string, string>;
 }
 
 export async function fetchTrace(traceId: string): Promise<SpanResponse[]> {

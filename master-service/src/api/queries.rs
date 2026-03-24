@@ -23,6 +23,7 @@ pub struct SpanResponse {
     pub error: i8,
     pub timestamp: String,
     pub duration_ms: f64,
+    pub attributes: Value,
 }
 
 #[derive(Serialize)]
@@ -33,7 +34,7 @@ pub struct TracesQueryResponse {
 pub async fn query_traces(State(state): State<ApiState>, Json(payload): Json<TracesQueryRequest>) -> Json<TracesQueryResponse> {
     let sanitized_id = payload.trace_id.replace('\'', "");
     let query = format!(
-        "SELECT trace_id, span_id, parent_id, service, name, resource, error, duration, timestamp \
+        "SELECT trace_id, span_id, parent_id, service, name, resource, error, duration, timestamp, attributes \
          FROM easy_monitor_traces WHERE trace_id = '{}' ORDER BY timestamp ASC FORMAT JSON",
         sanitized_id
     );
@@ -75,6 +76,10 @@ pub async fn query_traces(State(state): State<ApiState>, Json(payload): Json<Tra
                                 .map(|dt| dt.to_rfc3339())
                                 .unwrap_or_default(),
                             duration_ms: duration_raw / 1000.0,
+                            attributes: {
+                                let attrs_str = row.get("attributes").and_then(|v| v.as_str()).unwrap_or("{}");
+                                serde_json::from_str(attrs_str).unwrap_or(Value::Object(Default::default()))
+                            },
                         })
                     }).collect();
 

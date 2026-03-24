@@ -270,3 +270,13 @@ Plans:
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 26 to break down)
+
+### Phase 27: Enhance APM service endpoint UI with Datadog-style sliding span list
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 26
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 27 to break down)

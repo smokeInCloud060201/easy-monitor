@@ -36,6 +36,10 @@ pub async fn initialize_clickhouse(client: &Client) -> anyhow::Result<()> {
         "ALTER TABLE easy_monitor_logs ADD COLUMN IF NOT EXISTS attributes String DEFAULT '{}'",
     ];
 
+    let alter_traces_migrations = [
+        "ALTER TABLE easy_monitor_traces ADD COLUMN IF NOT EXISTS attributes String DEFAULT '{}'",
+    ];
+
     let create_traces = "
         CREATE TABLE IF NOT EXISTS easy_monitor_traces (
             trace_id String,
@@ -74,6 +78,11 @@ pub async fn initialize_clickhouse(client: &Client) -> anyhow::Result<()> {
 
     // Run idempotent ALTER TABLE migrations for logs metadata columns
     for migration in alter_logs_migrations {
+        let _ = client.post(CH_URL).body(migration.to_string()).send().await;
+    }
+
+    // Run idempotent ALTER TABLE migrations for traces metadata columns
+    for migration in alter_traces_migrations {
         let _ = client.post(CH_URL).body(migration.to_string()).send().await;
     }
     
@@ -158,6 +167,7 @@ pub async fn start_clickhouse_writer(mut rx: EventBusRx) -> anyhow::Result<()> {
                     for span in traces_batch.drain(..) {
                         let sanitized_resource = sanitize_resource(&span.resource);
                         let sanitized_name = sanitize_resource(&span.name);
+                        let attributes_json = serde_json::to_string(&span.meta).unwrap_or_else(|_| "{}".to_string());
                         let row = json!({
                             "trace_id": span.trace_id,
                             "span_id": span.span_id,
@@ -168,6 +178,7 @@ pub async fn start_clickhouse_writer(mut rx: EventBusRx) -> anyhow::Result<()> {
                             "error": span.error,
                             "duration": span.duration,
                             "timestamp": span.start_time,
+                            "attributes": attributes_json,
                         });
                         payload.push_str(&row.to_string());
                         payload.push('\n');

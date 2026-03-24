@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Activity, ChevronDown, ChevronUp, ChevronRight, Clock, AlertTriangle, Layers } from 'lucide-react';
+import { Activity, ChevronDown, ChevronUp } from 'lucide-react';
 import type { ResourceWithMetrics } from '../../lib/api';
-import { searchTraces, fetchTrace, type TraceSummary, type SpanResponse } from '../../lib/api';
+import { searchTraces, type TraceSummary } from '../../lib/api';
+import { SpanDrawer } from './SpanDrawer';
 
 interface EndpointsTableProps {
   resources: ResourceWithMetrics[];
@@ -49,25 +50,12 @@ const methodColors: Record<string, string> = {
   PATCH: 'bg-purple-500/20 text-purple-400',
 };
 
-function formatDuration(ms: number): string {
-  if (ms < 1) return `${(ms * 1000).toFixed(0)}µs`;
-  if (ms < 1000) return `${ms.toFixed(1)}ms`;
-  return `${(ms / 1000).toFixed(2)}s`;
-}
-
-function formatTimestamp(ts: string): string {
-  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-}
-
 export function EndpointsTable({ resources, serviceName }: EndpointsTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>('requests');
   const [sortAsc, setSortAsc] = useState(false);
-  const [expandedEndpoint, setExpandedEndpoint] = useState<string | null>(null);
+  const [drawerEndpoint, setDrawerEndpoint] = useState<string | null>(null);
   const [traces, setTraces] = useState<TraceSummary[]>([]);
-  const [selectedTraceSpans, setSelectedTraceSpans] = useState<SpanResponse[]>([]);
-  const [selectedTraceId, setSelectedTraceId] = useState<string | null>(null);
   const [loadingTraces, setLoadingTraces] = useState(false);
-  const [loadingSpans, setLoadingSpans] = useState(false);
 
   // Filter to only API endpoints
   const apiEndpoints = useMemo(() => resources.filter(r => isApiEndpoint(r.resource)), [resources]);
@@ -75,10 +63,10 @@ export function EndpointsTable({ resources, serviceName }: EndpointsTableProps) 
   const sorted = useMemo(() => {
     const arr = [...apiEndpoints];
     arr.sort((a, b) => {
-      const va = a[sortKey] as number;
-      const vb = b[sortKey] as number;
-      if (typeof va === 'string') return sortAsc ? (va as string).localeCompare(vb as string) : (vb as string).localeCompare(va as string);
-      return sortAsc ? va - vb : vb - va;
+      const va = a[sortKey];
+      const vb = b[sortKey];
+      if (typeof va === 'string' && typeof vb === 'string') return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+      return sortAsc ? (va as number) - (vb as number) : (vb as number) - (va as number);
     });
     return arr;
   }, [apiEndpoints, sortKey, sortAsc]);
@@ -88,33 +76,18 @@ export function EndpointsTable({ resources, serviceName }: EndpointsTableProps) 
     else { setSortKey(key); setSortAsc(false); }
   };
 
-  // Load traces when an endpoint is expanded
+  // Load traces when a drawer endpoint is selected
   useEffect(() => {
-    if (!expandedEndpoint) { setTraces([]); setSelectedTraceId(null); setSelectedTraceSpans([]); return; }
+    if (!drawerEndpoint) { setTraces([]); return; }
     setLoadingTraces(true);
-    searchTraces({ service: serviceName, resource: expandedEndpoint, limit: 20 })
+    searchTraces({ service: serviceName, resource: drawerEndpoint, limit: 20 })
       .then(r => setTraces(r.traces || []))
       .catch(() => setTraces([]))
       .finally(() => setLoadingTraces(false));
-  }, [expandedEndpoint, serviceName]);
-
-  // Load span details when a trace is selected
-  useEffect(() => {
-    if (!selectedTraceId) { setSelectedTraceSpans([]); return; }
-    setLoadingSpans(true);
-    fetchTrace(selectedTraceId)
-      .then(spans => setSelectedTraceSpans(spans))
-      .catch(() => setSelectedTraceSpans([]))
-      .finally(() => setLoadingSpans(false));
-  }, [selectedTraceId]);
+  }, [drawerEndpoint, serviceName]);
 
   const handleEndpointClick = (resource: string) => {
-    if (expandedEndpoint === resource) {
-      setExpandedEndpoint(null);
-    } else {
-      setExpandedEndpoint(resource);
-      setSelectedTraceId(null);
-    }
+    setDrawerEndpoint(drawerEndpoint === resource ? null : resource);
   };
 
   const SortIcon = ({ col }: { col: SortKey }) => {
@@ -154,146 +127,43 @@ export function EndpointsTable({ resources, serviceName }: EndpointsTableProps) 
                 <th className="pb-3 font-semibold text-right cursor-pointer hover:text-white" onClick={() => handleSort('p95_duration_ms')}>
                   <span className="flex items-center justify-end gap-1">P95 <SortIcon col="p95_duration_ms" /></span>
                 </th>
-                <th className="pb-3 w-8"></th>
               </tr>
             </thead>
             <tbody>
               {sorted.map(r => {
                 const { method, path } = extractMethod(r.resource);
-                const isExpanded = expandedEndpoint === r.resource;
+                const isActive = drawerEndpoint === r.resource;
                 return (
-                  <tr key={r.resource} className="border-b border-white/5">
-                    {/* Endpoint row */}
-                    <td colSpan={7} className="p-0">
-                      <div
-                        onClick={() => handleEndpointClick(r.resource)}
-                        className={`flex items-center cursor-pointer transition-colors group py-3 px-1 ${
-                          isExpanded ? 'bg-primary/5' : 'hover:bg-white/5'
-                        }`}
-                      >
-                        {/* Endpoint name */}
-                        <div className="flex-1 flex items-center gap-2 group-hover:text-primary transition-colors">
-                          <ChevronRight className={`w-4 h-4 text-gray-600 transition-transform ${isExpanded ? 'rotate-90 text-primary' : 'group-hover:text-primary'}`} />
-                          {method && (
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${methodColors[method] || 'bg-gray-500/20 text-gray-400'}`}>
-                              {method}
-                            </span>
-                          )}
-                          <span className="font-mono text-xs text-gray-200 truncate">{path}</span>
-                        </div>
-                        {/* Metrics */}
-                        <span className="w-20 text-right font-mono text-xs">{formatNum(r.requests)}</span>
-                        <span className="w-20 text-right font-mono text-xs text-red-400">{formatNum(r.errors)}</span>
-                        <span className="w-24 text-right">
-                          <span className={`text-xs font-bold ${r.error_rate < 5 ? 'text-emerald-400' : 'text-red-400'}`}>
-                            {r.error_rate.toFixed(1)}%
+                  <tr
+                    key={r.resource}
+                    onClick={() => handleEndpointClick(r.resource)}
+                    className={`border-b border-white/5 cursor-pointer transition-colors ${
+                      isActive ? 'bg-primary/10' : 'hover:bg-white/5'
+                    }`}
+                  >
+                    <td className="py-3 px-1">
+                      <div className="flex items-center gap-2">
+                        {method && (
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${methodColors[method] || 'bg-gray-500/20 text-gray-400'}`}>
+                            {method}
                           </span>
-                        </span>
-                        <span className={`w-24 text-right font-mono text-xs ${
-                          r.avg_duration_ms >= 500 ? 'text-red-400' : r.avg_duration_ms >= 100 ? 'text-amber-400' : 'text-gray-200'
-                        }`}>
-                          {r.avg_duration_ms.toFixed(1)}ms
-                        </span>
-                        <span className="w-24 text-right font-mono text-xs text-amber-400">{r.p95_duration_ms.toFixed(1)}ms</span>
-                        <span className="w-8" />
+                        )}
+                        <span className="font-mono text-xs text-gray-200 truncate">{path}</span>
                       </div>
-
-                      {/* Expanded: Trace list */}
-                      {isExpanded && (
-                        <div className="border-t border-white/5 bg-black/20">
-                          {loadingTraces ? (
-                            <div className="flex items-center justify-center py-6">
-                              <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                            </div>
-                          ) : traces.length === 0 ? (
-                            <p className="text-gray-500 text-sm text-center py-4">No recent traces for this endpoint.</p>
-                          ) : (
-                            <div className="divide-y divide-white/5">
-                              {traces.map(t => (
-                                <div key={t.trace_id}>
-                                  {/* Trace summary row */}
-                                  <div
-                                    onClick={(e) => { e.stopPropagation(); setSelectedTraceId(selectedTraceId === t.trace_id ? null : t.trace_id); }}
-                                    className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${
-                                      selectedTraceId === t.trace_id ? 'bg-primary/10' : 'hover:bg-white/5'
-                                    }`}
-                                  >
-                                    <ChevronRight className={`w-3.5 h-3.5 text-gray-600 transition-transform flex-shrink-0 ${
-                                      selectedTraceId === t.trace_id ? 'rotate-90 text-primary' : ''
-                                    }`} />
-                                    <span className="font-mono text-[11px] text-primary/80 w-24 flex-shrink-0">{t.trace_id.slice(0, 12)}…</span>
-                                    <span className="text-xs text-gray-400 flex items-center gap-1 flex-shrink-0">
-                                      <Clock size={11} /> {formatTimestamp(t.timestamp)}
-                                    </span>
-                                    <span className={`text-xs font-mono flex-shrink-0 ${
-                                      t.duration_ms >= 500 ? 'text-red-400' : t.duration_ms >= 100 ? 'text-amber-400' : 'text-emerald-400'
-                                    }`}>
-                                      {formatDuration(t.duration_ms)}
-                                    </span>
-                                    <span className="text-xs text-gray-500 flex items-center gap-1 flex-shrink-0">
-                                      <Layers size={11} /> {t.span_count} spans
-                                    </span>
-                                    {t.error && (
-                                      <span className="text-xs text-red-400 flex items-center gap-1 flex-shrink-0">
-                                        <AlertTriangle size={11} /> Error
-                                      </span>
-                                    )}
-                                    <span className="flex-1 text-xs text-gray-500 truncate">{t.root_name}</span>
-                                  </div>
-
-                                  {/* Span details */}
-                                  {selectedTraceId === t.trace_id && (
-                                    <div className="bg-black/30 border-t border-white/5">
-                                      {loadingSpans ? (
-                                        <div className="flex items-center justify-center py-4">
-                                          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                                        </div>
-                                      ) : (
-                                        <div className="px-4 py-2 space-y-0.5 max-h-80 overflow-y-auto">
-                                          {selectedTraceSpans.map((span, i) => {
-                                            const depth = getSpanDepth(span, selectedTraceSpans);
-                                            const maxDuration = Math.max(...selectedTraceSpans.map(s => s.duration_ms), 1);
-                                            const widthPct = Math.max((span.duration_ms / maxDuration) * 100, 2);
-                                            return (
-                                              <div key={`${span.span_id}-${i}`} className="flex items-center gap-2 py-1 group/span hover:bg-white/5 rounded px-1">
-                                                <div style={{ width: `${depth * 16}px` }} className="flex-shrink-0" />
-                                                <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded flex-shrink-0 ${
-                                                  span.service === serviceName
-                                                    ? 'bg-primary/20 text-primary'
-                                                    : 'bg-cyan-500/20 text-cyan-400'
-                                                }`}>
-                                                  {span.service}
-                                                </span>
-                                                <span className={`text-xs truncate flex-1 ${span.error ? 'text-red-400' : 'text-gray-300'}`}>
-                                                  {span.name}
-                                                </span>
-                                                <div className="w-32 flex-shrink-0">
-                                                  <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden">
-                                                    <div
-                                                      className={`h-full rounded-full ${span.error ? 'bg-red-500' : 'bg-primary/60'}`}
-                                                      style={{ width: `${widthPct}%` }}
-                                                    />
-                                                  </div>
-                                                </div>
-                                                <span className={`text-[11px] font-mono w-16 text-right flex-shrink-0 ${
-                                                  span.duration_ms >= 100 ? 'text-amber-400' : 'text-gray-400'
-                                                }`}>
-                                                  {formatDuration(span.duration_ms)}
-                                                </span>
-                                              </div>
-                                            );
-                                          })}
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </td>
+                    <td className="py-3 text-right font-mono text-xs">{formatNum(r.requests)}</td>
+                    <td className="py-3 text-right font-mono text-xs text-red-400">{formatNum(r.errors)}</td>
+                    <td className="py-3 text-right">
+                      <span className={`text-xs font-bold ${r.error_rate < 5 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {r.error_rate.toFixed(1)}%
+                      </span>
+                    </td>
+                    <td className={`py-3 text-right font-mono text-xs ${
+                      r.avg_duration_ms >= 500 ? 'text-red-400' : r.avg_duration_ms >= 100 ? 'text-amber-400' : 'text-gray-200'
+                    }`}>
+                      {r.avg_duration_ms.toFixed(1)}ms
+                    </td>
+                    <td className="py-3 text-right font-mono text-xs text-amber-400">{r.p95_duration_ms.toFixed(1)}ms</td>
                   </tr>
                 );
               })}
@@ -301,20 +171,16 @@ export function EndpointsTable({ resources, serviceName }: EndpointsTableProps) 
           </table>
         </div>
       )}
+
+      {/* Span Drawer */}
+      <SpanDrawer
+        isOpen={drawerEndpoint !== null}
+        onClose={() => setDrawerEndpoint(null)}
+        serviceName={serviceName}
+        resource={drawerEndpoint || ''}
+        traces={traces}
+        loadingTraces={loadingTraces}
+      />
     </div>
   );
-}
-
-function getSpanDepth(span: SpanResponse, allSpans: SpanResponse[]): number {
-  let depth = 0;
-  let current = span;
-  const visited = new Set<string>();
-  while (current.parent_id && !visited.has(current.parent_id)) {
-    visited.add(current.parent_id);
-    const parent = allSpans.find(s => s.span_id === current.parent_id);
-    if (!parent) break;
-    depth++;
-    current = parent;
-  }
-  return Math.min(depth, 8);
 }
