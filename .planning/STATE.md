@@ -66,6 +66,7 @@ progress:
 - Phase 20 added: Create centralized agents module for Java, Node, Go, and Rust
 - Phase 21 added: Refactor agents to support true zero-code Datadog-style pure injection removing application OTel dependencies
 - Phase 22 added: Refactor APM trace span names to show structured API paths like Datadog
+- Phase 23 added: Refactor mock-app to DDD architecture with PostgreSQL and Redis connections
 
 ## Session Info
 

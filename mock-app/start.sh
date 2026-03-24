@@ -18,6 +18,7 @@ cleanup() {
         kill "$pid" 2>/dev/null || true
     done
     wait 2>/dev/null
+
     echo "✅ All services stopped."
     exit 0
 }
@@ -26,6 +27,9 @@ trap cleanup SIGINT SIGTERM
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  🚀 Easy Monitor — Polyglot Microservices Mock App"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+sleep 5 # give postgres & redis a moment to wake up
+
 echo ""
 
 # ─── 1. Build Services ───
