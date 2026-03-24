@@ -1,11 +1,8 @@
-use std::sync::Arc;
 use reqwest::Client;
 use serde_json::json;
 use tracing::{info, error};
 use tokio::time::{self, Duration};
 use crate::bus::{EventBusRx, Event};
-use shared_proto::logs::LogEntry;
-use shared_proto::traces::Span;
 
 use super::CH_URL;
 use crate::utils::sanitize_resource;
@@ -134,7 +131,7 @@ pub async fn start_clickhouse_writer(mut rx: EventBusRx) -> anyhow::Result<()> {
                             "trace_id": log.trace_id,
                             "span_id": span_id,
                             "service": log.service,
-                            "level": log.level,
+                            "level": log.level.to_uppercase(),
                             "message": log.message,
                             "pod_id": pod_id,
                             "namespace": namespace,

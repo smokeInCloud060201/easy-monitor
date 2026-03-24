@@ -2,7 +2,6 @@ use axum::{extract::{State, Path, Query}, Json};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashSet;
-use tracing::error;
 
 use super::ApiState;
 use crate::storage::CH_URL;

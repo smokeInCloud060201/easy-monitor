@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use std::collections::HashMap;
 use dashmap::DashMap;
 use reqwest::Client;
 use serde_json::json;

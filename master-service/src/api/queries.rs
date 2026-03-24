@@ -1,7 +1,6 @@
 use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use tracing::error;
 
 use super::ApiState;
 use crate::storage::CH_URL;
@@ -640,6 +639,7 @@ pub async fn query_metrics(State(state): State<ApiState>, Json(payload): Json<Me
 // ─── System Metrics ───
 
 #[derive(Deserialize)]
+#[allow(dead_code)]
 pub struct SystemMetricsRequest {
     pub from: Option<String>,
     pub to: Option<String>,

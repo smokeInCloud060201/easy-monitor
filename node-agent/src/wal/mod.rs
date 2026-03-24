@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use anyhow::Result;
 use sled::{Db, Tree};
 use tracing::error;
