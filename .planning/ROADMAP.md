@@ -280,3 +280,13 @@ Plans:
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 27 to break down)
+
+### Phase 28: APM endpoint detail drawer with dependencies, span summary, and traces sections
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 27
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 28 to break down)

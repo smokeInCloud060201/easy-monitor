@@ -1,8 +1,7 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Activity, ChevronDown, ChevronUp } from 'lucide-react';
 import type { ResourceWithMetrics } from '../../lib/api';
-import { searchTraces, type TraceSummary } from '../../lib/api';
-import { SpanDrawer } from './SpanDrawer';
+import { EndpointDrawer } from './EndpointDrawer';
 
 interface EndpointsTableProps {
   resources: ResourceWithMetrics[];
@@ -54,8 +53,6 @@ export function EndpointsTable({ resources, serviceName }: EndpointsTableProps) 
   const [sortKey, setSortKey] = useState<SortKey>('requests');
   const [sortAsc, setSortAsc] = useState(false);
   const [drawerEndpoint, setDrawerEndpoint] = useState<string | null>(null);
-  const [traces, setTraces] = useState<TraceSummary[]>([]);
-  const [loadingTraces, setLoadingTraces] = useState(false);
 
   // Filter to only API endpoints
   const apiEndpoints = useMemo(() => resources.filter(r => isApiEndpoint(r.resource)), [resources]);
@@ -75,16 +72,6 @@ export function EndpointsTable({ resources, serviceName }: EndpointsTableProps) 
     if (sortKey === key) setSortAsc(!sortAsc);
     else { setSortKey(key); setSortAsc(false); }
   };
-
-  // Load traces when a drawer endpoint is selected
-  useEffect(() => {
-    if (!drawerEndpoint) { setTraces([]); return; }
-    setLoadingTraces(true);
-    searchTraces({ service: serviceName, resource: drawerEndpoint, limit: 20 })
-      .then(r => setTraces(r.traces || []))
-      .catch(() => setTraces([]))
-      .finally(() => setLoadingTraces(false));
-  }, [drawerEndpoint, serviceName]);
 
   const handleEndpointClick = (resource: string) => {
     setDrawerEndpoint(drawerEndpoint === resource ? null : resource);
@@ -172,14 +159,13 @@ export function EndpointsTable({ resources, serviceName }: EndpointsTableProps) 
         </div>
       )}
 
-      {/* Span Drawer */}
-      <SpanDrawer
+      {/* Endpoint Drawer (Level 1) */}
+      <EndpointDrawer
         isOpen={drawerEndpoint !== null}
         onClose={() => setDrawerEndpoint(null)}
         serviceName={serviceName}
         resource={drawerEndpoint || ''}
-        traces={traces}
-        loadingTraces={loadingTraces}
+        resourceMetrics={resources.find(r => r.resource === drawerEndpoint) || null}
       />
     </div>
   );

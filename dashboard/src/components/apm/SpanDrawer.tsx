@@ -11,6 +11,8 @@ interface SpanDrawerProps {
   resource: string;
   traces: TraceSummary[];
   loadingTraces: boolean;
+  zIndex?: number;         // for nested drawer stacking (default 40)
+  singleTraceMode?: boolean; // hide trace list sidebar, auto-select first trace
 }
 
 // ─── Tree Types ───
@@ -143,7 +145,7 @@ function getStatusCodeColor(code: string): string {
 }
 
 // ─── Main Component ───
-export function SpanDrawer({ isOpen, onClose, serviceName, resource, traces, loadingTraces }: SpanDrawerProps) {
+export function SpanDrawer({ isOpen, onClose, serviceName, resource, traces, loadingTraces, zIndex = 40, singleTraceMode = false }: SpanDrawerProps) {
   const [selectedTraceId, setSelectedTraceId] = useState<string | null>(null);
   const [spans, setSpans] = useState<SpanResponse[]>([]);
   const [loadingSpans, setLoadingSpans] = useState(false);
@@ -218,7 +220,7 @@ export function SpanDrawer({ isOpen, onClose, serviceName, resource, traces, loa
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-40 flex">
+    <div className="fixed inset-0 flex" style={{ zIndex }}>
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
@@ -226,7 +228,7 @@ export function SpanDrawer({ isOpen, onClose, serviceName, resource, traces, loa
       />
 
       {/* Drawer */}
-      <div className="fixed top-0 right-0 h-full w-[70vw] max-w-[1400px] bg-gray-950 border-l border-gray-800 shadow-2xl z-50 flex flex-col animate-in slide-in-from-right duration-300">
+      <div className="fixed top-0 right-0 h-full w-[70vw] max-w-[1400px] bg-gray-950 border-l border-gray-800 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300" style={{ zIndex: zIndex + 10 }}>
         {/* ─── Header ─── */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800 bg-gray-900 flex-shrink-0">
           <div className="flex items-center gap-3 min-w-0">
@@ -250,7 +252,8 @@ export function SpanDrawer({ isOpen, onClose, serviceName, resource, traces, loa
 
         {/* ─── Body ─── */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Left: Trace List */}
+          {/* Left: Trace List (hidden in singleTraceMode) */}
+          {!singleTraceMode && (
           <div className="w-72 flex-shrink-0 border-r border-gray-800 bg-gray-900/50 flex flex-col">
             <div className="px-4 py-3 border-b border-gray-800 text-xs font-bold text-gray-500 uppercase tracking-wider">
               Recent Traces ({traces.length})
@@ -301,6 +304,7 @@ export function SpanDrawer({ isOpen, onClose, serviceName, resource, traces, loa
               )}
             </div>
           </div>
+          )}
 
           {/* Right: Waterfall Table + Detail Panel */}
           <div className="flex-1 flex flex-col overflow-hidden">

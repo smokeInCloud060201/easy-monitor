@@ -71,6 +71,7 @@ progress:
 - Phase 25 added: Distributed e-commerce architecture covering 5 new microservices, Saga orchestration, and Redis PubSub async queues
 - Phase 26 added: Replace SAGA with RESTful in mock-app
 - Phase 27 added: Enhance APM service endpoint UI with Datadog-style sliding span list
+- Phase 28 added: APM endpoint detail drawer with dependencies, span summary, and traces sections
 
 ## Session Info
 
