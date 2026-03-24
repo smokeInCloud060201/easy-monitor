@@ -3,6 +3,7 @@ import express from 'express';
 import winston from 'winston';
 import { AppDataSource } from './data-source';
 import { PaymentController } from './controllers/PaymentController';
+import { redisClient } from './redis';
 
 const app = express();
 app.use(express.json());
@@ -27,7 +28,6 @@ export async function bootstrap() {
         app.get('/api/payment/status/:id', (req, res) => paymentController.status(req, res));
         
         // Mock SAGA Webhook processing async PubSub dispatching
-        import { redisClient } from './redis';
         app.post('/api/v1/payments/webhook', async (req, res) => {
             const paymentId = req.body.paymentId || 'pay_unknown';
             const status = req.body.status || 'SUCCESS';

@@ -6,6 +6,7 @@ members = ["agents/rust/easymonitor-agent",
 ]
 exclude = [
     "mock-app/notification-service",
+    "mock-app/inventory-service",
 ]
 resolver = "2"
 

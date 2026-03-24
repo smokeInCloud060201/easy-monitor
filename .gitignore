@@ -22,16 +22,29 @@ target
 
 # Node.js
 **/node_modules/
+**/dist/
+**/out/
+**/.bun/
 
 # Java / Gradle
 **/.gradle/
 **/build/
+**/target/
+**/*.jar
+**/*.class
 
 # Go
+mock-app/user-service/user-service
+mock-app/product-service/product-service
 mock-app/category-service/category-service
+
+# Rust
+**/target/
+**/*.rs.bk
 
 # OS
 .DS_Store
 
 # Mock service logs
 mock-app/.logs/
+*.log

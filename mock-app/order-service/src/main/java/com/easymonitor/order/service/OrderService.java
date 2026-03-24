@@ -40,7 +40,13 @@ public class OrderService {
             double price = ((Number) item.getOrDefault("price", 49.99)).doubleValue();
 
             try {
-                restTemplate.getForObject("http://localhost:8081/api/category/" + categoryId, String.class);
+                restTemplate.getForObject("http://localhost:8081/api/product/" + categoryId, String.class);
+                
+                // Force outbound HTTP span edges to enrich the APM Service Map graph
+                restTemplate.getForObject("http://localhost:8088/api/health", String.class); // cart
+                restTemplate.getForObject("http://localhost:8085/api/health", String.class); // user
+                restTemplate.getForObject("http://localhost:8086/api/health", String.class); // inventory
+                restTemplate.getForObject("http://localhost:8089/api/health", String.class); // pricing
             } catch (Exception e) {
                 // Ignore failure
             }

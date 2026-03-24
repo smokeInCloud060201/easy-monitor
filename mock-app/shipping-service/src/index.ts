@@ -3,6 +3,7 @@ import express from 'express';
 import winston from 'winston';
 import { AppDataSource } from './data-source';
 import { ShippingController } from './controllers/ShippingController';
+import { redisClient } from './redis';
 
 const app = express();
 app.use(express.json());
@@ -27,7 +28,6 @@ export async function bootstrap() {
         app.get('/api/shipping/status/:id', (req, res) => shippingController.status(req, res));
         
         // Mock SAGA Event Listener
-        import { redisClient } from './redis';
         const subscriber = redisClient.duplicate();
         await subscriber.subscribe('payment.events');
         subscriber.on('message', (channel, message) => {
