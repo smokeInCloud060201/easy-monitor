@@ -29,32 +29,42 @@ public class OrderService {
 
     public Map<String, Object> processOrder(List<Map<String, Object>> items) throws Exception {
         String orderId = "ord_" + System.currentTimeMillis();
-        log.info("Processing order for order: {}", orderId);
+        String userId = "usr_" + ThreadLocalRandom.current().nextInt(1000, 9999);
+        String cartId = "crt_" + ThreadLocalRandom.current().nextInt(1000, 9999);
+        log.info("Processing order: {}, user: {}, cart: {}", orderId, userId, cartId);
 
         Thread.sleep(ThreadLocalRandom.current().nextLong(3, 11)); // simulate prep
 
+        // Phase 1: Context Resolution (Once per order)
+        try {
+            restTemplate.getForObject("http://localhost:8088/api/carts/" + cartId, String.class); // verify cart details
+            restTemplate.getForObject("http://localhost:8085/api/user/" + userId, String.class); // verify user profile and standing
+        } catch (Exception e) {}
+
         double subtotal = 0;
+        
+        // Phase 2: Item Processing (Repeats per item)
         for (Map<String, Object> item : items) {
             String categoryId = (String) item.getOrDefault("id", "electronics");
             int qty = ((Number) item.getOrDefault("qty", 1)).intValue();
             double price = ((Number) item.getOrDefault("price", 49.99)).doubleValue();
 
             try {
-                restTemplate.getForObject("http://localhost:8081/api/product/" + categoryId, String.class);
-                
-                // Force outbound HTTP span edges to enrich the APM Service Map graph
-                restTemplate.getForObject("http://localhost:8088/api/health", String.class); // cart
-                restTemplate.getForObject("http://localhost:8085/api/health", String.class); // user
-                restTemplate.getForObject("http://localhost:8086/api/health", String.class); // inventory
-                restTemplate.getForObject("http://localhost:8089/api/health", String.class); // pricing
-            } catch (Exception e) {
-                // Ignore failure
-            }
+                restTemplate.getForObject("http://localhost:8081/api/product/" + categoryId, String.class); // product metadata
+                restTemplate.getForObject("http://localhost:8089/api/pricings/" + categoryId, String.class); // calculate true cart price
+            } catch (Exception e) {}
+            
             subtotal += price * qty;
         }
 
         Thread.sleep(ThreadLocalRandom.current().nextLong(2, 6)); 
         double total = subtotal + (subtotal * 0.08) + 5.99;
+
+        // Phase 3: Fulfillment Coordination (Once per order)
+        try {
+            restTemplate.getForObject("http://localhost:8086/api/inventorys/" + orderId, String.class); // soft-reserve stock
+            restTemplate.getForObject("http://localhost:8087/api/shipping/status/" + orderId, String.class); // prepare shipping manifest
+        } catch (Exception e) {}
 
         // Process Payment
         Map<String, Object> chargeResult = processPayment(orderId, total);

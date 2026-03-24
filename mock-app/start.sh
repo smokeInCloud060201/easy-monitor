@@ -182,18 +182,4 @@ while true; do
          -d "{\"paymentId\":\"pay_12345\",\"status\":\"SUCCESS\",\"orderId\":\"ord_$TICK\"}" > /dev/null 2>&1 &
 
     sleep 1
-
-    # Product queries
-    curl -sf http://localhost:8081/api/product/electronics > /dev/null 2>&1 &
-    curl -sf "http://localhost:8081/api/product/search?q=electronics" > /dev/null 2>&1 &
-
-    # Cart/User/Pricing/Shipping queries (generating telemetry!)
-    curl -sf http://localhost:8088/api/health > /dev/null 2>&1 &
-    curl -sf http://localhost:8085/api/health > /dev/null 2>&1 &
-    curl -sf http://localhost:8089/api/health > /dev/null 2>&1 &
-    curl -sf http://localhost:8087/api/health > /dev/null 2>&1 &
-    curl -sf http://localhost:8086/api/health > /dev/null 2>&1 &
-    curl -sf http://localhost:8083/api/health > /dev/null 2>&1 &
-
-    sleep 1
 done
