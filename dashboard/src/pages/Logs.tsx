@@ -8,6 +8,7 @@ import { LogHistogram } from '../components/logs/LogHistogram';
 import { LogFieldsSidebar } from '../components/logs/LogFieldsSidebar';
 
 const LEVELS = ['All', 'INFO', 'WARN', 'ERROR', 'DEBUG'];
+const PAGE_SIZE = 100;
 
 interface Filters {
   keyword: string;
@@ -26,6 +27,7 @@ interface Filters {
 export function Logs() {
   const [logs, setLogs] = useState<LogLine[]>([]);
   const [total, setTotal] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const [histogram, setHistogram] = useState<HistogramBucket[]>([]);
   const [fields, setFields] = useState<FieldStat[]>([]);
   const [totalLogs, setTotalLogs] = useState(0);
@@ -54,7 +56,8 @@ export function Logs() {
       node_name: filters.node_name || undefined,
       from_ts: filters.from_ts || undefined,
       to_ts: filters.to_ts || undefined,
-      limit: 200,
+      limit: PAGE_SIZE,
+      offset: (currentPage - 1) * PAGE_SIZE,
     };
 
     try {
@@ -87,13 +90,14 @@ export function Logs() {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, currentPage]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const parsed = parseLogQuery(searchInput);
+    setCurrentPage(1);
     setFilters(prev => ({
       ...prev,
       keyword: parsed.keyword || '',
@@ -109,10 +113,12 @@ export function Logs() {
   };
 
   const handleLevelChange = (level: string) => {
+    setCurrentPage(1);
     setFilters(prev => ({ ...prev, level: level === 'All' ? null : level }));
   };
 
   const handleFieldFilter = (field: string, value: string | null) => {
+    setCurrentPage(1);
     if (field === 'service') {
       setFilters(prev => ({ ...prev, service: value }));
     } else if (field === 'level') {
@@ -124,8 +130,13 @@ export function Logs() {
   };
 
   const handleFilterByService = (service: string) => {
+    setCurrentPage(1);
     setFilters(prev => ({ ...prev, service }));
   };
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const rangeStart = (currentPage - 1) * PAGE_SIZE + 1;
+  const rangeEnd = Math.min(currentPage * PAGE_SIZE, total);
 
   const activeFilters: Record<string, string> = {};
   if (filters.service) activeFilters.service = filters.service;
@@ -217,13 +228,53 @@ export function Logs() {
           </div>
 
           {/* Log Rows */}
-          <div className="flex-1 h-[calc(100%-28px)]">
+          <div className="flex-1 h-[calc(100%-68px)]">
             <LogViewer
               logs={logs}
               selectedLogIndex={selectedLogIndex}
               onSelectLog={setSelectedLogIndex}
               onFilterByService={handleFilterByService}
             />
+          </div>
+
+          {/* Pagination Bar */}
+          <div className="flex items-center justify-between px-4 py-2 border-t border-gray-800 bg-gray-900/70 flex-shrink-0">
+            <span className="text-xs text-gray-500 tabular-nums">
+              {total > 0 ? `${rangeStart.toLocaleString()}–${rangeEnd.toLocaleString()} of ${total.toLocaleString()}` : 'No results'}
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage <= 1}
+                className="px-2 py-1 text-xs rounded font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-gray-400 hover:text-white hover:bg-gray-800"
+              >
+                First
+              </button>
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage <= 1}
+                className="px-2.5 py-1 text-xs rounded font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-gray-400 hover:text-white hover:bg-gray-800"
+              >
+                ← Prev
+              </button>
+              <span className="px-3 py-1 text-xs font-bold text-gray-200 bg-gray-800 rounded tabular-nums">
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages}
+                className="px-2.5 py-1 text-xs rounded font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-gray-400 hover:text-white hover:bg-gray-800"
+              >
+                Next →
+              </button>
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage >= totalPages}
+                className="px-2 py-1 text-xs rounded font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-gray-400 hover:text-white hover:bg-gray-800"
+              >
+                Last
+              </button>
+            </div>
           </div>
         </div>
       </div>

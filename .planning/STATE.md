@@ -72,6 +72,7 @@ progress:
 - Phase 26 added: Replace SAGA with RESTful in mock-app
 - Phase 27 added: Enhance APM service endpoint UI with Datadog-style sliding span list
 - Phase 28 added: APM endpoint detail drawer with dependencies, span summary, and traces sections
+- Phase 29 added: Add pagination to logs page with 100 records per page
 
 ## Session Info
 
