@@ -43,6 +43,12 @@ pub async fn start_trace_metrics_engine(tx: EventBusTx, mut rx: EventBusRx) -> a
                 Ok(Event::Traces(spans)) => {
                     for span in spans {
                         let sanitized_resource = sanitize_resource(&span.resource);
+                        // EXCLUSIVE FILTER: Only track RED metrics for Entrypoint spans (Root spans or explicit APIs/Servers). 
+                        // This prevents internal Redis/DB queries or background tasks from polluting the APM Resources endpoint list.
+                        let is_api = span.resource.contains(".request") || span.resource.contains(".server");
+                        if !is_api {
+                            continue;
+                        }
                         let key = format!("{}:{}", span.service, sanitized_resource);
                         let mut entry = buckets_clone.entry(key).or_insert_with(ResourceBucket::new);
                         entry.count += 1.0;

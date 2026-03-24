@@ -59,15 +59,44 @@ impl TraceService for OTLPReceiver {
                     }
 
                     let mut derived_name = span.name.clone();
-                    let method = tags.get("http.method").or(tags.get("http.request.method"));
-                    let route = tags.get("http.route").or(tags.get("url.path")).or(tags.get("http.target"));
+                    let method = tags.get("http.method").or(tags.get("http.request.method")).cloned();
+                    let mut route = tags.get("http.route").or(tags.get("url.path")).or(tags.get("http.target")).cloned();
+
+                    if route.is_none() {
+                        if let Some(url) = tags.get("url.full").or(tags.get("http.url")) {
+                            if let Some(idx) = url.find("://") {
+                                let without_scheme = &url[idx+3..];
+                                if let Some(slash_idx) = without_scheme.find('/') {
+                                    route = Some(without_scheme[slash_idx..].to_string());
+                                } else {
+                                    route = Some("/".to_string());
+                                }
+                            } else if url.starts_with('/') {
+                                route = Some(url.clone());
+                            }
+                        }
+                    }
+
+                    if route.is_none() {
+                        if let Some(m) = &method {
+                            if span.name.starts_with(m) {
+                                let possible_route = span.name[m.len()..].trim();
+                                if !possible_route.is_empty() {
+                                    route = Some(possible_route.to_string());
+                                }
+                            }
+                        }
+                    }
+
                     let db_system = tags.get("db.system");
                     let db_operation = tags.get("db.operation");
                     let db_statement = tags.get("db.statement");
                     let rpc_system = tags.get("rpc.system");
                     let rpc_method = tags.get("rpc.method");
 
-                    if let (Some(m), Some(r)) = (method, route) {
+                    if let Some(m) = method {
+                        let r = route.unwrap_or_else(|| "".to_string());
+                        let path_suffix = if r.is_empty() { "".to_string() } else { format!(" {}", r) };
                         if span.kind == 2 {
                             let prefix = if service_name.contains("node") || service_name.contains("payment") {
                                 "express.request"
@@ -80,11 +109,11 @@ impl TraceService for OTLPReceiver {
                             } else {
                                 "http.server.request"
                             };
-                            derived_name = format!("{} · {} {}", prefix, m, r);
+                            derived_name = format!("{} · {}{}", prefix, m, path_suffix);
                         } else if span.kind == 3 {
-                            derived_name = format!("http.client · {} {}", m, r);
+                            derived_name = format!("http.client · {}{}", m, path_suffix);
                         } else {
-                            derived_name = format!("http · {} {}", m, r);
+                            derived_name = format!("http · {}{}", m, path_suffix);
                         }
                     } else if let Some(sys) = db_system {
                         let query_desc = if let Some(stmt) = db_statement {

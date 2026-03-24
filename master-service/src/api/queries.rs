@@ -158,8 +158,8 @@ pub async fn search_traces(State(state): State<ApiState>, Json(payload): Json<Tr
 
     let query = format!(
         "SELECT trace_id, \
-         argMin(service, timestamp) as root_service, \
-         argMin(name, timestamp) as root_name, \
+         argMin(service, tuple(parent_id != '', timestamp)) as root_service, \
+         argMin(name, tuple(parent_id != '', timestamp)) as root_name, \
          max(duration) / 1000.0 as duration_ms, \
          count() as span_count, \
          max(error) as has_error, \
