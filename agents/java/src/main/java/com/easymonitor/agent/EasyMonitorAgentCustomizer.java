@@ -15,7 +15,7 @@ public class EasyMonitorAgentCustomizer implements AutoConfigurationCustomizerPr
     @Override
     public void customize(AutoConfigurationCustomizer autoConfiguration) {
         System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        System.out.println("  🚀 [EasyMonitor] Java Agent successfully attached!");
+        System.out.println(" [EasyMonitor] Java Agent successfully attached!");
         System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
         autoConfiguration.addPropertiesCustomizer(config -> {

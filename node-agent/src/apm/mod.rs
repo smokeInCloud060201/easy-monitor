@@ -58,6 +58,43 @@ impl TraceService for OTLPReceiver {
                         }
                     }
 
+                    let mut derived_name = span.name.clone();
+                    let method = tags.get("http.method").or(tags.get("http.request.method"));
+                    let route = tags.get("http.route").or(tags.get("url.path")).or(tags.get("http.target"));
+                    let db_system = tags.get("db.system");
+                    let db_operation = tags.get("db.operation");
+                    let rpc_system = tags.get("rpc.system");
+                    let rpc_method = tags.get("rpc.method");
+
+                    if let (Some(m), Some(r)) = (method, route) {
+                        if span.kind == 2 {
+                            let prefix = if service_name.contains("node") || service_name.contains("payment") {
+                                "express.request"
+                            } else if service_name.contains("go") || service_name.contains("category") {
+                                "http.server.request"
+                            } else if service_name.contains("java") || service_name.contains("checkout") {
+                                "servlet.request"
+                            } else if service_name.contains("rust") || service_name.contains("notification") {
+                                "actix.request"
+                            } else {
+                                "http.server.request"
+                            };
+                            derived_name = format!("{} {} {}", prefix, m, r);
+                        } else if span.kind == 3 {
+                            derived_name = format!("http.request {} {}", m, r);
+                        } else {
+                            derived_name = format!("http {} {}", m, r);
+                        }
+                    } else if let Some(sys) = db_system {
+                        if let Some(op) = db_operation {
+                            derived_name = format!("{}.query {}", sys, op);
+                        } else {
+                            derived_name = format!("{}.query", sys);
+                        }
+                    } else if let (Some(sys), Some(meth)) = (rpc_system, rpc_method) {
+                        derived_name = format!("{}.request {}", sys, meth);
+                    }
+
                     // Map generic status cleanly
                     let error_status = if let Some(status) = &span.status {
                         status.code == 2 // 2 corresponds to STATUS_CODE_ERROR in OTLP
@@ -69,9 +106,9 @@ impl TraceService for OTLPReceiver {
                         trace_id,
                         span_id,
                         parent_id: parent_span_id,
-                        name: span.name.clone(),
+                        name: derived_name.clone(),
                         service: service_name.clone(),
-                        resource: if span.name.is_empty() { "unknown".to_string() } else { span.name.clone() },
+                        resource: derived_name,
                         start_time: (span.start_time_unix_nano / 1_000_000) as i64,
                         duration: duration_ms as i64,
                         meta: tags,
@@ -217,13 +254,21 @@ impl LogsService for OTLPReceiver {
                         }
                     }
 
+                    let mut timestamp_ms = (log_record.time_unix_nano / 1_000_000) as i64;
+                    if timestamp_ms == 0 {
+                        timestamp_ms = std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .unwrap_or_default()
+                            .as_millis() as i64;
+                    }
+
                     let my_log = shared_proto::logs::LogEntry {
                         service: service_name.clone(),
                         level,
                         message,
                         tags,
                         trace_id,
-                        timestamp: (log_record.time_unix_nano / 1_000_000) as i64,
+                        timestamp: timestamp_ms,
                     };
 
                     if let Err(e) = self.wal.write_log(my_log).await {

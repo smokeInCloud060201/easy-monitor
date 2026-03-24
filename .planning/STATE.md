@@ -65,6 +65,7 @@ progress:
 - Phase 19 added: Enhance easymonitor APM to function as a true Datadog-like Java Agent with comprehensive tracing, metrics, and log correlation
 - Phase 20 added: Create centralized agents module for Java, Node, Go, and Rust
 - Phase 21 added: Refactor agents to support true zero-code Datadog-style pure injection removing application OTel dependencies
+- Phase 22 added: Refactor APM trace span names to show structured API paths like Datadog
 
 ## Session Info
 

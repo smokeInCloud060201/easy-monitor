@@ -17,10 +17,12 @@ function formatNum(n: number): string {
 }
 
 function isApiEndpoint(resource: string): boolean {
+  if (resource.includes('.request ') || resource.includes('.server ')) return true;
   const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
   for (const m of methods) {
     if (resource.startsWith(`${m} `)) return true;
     if (resource === m) return true;
+    if (resource.includes(` ${m} `)) return true;
   }
   if (resource.startsWith('/')) return true;
   if (resource.includes('/api/')) return true;
@@ -28,10 +30,13 @@ function isApiEndpoint(resource: string): boolean {
 }
 
 function extractMethod(resource: string): { method: string | null; path: string } {
-  const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
-  for (const m of methods) {
-    if (resource.startsWith(`${m} `)) return { method: m, path: resource.slice(m.length + 1) };
-    if (resource === m) return { method: m, path: '/' };
+  const match = resource.match(/(?:^|\s)(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)(?:\s|$)/);
+  if (match) {
+    const method = match[1];
+    const pathIndex = resource.indexOf(method) + method.length;
+    let path = resource.slice(pathIndex).trim();
+    if (!path) path = '/';
+    return { method, path };
   }
   return { method: null, path: resource };
 }
