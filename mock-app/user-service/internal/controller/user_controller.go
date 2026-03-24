@@ -29,7 +29,7 @@ func (c *UserController) HandleGetUser(w http.ResponseWriter, r *http.Request) {
 	cat, _, _ := c.svc.GetUser(r.Context(), userID)
 
 	if rand.Float64() < 0.05 {
-		slog.Error(fmt.Sprintf("Stock unavailable for %s", userID))
+		slog.ErrorContext(r.Context(), fmt.Sprintf("Stock unavailable for %s", userID))
 		w.WriteHeader(http.StatusConflict)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Stock unavailable", "user": userID})
 		return

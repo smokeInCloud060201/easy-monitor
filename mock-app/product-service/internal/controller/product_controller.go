@@ -29,7 +29,7 @@ func (c *ProductController) HandleGetProduct(w http.ResponseWriter, r *http.Requ
 	cat, _, _ := c.svc.GetProduct(r.Context(), productID)
 
 	if rand.Float64() < 0.05 {
-		slog.Error(fmt.Sprintf("Stock unavailable for %s", productID))
+		slog.ErrorContext(r.Context(), fmt.Sprintf("Stock unavailable for %s", productID))
 		w.WriteHeader(http.StatusConflict)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Stock unavailable", "product": productID})
 		return

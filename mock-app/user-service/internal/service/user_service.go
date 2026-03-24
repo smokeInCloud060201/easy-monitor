@@ -35,17 +35,17 @@ func (s *UserService) GetUser(ctx context.Context, id string) (*domain.User, boo
 		var cat domain.User
 		if json.Unmarshal([]byte(val), &cat) == nil {
 			cacheHit = true
-			slog.Info(fmt.Sprintf("Cache hit for %s in %dms", id, time.Since(start).Milliseconds()))
+			slog.InfoContext(ctx, fmt.Sprintf("Cache hit for %s in %dms", id, time.Since(start).Milliseconds()))
 			return &cat, cacheHit, nil
 		}
 	}
 
-	slog.Info(fmt.Sprintf("Cache miss for %s, querying DB", id))
+	slog.InfoContext(ctx, fmt.Sprintf("Cache miss for %s, querying DB", id))
 	time.Sleep(time.Duration(15+rand.Intn(45)) * time.Millisecond)
 	
 	cat, err := s.repo.GetByID(ctx, id)
 	if err != nil || cat == nil {
-		slog.Warn("User not found, falling back to electronics")
+		slog.WarnContext(ctx, "User not found, falling back to electronics")
 		cat, _ = s.repo.GetByID(ctx, "electronics")
 	}
 
@@ -55,18 +55,18 @@ func (s *UserService) GetUser(ctx context.Context, id string) (*domain.User, boo
 		}
 	}
 
-	slog.Info(fmt.Sprintf("Request completed in %dms - cacheHit: %v", time.Since(start).Milliseconds(), cacheHit))
+	slog.InfoContext(ctx, fmt.Sprintf("Request completed in %dms - cacheHit: %v", time.Since(start).Milliseconds(), cacheHit))
 	return cat, cacheHit, nil
 }
 
 func (s *UserService) SearchCategories(ctx context.Context, q string) ([]domain.User, error) {
 	start := time.Now()
-	slog.Info(fmt.Sprintf("Search started: %s", q))
+	slog.InfoContext(ctx, fmt.Sprintf("Search started: %s", q))
 
 	time.Sleep(time.Duration(2+rand.Intn(6)) * time.Millisecond)
 	time.Sleep(time.Duration(30+rand.Intn(70)) * time.Millisecond)
 
 	results, err := s.repo.Search(ctx, q)
-	slog.Info(fmt.Sprintf("Search completed in %dms", time.Since(start).Milliseconds()))
+	slog.InfoContext(ctx, fmt.Sprintf("Search completed in %dms", time.Since(start).Milliseconds()))
 	return results, err
 }

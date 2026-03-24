@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Loader2, Server, Activity, ChevronRight } from 'lucide-react';
-import { fetchServices, fetchResourcesWithMetrics, type ResourceWithMetrics } from '../lib/api';
+import { fetchServices, type ResourceWithMetrics } from '../lib/api';
 import axios from 'axios';
 
 const API_BASE = 'http://localhost:3000/api/v1';
@@ -16,7 +16,10 @@ function ServiceCard({ service }: { service: string }) {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
 
   useEffect(() => {
-    axios.get(`${API_BASE}/apm/services/${service}/resources`)
+    const token = localStorage.getItem('auth_token');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+    axios.get(`${API_BASE}/apm/services/${service}/resources`, { headers })
       .then(res => {
          const resources: ResourceWithMetrics[] = res.data.resources || [];
          if (resources.length > 0) {
@@ -29,11 +32,11 @@ function ServiceCard({ service }: { service: string }) {
            setMetrics({ rate, error_count: error, duration_sum: duration });
          } else {
            // Fallback to old metrics query
-           axios.get(`${API_BASE}/apm/services/${service}/resources`)
+           axios.get(`${API_BASE}/apm/services/${service}/resources`, { headers })
              .then(res2 => {
                 const resNames = res2.data.resources?.map((r: any) => r.resource || r) || [];
                 if (resNames.length > 0) {
-                  Promise.all(resNames.map((r: string) => axios.post(`${API_BASE}/metrics/query`, { service, resource: r })))
+                  Promise.all(resNames.map((r: string) => axios.post(`${API_BASE}/metrics/query`, { service, resource: r }, { headers })))
                     .then(responses => {
                        let r2 = 0; let e2 = 0; let d2 = 0;
                        responses.forEach(resp => {

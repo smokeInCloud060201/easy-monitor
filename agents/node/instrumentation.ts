@@ -9,6 +9,7 @@ import { BatchLogRecordProcessor, LoggerProvider } from '@opentelemetry/sdk-logs
 import { logs } from '@opentelemetry/api-logs';
 import { Hook } from 'require-in-the-middle';
 import { OpenTelemetryTransportV3 } from '@opentelemetry/winston-transport';
+import { context, propagation, trace, SpanKind } from '@opentelemetry/api';
 
 new Hook(['winston'], (winston: any) => {
     const originalCreateLogger = winston.createLogger;
@@ -22,6 +23,51 @@ new Hook(['winston'], (winston: any) => {
         return originalCreateLogger.call(this, options);
     };
     return winston;
+});
+
+new Hook(['ioredis'], (Redis: any) => {
+    // 1. Auto-inject W3C transparent payload headers during publish
+    const originalPublish = Redis.prototype.publish;
+    Redis.prototype.publish = function (channel: string, message: string) {
+        try {
+            const data = JSON.parse(message);
+            if (typeof data === 'object' && !data._trace) {
+                const carrier = {};
+                propagation.inject(context.active(), carrier);
+                data._trace = carrier;
+                message = JSON.stringify(data);
+            }
+        } catch (e) {} // Not a JSON message, let baseline OTel auto-instrumentation handle simple spans
+        return originalPublish.call(this, channel, message);
+    };
+
+    // 2. Auto-extract transparent headers during message consumption and spin up a discrete APM subgraph child
+    const originalEmit = Redis.prototype.emit;
+    Redis.prototype.emit = function (eventName: string, ...args: any[]) {
+        if (eventName === 'message') {
+            const channel = args[0];
+            const message = args[1];
+            try {
+                const data = JSON.parse(message);
+                if (data && typeof data === 'object' && data._trace) {
+                    const parentContext = propagation.extract(context.active(), data._trace);
+                    const tracer = trace.getTracer('easy-monitor-ioredis');
+                    
+                    return context.with(parentContext, () => {
+                        return tracer.startActiveSpan(`Redis SUBSCRIBE ${channel}`, { kind: SpanKind.CONSUMER }, (span) => {
+                            try {
+                                return originalEmit.call(this, eventName, ...args);
+                            } finally {
+                                span.end();
+                            }
+                        });
+                    });
+                }
+            } catch (e) {}
+        }
+        return originalEmit.call(this, eventName, ...args);
+    };
+    return Redis;
 });
 
 const endpoint = 'http://127.0.0.1:4317';
