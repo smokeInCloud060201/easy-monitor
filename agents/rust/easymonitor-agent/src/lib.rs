@@ -8,6 +8,8 @@ use tracing_subscriber::Registry;
 use tracing_subscriber::Layer;
 use tracing_subscriber::EnvFilter;
 
+pub mod actix_middleware;
+
 /// Initializes the EasyMonitor unified OpenTelemetry tracer and logger pipelines
 pub fn init_telemetry(service_name: &str) {
     // Trace exporter

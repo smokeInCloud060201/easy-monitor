@@ -35,8 +35,21 @@ export async function bootstrap() {
             if (status === 'SUCCESS') {
                 const orderId = req.body.orderId || `ord_${Math.floor(Math.random()*1000)}`;
                 const payload = { event: 'payment.succeeded', orderId, paymentId };
-                await redisClient.publish('payment.events', JSON.stringify(payload));
-                logger.info(`Saga Dispatched: Published 'payment.succeeded' to Redis 'payment.events'`);
+                logger.info(`REST Dispatch: Firing payment transitions to Order & Shipping via HTTP`);
+                
+                Promise.all([
+                    fetch('http://localhost:8080/api/order/saga/transition', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    }).catch(e => logger.error(`Order transition failed: ${e.message}`)),
+                    
+                    fetch('http://localhost:8087/api/shipping/allocate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ orderId })
+                    }).catch(e => logger.error(`Shipping allocation failed: ${e.message}`))
+                ]);
             }
             res.json({ received: true });
         });

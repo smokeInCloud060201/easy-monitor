@@ -25,10 +25,6 @@ public class RedisConfig {
     public org.springframework.data.redis.listener.RedisMessageListenerContainer container(RedisConnectionFactory connectionFactory) {
         org.springframework.data.redis.listener.RedisMessageListenerContainer container = new org.springframework.data.redis.listener.RedisMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
-        container.addMessageListener((message, pattern) -> {
-            String payload = new String(message.getBody());
-            System.out.println("[SAGA ORCHESTRATOR] Order Service transitioning payload state: " + payload);
-        }, new org.springframework.data.redis.listener.ChannelTopic("payment.events"));
         return container;
     }
 }

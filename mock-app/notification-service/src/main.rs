@@ -34,6 +34,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(notification_service.clone()))
+            .wrap(easymonitor_agent::actix_middleware::EasyMonitorActix)
             .wrap(TracingLogger::default())
             .route("/api/notify", web::post().to(controller::handle_notify))
             .route("/api/notifications/{order_id}", web::get().to(controller::handle_get_notification))

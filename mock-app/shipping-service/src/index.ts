@@ -27,15 +27,12 @@ export async function bootstrap() {
         app.post('/api/charge', (req, res) => shippingController.charge(req, res));
         app.get('/api/shipping/status/:id', (req, res) => shippingController.status(req, res));
         
-        // Mock SAGA Event Listener
-        const subscriber = redisClient.duplicate();
-        await subscriber.subscribe('payment.events');
-        subscriber.on('message', (channel, message) => {
-            const data = JSON.parse(message);
-            logger.info(`Saga Subscribed: Received event ${data.event} for order ${data.orderId}`);
-            if (data.event === 'payment.succeeded') {
-                logger.info(`[SHIPPING] Allocating fulfillment routes for order ${data.orderId}`);
-            }
+        // REST Integration endpoint
+        app.post('/api/shipping/allocate', (req, res) => {
+            const orderId = req.body.orderId;
+            logger.info(`REST Ingress: Received allocation request for order ${orderId}`);
+            logger.info(`[SHIPPING] Allocating fulfillment routes for order ${orderId}`);
+            res.json({ status: 'allocated', orderId });
         });
         
         app.get('/api/health', (req, res) => {

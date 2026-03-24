@@ -658,6 +658,8 @@ checksum = "1aaf95b3e5c8f23aa320147307562d361db0ae0d51242340f558153b4eb2439b"
 name = "easymonitor-agent"
 version = "0.1.0"
 dependencies = [
+ "actix-web",
+ "futures-util",
  "opentelemetry",
  "opentelemetry-appender-tracing",
  "opentelemetry-otlp",

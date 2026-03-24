@@ -23,3 +23,9 @@ The easy-monitor application follows a distributed telemetry collection and proc
 - `master-service/src/main.rs`: Execution point for the central manager. Starts gRPC ingress and HTTP API servers.
 - `node-agent/src/main.rs`: Execution point for the host agent. Starts metric collectors and forwarder loops.
 - `dashboard/src/main.tsx`: Entry point for the frontend SPA.
+
+## Instrumentation Strategy (Zero-Code Rule)
+**CRITICAL ARCHITECTURAL CONSTRAINT:** The main mock application services MUST focus purely on Domain-Driven Design (DDD) and core business logic.
+- **Never install or import** `opentelemetry`, `tracing-opentelemetry`, or ANY native APM SDK packages directly inside the mock app services (e.g., `payment-service`, `inventory-service`, `notification-service`).
+- All Distributed Tracing, Logging, and Monitoring logic (including W3C context extraction/injection headers) **MUST** be implemented externally by the internal agents inside the `agents/` and `node-agent/` directories.
+- To bridge the gap, Agents must rely on zero-code features (like auto-instrumentation, `global.fetch` monkeypatches, standard middleware wrap hooks, or generic `TracingLogger` integrations) rather than manual Carrier context injection inside application routes.

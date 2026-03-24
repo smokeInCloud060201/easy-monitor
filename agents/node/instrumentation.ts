@@ -70,6 +70,44 @@ new Hook(['ioredis'], (Redis: any) => {
     return Redis;
 });
 
+const originalFetch = global.fetch;
+if (typeof originalFetch === 'function') {
+    global.fetch = async function (url: string | URL | Request, options?: RequestInit) {
+        options = options || {};
+        const headersObj: Record<string, string> = {};
+        
+        if (options.headers instanceof Headers) {
+            options.headers.forEach((value, key) => { headersObj[key] = value; });
+        } else if (Array.isArray(options.headers)) {
+            for (const [key, value] of options.headers) headersObj[key] = value;
+        } else if (options.headers) {
+            Object.assign(headersObj, options.headers);
+        }
+        
+        propagation.inject(context.active(), headersObj);
+        options.headers = headersObj;
+        
+        const targetUrl = typeof url === 'string' ? url : (url as any).url || url.toString();
+        const tracer = trace.getTracer('easy-monitor-fetch');
+        
+        return tracer.startActiveSpan(`fetch ${options.method || 'GET'}`, { kind: SpanKind.CLIENT }, async (span) => {
+            span.setAttribute('http.url', targetUrl);
+            span.setAttribute('http.method', options!.method || 'GET');
+            try {
+                const res = await originalFetch(url as any, options);
+                span.setAttribute('http.status_code', res.status);
+                return res;
+            } catch (err: any) {
+                span.recordException(err);
+                span.setAttribute('error', true);
+                throw err;
+            } finally {
+                span.end();
+            }
+        });
+    };
+}
+
 const endpoint = 'http://127.0.0.1:4317';
 const resource = new Resource({
     [ATTR_SERVICE_NAME]: process.env.OTEL_SERVICE_NAME || 'unknown_node_service',

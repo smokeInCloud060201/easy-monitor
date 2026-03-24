@@ -41,4 +41,11 @@ public class OrderController {
     public Map<String, String> health() {
         return Map.of("status", "healthy", "service", "order-service");
     }
+
+    // ─── POST /api/order/saga/transition ───
+    @PostMapping("/api/order/saga/transition")
+    public Map<String, Object> transitionSaga(@RequestBody Map<String, Object> payload) {
+        System.out.println("[SAGA ORCHESTRATOR] Order Service transitioning payload state via REST: " + payload);
+        return Map.of("status", "transitioned");
+    }
 }

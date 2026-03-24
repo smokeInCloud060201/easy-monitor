@@ -16,6 +16,7 @@ help:
 	@echo "  $(GREEN)make master-service$(RESET)   Run master service"
 	@echo "  $(GREEN)make agent-node$(RESET)       Run agent node"
 	@echo "  $(GREEN)make mock-app$(RESET)         Run mock app"
+	@echo "  $(GREEN)make mock-down$(RESET)        Kill all mock app services"
 	@echo "  $(GREEN)make dashboard$(RESET)        Run dashboard (Vite dev server)"
 	@echo "  $(GREEN)make dev$(RESET)              Run all services (master, agent, mock-app, dashboard)"
 	@echo ""
@@ -34,7 +35,12 @@ agent-node:
 
 ## mock-app: Run mock app
 mock-app:
-	cd mock-app && node index.js
+	cd mock-app && ./start.sh
+
+## mock-down: Kill all mock app services
+mock-down:
+	-pkill -f 'java|category-service|bun|notification-service|start.sh'
+	-lsof -ti:8080,8081,8082,8083,8085,8086,8087,8088,8089 | xargs kill -9 2>/dev/null
 
 ## dashboard: Run dashboard (Vite dev server)
 dashboard:

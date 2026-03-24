@@ -260,3 +260,13 @@ Plans:
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 25 to break down)
+
+### Phase 26: Replace SAGA with RESTful in mock-app
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 25
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 26 to break down)

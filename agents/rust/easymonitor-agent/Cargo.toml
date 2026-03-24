@@ -11,3 +11,5 @@ tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 tracing-opentelemetry = "0.23.0"
 opentelemetry-appender-tracing = "0.3.0"
 tracing.workspace = true
+actix-web = "4.13.0"
+futures-util = "0.3.32"
