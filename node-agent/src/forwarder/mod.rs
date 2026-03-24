@@ -2,16 +2,25 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::time;
 use tonic::transport::{Channel, ClientTlsConfig, Certificate, Identity};
-use tracing::{info, error};
+use tracing::{info, error, debug};
 
 use shared_proto::metrics::{metrics_service_client::MetricsServiceClient, SyncMetricsRequest, MetricPayload};
 use shared_proto::logs::{logs_service_client::LogsServiceClient, SyncLogsRequest, LogEntry};
 use shared_proto::traces::{traces_service_client::TracesServiceClient, SyncTracesRequest, Span};
 
-use crate::wal::WalBuffer;
+use crate::wal::{WalBuffer, BATCH_THRESHOLD};
+
+/// Kafka-style batch size per flush. Matches WAL threshold.
+const BATCH_SIZE: usize = BATCH_THRESHOLD;
+
+/// Timer interval (seconds) — flush even if batch isn't full.
+const FLUSH_INTERVAL_SECS: u64 = 30;
 
 pub async fn start_forwarder_worker(wal: Arc<WalBuffer>) -> anyhow::Result<()> {
-    info!("Starting node-agent Forwarder Worker...");
+    info!(
+        "Starting node-agent Forwarder Worker (batch_size={}, flush_interval={}s)",
+        BATCH_SIZE, FLUSH_INTERVAL_SECS
+    );
     
     let server_root_ca_cert = std::fs::read_to_string("../certs/ca.pem")?;
     let server_root_ca_cert = Certificate::from_pem(server_root_ca_cert);
@@ -35,17 +44,24 @@ pub async fn start_forwarder_worker(wal: Arc<WalBuffer>) -> anyhow::Result<()> {
     let mut traces_client = TracesServiceClient::new(channel)
         .send_compressed(tonic::codec::CompressionEncoding::Gzip);
 
-    let mut interval = time::interval(Duration::from_secs(5));
+    let mut interval = time::interval(Duration::from_secs(FLUSH_INTERVAL_SECS));
+    let batch_notify = wal.batch_notify();
 
     loop {
-        interval.tick().await;
+        // Kafka-style: flush on whichever fires first — timer OR batch threshold
+        let trigger = tokio::select! {
+            _ = interval.tick() => "timer",
+            _ = batch_notify.notified() => "batch_full",
+        };
+
+        debug!("Forwarder flush triggered by: {}", trigger);
 
         // --- Metrics ---
         let mut metrics = Vec::new();
         let mut metric_keys = Vec::new();
         {
             let tree = wal.metrics_tree();
-            for item in tree.iter().take(500) {
+            for item in tree.iter().take(BATCH_SIZE) {
                 if let Ok((k, v)) = item {
                     if let Ok(payload) = rmp_serde::from_slice::<MetricPayload>(&v) {
                         metrics.push(payload);
@@ -56,12 +72,13 @@ pub async fn start_forwarder_worker(wal: Arc<WalBuffer>) -> anyhow::Result<()> {
         }
 
         if !metrics.is_empty() {
+            let count = metric_keys.len();
             let req = SyncMetricsRequest { payloads: metrics.clone() };
             match metrics_client.sync_metrics(req).await {
                 Ok(resp) => {
                     let inner = resp.into_inner();
                     if inner.success {
-                        info!("Successfully forwarded {} metrics", metric_keys.len());
+                        info!("Forwarded {} metrics ({})", count, trigger);
                         let tree = wal.metrics_tree();
                         for k in metric_keys {
                             let _ = tree.remove(k);
@@ -79,7 +96,7 @@ pub async fn start_forwarder_worker(wal: Arc<WalBuffer>) -> anyhow::Result<()> {
         let mut log_keys = Vec::new();
         {
             let tree = wal.logs_tree();
-            for item in tree.iter().take(500) {
+            for item in tree.iter().take(BATCH_SIZE) {
                 if let Ok((k, v)) = item {
                     if let Ok(payload) = rmp_serde::from_slice::<LogEntry>(&v) {
                         logs.push(payload);
@@ -90,12 +107,13 @@ pub async fn start_forwarder_worker(wal: Arc<WalBuffer>) -> anyhow::Result<()> {
         }
 
         if !logs.is_empty() {
+            let count = log_keys.len();
             let req = SyncLogsRequest { entries: logs.clone() };
             match logs_client.sync_logs(req).await {
                 Ok(resp) => {
                     let inner = resp.into_inner();
                     if inner.success {
-                        info!("Successfully forwarded {} logs", log_keys.len());
+                        info!("Forwarded {} logs ({})", count, trigger);
                         let tree = wal.logs_tree();
                         for k in log_keys {
                             let _ = tree.remove(k);
@@ -113,7 +131,7 @@ pub async fn start_forwarder_worker(wal: Arc<WalBuffer>) -> anyhow::Result<()> {
         let mut trace_keys = Vec::new();
         {
             let tree = wal.traces_tree();
-            for item in tree.iter().take(500) {
+            for item in tree.iter().take(BATCH_SIZE) {
                 if let Ok((k, v)) = item {
                     if let Ok(payload) = rmp_serde::from_slice::<Span>(&v) {
                         traces.push(payload);
@@ -124,12 +142,13 @@ pub async fn start_forwarder_worker(wal: Arc<WalBuffer>) -> anyhow::Result<()> {
         }
 
         if !traces.is_empty() {
+            let count = trace_keys.len();
             let req = SyncTracesRequest { spans: traces.clone() };
             match traces_client.sync_traces(req).await {
                 Ok(resp) => {
                     let inner = resp.into_inner();
                     if inner.success {
-                        info!("Successfully forwarded {} spans", trace_keys.len());
+                        info!("Forwarded {} spans ({})", count, trigger);
                         let tree = wal.traces_tree();
                         for k in trace_keys {
                             let _ = tree.remove(k);

@@ -1,6 +1,8 @@
+use std::sync::Arc;
 use anyhow::Result;
 use sled::{Db, Tree};
-use tracing::error;
+use tokio::sync::Notify;
+use tracing::{error, debug};
 use shared_proto::metrics::MetricPayload;
 use shared_proto::logs::LogEntry;
 use shared_proto::traces::Span;
@@ -9,12 +11,17 @@ const METRICS_TREE: &str = "metrics_v1";
 const LOGS_TREE: &str = "logs_v1";
 const TRACES_TREE: &str = "traces_v1";
 
+/// Kafka-style batch threshold: flush when any tree reaches this count.
+pub const BATCH_THRESHOLD: usize = 1000;
+
 #[derive(Clone)]
 pub struct WalBuffer {
     _db: Db,
     metrics: Tree,
     logs: Tree,
     traces: Tree,
+    /// Notifies the forwarder when any tree reaches BATCH_THRESHOLD.
+    batch_notify: Arc<Notify>,
 }
 
 impl WalBuffer {
@@ -29,6 +36,7 @@ impl WalBuffer {
             metrics,
             logs,
             traces,
+            batch_notify: Arc::new(Notify::new()),
         })
     }
 
@@ -41,11 +49,21 @@ impl WalBuffer {
         time.to_be_bytes().to_vec()
     }
 
+    /// Check if any tree has reached the batch threshold and notify the forwarder.
+    fn check_batch_threshold(&self, tree: &Tree, kind: &str) {
+        let len = tree.len();
+        if len >= BATCH_THRESHOLD {
+            debug!("{} tree reached batch threshold ({}/{}), notifying forwarder", kind, len, BATCH_THRESHOLD);
+            self.batch_notify.notify_one();
+        }
+    }
+
     pub async fn write_metric(&self, payload: MetricPayload) -> Result<()> {
         let key = self.generate_key();
         match rmp_serde::to_vec_named(&payload) {
             Ok(data) => {
                 self.metrics.insert(key, data)?;
+                self.check_batch_threshold(&self.metrics, "metrics");
             }
             Err(e) => error!("Failed to serialize metric: {}", e),
         }
@@ -57,6 +75,7 @@ impl WalBuffer {
         match rmp_serde::to_vec_named(&entry) {
             Ok(data) => {
                 self.logs.insert(key, data)?;
+                self.check_batch_threshold(&self.logs, "logs");
             }
             Err(e) => error!("Failed to serialize log: {}", e),
         }
@@ -68,6 +87,7 @@ impl WalBuffer {
         match rmp_serde::to_vec_named(&span) {
             Ok(data) => {
                 self.traces.insert(key, data)?;
+                self.check_batch_threshold(&self.traces, "traces");
             }
             Err(e) => error!("Failed to serialize span: {}", e),
         }
@@ -77,4 +97,9 @@ impl WalBuffer {
     pub fn metrics_tree(&self) -> Tree { self.metrics.clone() }
     pub fn logs_tree(&self) -> Tree { self.logs.clone() }
     pub fn traces_tree(&self) -> Tree { self.traces.clone() }
+
+    /// Returns the batch notification handle for the forwarder.
+    pub fn batch_notify(&self) -> Arc<Notify> {
+        self.batch_notify.clone()
+    }
 }

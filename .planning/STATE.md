@@ -73,6 +73,7 @@ progress:
 - Phase 27 added: Enhance APM service endpoint UI with Datadog-style sliding span list
 - Phase 28 added: APM endpoint detail drawer with dependencies, span summary, and traces sections
 - Phase 29 added: Add pagination to logs page with 100 records per page
+- Phase 30 added: Node agent Kafka-style batch sending — flush after 5s or 100 records to reduce IO overhead
 
 ## Session Info
 

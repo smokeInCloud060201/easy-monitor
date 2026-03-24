@@ -300,3 +300,13 @@ Plans:
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 29 to break down)
+
+### Phase 30: Node agent Kafka-style batch sending — flush after 5s or 100 records to reduce IO overhead
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 29
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 30 to break down)
