@@ -11,31 +11,43 @@ export default {
         // Brand — Datadog purple
         brand: {
           DEFAULT: '#632CA6',
-          light: '#7c3aed',
-          dark: '#4a1d80',
-          50: '#f3e8ff',
-          100: '#ddd6fe',
+          hover: '#7B3FCF',
+          active: '#4B1F7A',
+          light: '#F3ECFB',
           glow: 'rgba(99, 44, 166, 0.15)',
         },
-        // Backgrounds
-        background: '#1a1a2e',
+        // Backgrounds (Datadog Dark Mode)
+        background: '#151821',
         surface: {
-          DEFAULT: '#1e1e32',
-          light: '#252540',
+          DEFAULT: '#1E2130',
+          light: '#2A2E3F',
           dark: '#141428',
         },
-        // Semantic (keep backward compatibility)
+        // Typography (Datadog Hierarchy)
+        text: {
+          primary: '#1A1A1A',
+          inverse: '#E6E8EB',
+          secondary: '#5F6B7A',
+          muted: '#8A94A6',
+        },
+        // Borders (Datadog Subtlety)
+        border: {
+          DEFAULT: '#E5E8EC',
+          strong: '#D0D5DD',
+          dark: '#2A2E3F',
+        },
+        // Semantic (Status Colors)
         primary: '#632CA6',
-        success: '#22c55e',
-        warning: '#f59e0b',
-        danger: '#ef4444',
-        info: '#3b82f6',
-        // Sidebar
+        success: '#22C55E',
+        warning: '#F59E0B',
+        danger: '#EF4444',
+        info: '#3B82F6',
+        // Sidebar Overrides
         sidebar: {
-          bg: '#141428',
-          hover: '#1e1e32',
-          active: '#632CA620',
-          border: '#2a2a45',
+          bg: '#1E2130',
+          hover: '#2A2E3F',
+          active: 'rgba(99, 44, 166, 0.2)',
+          border: '#2A2E3F',
         },
       },
       fontFamily: {

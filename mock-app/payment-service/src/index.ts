@@ -26,6 +26,21 @@ export async function bootstrap() {
         app.post('/api/charge', (req, res) => paymentController.charge(req, res));
         app.get('/api/payment/status/:id', (req, res) => paymentController.status(req, res));
         
+        // Mock SAGA Webhook processing async PubSub dispatching
+        import { redisClient } from './redis';
+        app.post('/api/v1/payments/webhook', async (req, res) => {
+            const paymentId = req.body.paymentId || 'pay_unknown';
+            const status = req.body.status || 'SUCCESS';
+            logger.info(`Webhook INGRESS - paymentId=${paymentId} status=${status}`);
+            if (status === 'SUCCESS') {
+                const orderId = req.body.orderId || `ord_${Math.floor(Math.random()*1000)}`;
+                const payload = { event: 'payment.succeeded', orderId, paymentId };
+                await redisClient.publish('payment.events', JSON.stringify(payload));
+                logger.info(`Saga Dispatched: Published 'payment.succeeded' to Redis 'payment.events'`);
+            }
+            res.json({ received: true });
+        });
+        
         app.get('/api/health', (req, res) => {
           res.json({ status: 'healthy', service: 'payment-service (DDD)' });
         });

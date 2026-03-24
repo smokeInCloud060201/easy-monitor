@@ -1,0 +1,19 @@
+[package]
+name = "inventory-service"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix-web = "4"
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rand = "0.8"
+easymonitor-agent = { path = "../../agents/rust/easymonitor-agent" }
+uuid = { version = "1", features = ["v4"] }
+tracing = "0.1.44"
+tracing-actix-web = "0.7.21"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+sqlx = { version = "0.8.2", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid"] }
+redis = { version = "0.27.6", features = ["tokio-comp", "json"] }
+chrono = { version = "0.4.38", features = ["serde"] }

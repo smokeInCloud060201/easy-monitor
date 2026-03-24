@@ -250,3 +250,13 @@ Plans:
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 24 to break down)
+
+### Phase 25: Distributed e-commerce architecture covering 5 new microservices, Saga orchestration, and Redis PubSub async queues
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 24
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 25 to break down)

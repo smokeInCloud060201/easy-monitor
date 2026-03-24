@@ -32,17 +32,17 @@
 }
 
 @layer components {
-  /* Glass panels */
+  /* Glass panels -> Solid Datadog Dark Surfaces */
   .glass-panel {
-    @apply bg-surface/60 backdrop-blur-md border border-white/[0.06] rounded-xl shadow-card;
+    @apply bg-surface border border-[#2A2E3F] rounded-xl shadow-card;
   }
 
   .glass-panel-hover {
-    @apply glass-panel transition-all duration-200 hover:border-brand/30 hover:shadow-card-hover;
+    @apply glass-panel transition-all duration-200 hover:border-brand/40 hover:shadow-card-hover;
   }
 
   .glass-panel-brand {
-    @apply bg-brand-glow border border-brand/20 rounded-xl shadow-glow-sm;
+    @apply bg-brand-glow border border-brand/50 rounded-xl shadow-glow-sm;
   }
 
   /* Status utilities */
@@ -56,17 +56,17 @@
     @apply bg-danger/10 text-danger border-danger/30;
   }
 
-  /* Typography tokens */
+  /* Typography tokens (Datadog Dark Text Hierarchy) */
   .page-title {
-    @apply text-xl font-bold text-white tracking-tight;
+    @apply text-xl font-bold text-[#E6E8EB] tracking-tight;
   }
   .section-title {
-    @apply text-sm font-semibold text-gray-100;
+    @apply text-sm font-semibold text-[#E6E8EB];
   }
 
   /* Section headers */
   .section-header {
-    @apply text-[11px] font-semibold text-gray-500 uppercase tracking-widest;
+    @apply text-[11px] font-semibold text-[#5F6B7A] uppercase tracking-widest;
   }
 
   /* Data table */
@@ -74,22 +74,22 @@
     @apply w-full text-[13px];
   }
   .data-table thead tr {
-    @apply bg-surface-dark/50;
+    @apply bg-background/50;
   }
   .data-table th {
-    @apply text-[11px] font-semibold text-gray-500 uppercase tracking-wider px-3 py-2 text-left;
+    @apply text-[11px] font-semibold text-[#8A94A6] uppercase tracking-wider px-3 py-2 text-left border-b border-[#2A2E3F];
   }
   .data-table td {
-    @apply px-3 py-2 text-gray-300;
+    @apply px-3 py-2 text-[#E6E8EB];
   }
   .data-table tbody tr {
-    @apply border-b border-white/5 transition-colors hover:bg-surface-light/40;
+    @apply border-b border-[#2A2E3F] transition-colors hover:bg-surface-light;
   }
 
   /* Search bar */
   .search-input {
-    @apply h-9 bg-surface border border-white/[0.08] rounded-lg text-[13px] text-gray-100
-           placeholder:text-gray-500 focus:border-brand/50 focus:ring-2 focus:ring-brand/20 focus:outline-none;
+    @apply h-9 bg-surface border border-[#2A2E3F] rounded-lg text-[13px] text-[#E6E8EB]
+           placeholder:text-[#8A94A6] focus:border-brand/50 focus:ring-1 focus:ring-brand focus:outline-none;
   }
 
   /* Status badges */
@@ -97,19 +97,19 @@
     @apply inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border;
   }
   .badge-error {
-    @apply bg-danger/15 text-danger border-danger/30;
+    @apply bg-[#FEF2F2]/10 text-danger border-danger/30;
   }
   .badge-warn {
-    @apply bg-warning/15 text-warning border-warning/30;
+    @apply bg-[#FFFBEB]/10 text-warning border-warning/30;
   }
   .badge-info {
-    @apply bg-info/15 text-info border-info/30;
+    @apply bg-[#EFF6FF]/10 text-info border-info/30;
   }
   .badge-debug {
-    @apply bg-gray-500/15 text-gray-400 border-gray-500/30;
+    @apply bg-text-secondary/15 text-[#8A94A6] border-[#2A2E3F];
   }
   .badge-success {
-    @apply bg-success/15 text-success border-success/30;
+    @apply bg-[#ECFDF5]/10 text-success border-success/30;
   }
 
   /* Page container */
@@ -119,17 +119,20 @@
 
   /* Filter/select control */
   .filter-select {
-    @apply bg-surface border border-white/[0.08] rounded-lg px-3 py-2 text-[13px] text-gray-100
-           focus:border-brand/50 focus:ring-2 focus:ring-brand/20 focus:outline-none;
+    @apply bg-surface border border-[#2A2E3F] rounded-lg px-3 py-2 text-[13px] text-[#E6E8EB]
+           focus:border-brand/50 focus:ring-1 focus:ring-brand focus:outline-none;
   }
   
-  /* Button styles */
+  /* Button styles -> Datadog Mapping */
   .btn-primary {
-    @apply bg-brand hover:bg-brand-light text-white px-4 py-2 rounded-lg text-[13px] font-semibold
-           transition-all shadow-glow-sm hover:shadow-glow-md;
+    @apply bg-brand hover:bg-[#7B3FCF] text-white px-4 py-2 rounded-lg text-[13px] font-semibold
+           transition-all shadow-card;
+  }
+  .btn-secondary {
+    @apply bg-surface hover:bg-surface-light border border-[#2A2E3F] text-[#E6E8EB] px-4 py-2 rounded-lg text-[13px] font-semibold transition-all;
   }
   .btn-ghost {
-    @apply bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white px-3 py-2 rounded-lg text-[13px] transition-all;
+    @apply bg-transparent hover:bg-brand/10 text-brand px-3 py-2 rounded-lg text-[13px] transition-all;
   }
 }
 

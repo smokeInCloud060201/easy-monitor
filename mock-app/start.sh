@@ -3,8 +3,8 @@ set -e
 
 # ─── Polyglot Microservices Start Script ───
 # Services:
-#   - checkout-service (Spring Boot 3 / Java 21)  :8080
-#   - category-service (Go)                        :8081
+#   - order-service (Spring Boot 3 / Java 21)  :8080
+#   - product-service (Go)                        :8081
 #   - payment-service  (Bun / TypeScript)          :8082
 #   - notification-service (Rust / Actix-Web)      :8083
 
@@ -33,15 +33,15 @@ sleep 5 # give postgres & redis a moment to wake up
 echo ""
 
 # ─── 1. Build Services ───
-echo "📦 Building checkout-service (Java/Spring Boot)..."
-cd "$SCRIPT_DIR/checkout-service"
+echo "📦 Building order-service (Java/Spring Boot)..."
+cd "$SCRIPT_DIR/order-service"
 ./gradlew bootJar -q 2>&1
-echo "   ✅ checkout-service.jar ready"
+echo "   ✅ order-service.jar ready"
 
-echo "📦 Building category-service (Go)..."
-cd "$SCRIPT_DIR/category-service"
-go build -o category-service . 2>&1
-echo "   ✅ category-service binary ready"
+echo "📦 Building product-service (Go)..."
+cd "$SCRIPT_DIR/product-service"
+go build -o product-service . 2>&1
+echo "   ✅ product-service binary ready"
 
 echo "📦 Installing payment-service deps (Bun)..."
 cd "$SCRIPT_DIR/payment-service"
@@ -60,24 +60,24 @@ echo "─── Starting Services ───"
 LOG_DIR="$SCRIPT_DIR/.logs"
 mkdir -p "$LOG_DIR"
 
-# checkout-service (Java + OTel Java Agent)
-echo "☕ Starting checkout-service on :8080..."
-cd "$SCRIPT_DIR/checkout-service"
-OTEL_SERVICE_NAME=checkout-service \
+# order-service (Java + OTel Java Agent)
+echo "☕ Starting order-service on :8080..."
+cd "$SCRIPT_DIR/order-service"
+OTEL_SERVICE_NAME=order-service \
 OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4317 \
 OTEL_EXPORTER_OTLP_PROTOCOL=grpc \
 OTEL_LOGS_EXPORTER=otlp \
 OTEL_METRICS_EXPORTER=otlp \
 java -javaagent:../../agents/java/opentelemetry-javaagent.jar \
-     -jar build/libs/checkout-service.jar \
+     -jar build/libs/order-service.jar \
      --server.port=8080 \
-     > "$LOG_DIR/checkout.log" 2>&1 &
+     > "$LOG_DIR/order.log" 2>&1 &
 PIDS+=($!)
 
-# category-service (Go)
-echo "🐹 Starting category-service on :8081..."
-cd "$SCRIPT_DIR/category-service"
-./category-service > "$LOG_DIR/category.log" 2>&1 &
+# product-service (Go)
+echo "🐹 Starting product-service on :8081..."
+cd "$SCRIPT_DIR/product-service"
+./product-service > "$LOG_DIR/product.log" 2>&1 &
 PIDS+=($!)
 
 # payment-service (Bun)
@@ -100,7 +100,7 @@ sleep 8
 # ─── 3. Health Checks ───
 echo ""
 echo "─── Health Checks ───"
-for svc in "checkout-service:8080" "category-service:8081" "payment-service:8082" "notification-service:8083"; do
+for svc in "order-service:8080" "product-service:8081" "payment-service:8082" "notification-service:8083"; do
     name="${svc%%:*}"
     port="${svc##*:}"
     if curl -sf "http://localhost:$port/api/health" > /dev/null 2>&1; then
@@ -134,16 +134,23 @@ TICK=0
 while true; do
     TICK=$((TICK + 1))
 
-    # Full checkout flow: checkout → category → payment → notification
+    # Full checkout flow
     curl -sf -X POST http://localhost:8080/api/checkout \
          -H "Content-Type: application/json" \
          -d "{\"items\":$ITEMS}" > /dev/null 2>&1 &
 
     sleep 1
+    
+    # Mock External Payment Webhook triggering SAGA PubSub
+    curl -sf -X POST http://localhost:8082/api/v1/payments/webhook \
+         -H "Content-Type: application/json" \
+         -d "{\"paymentId\":\"pay_12345\",\"status\":\"SUCCESS\",\"orderId\":\"ord_$TICK\"}" > /dev/null 2>&1 &
 
-    # Direct category browse
-    curl -sf http://localhost:8081/api/category/electronics > /dev/null 2>&1 &
-    curl -sf http://localhost:8081/api/category/clothing > /dev/null 2>&1 &
+    sleep 1
+
+    # Direct product browse
+    curl -sf http://localhost:8081/api/products/electronics > /dev/null 2>&1 &
+    curl -sf http://localhost:8081/api/products/clothing > /dev/null 2>&1 &
 
     sleep 1
 
@@ -162,8 +169,8 @@ while true; do
 
     sleep 1
 
-    # Category search
-    curl -sf "http://localhost:8081/api/category/search?q=electronics" > /dev/null 2>&1 &
+    # Cproduct search
+    curl -sf "http://localhost:8081/api/products/search?q=electronics" > /dev/null 2>&1 &
 
     # Order lookup
     curl -sf http://localhost:8080/api/orders/ord_12345 > /dev/null 2>&1 &
