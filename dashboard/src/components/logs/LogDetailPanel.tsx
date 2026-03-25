@@ -15,6 +15,14 @@ const levelColors: Record<string, string> = {
   DEBUG: 'bg-gray-500/20 text-gray-400 border-gray-500/40',
 };
 
+const getLevelName = (level: string) => {
+  const map: Record<string, string> = {
+    '0': 'EMERG', '1': 'ALERT', '2': 'CRITICAL', '3': 'ERROR',
+    '4': 'WARN', '5': 'NOTICE', '6': 'INFO', '7': 'DEBUG'
+  };
+  return map[level] || level;
+};
+
 export function LogDetailPanel({ log, onClose, onFilterByService }: LogDetailPanelProps) {
   const copyLog = () => {
     navigator.clipboard.writeText(JSON.stringify(log, null, 2));
@@ -23,7 +31,7 @@ export function LogDetailPanel({ log, onClose, onFilterByService }: LogDetailPan
   const fields = [
     { label: 'Timestamp', value: log.timestamp },
     { label: 'Service', value: log.service, badge: true },
-    { label: 'Level', value: log.level, levelBadge: true },
+    { label: 'Level', value: getLevelName(log.level), levelBadge: true },
     { label: 'Trace ID', value: log.trace_id, isTraceLink: true },
     { label: 'Span ID', value: log.span_id },
     { label: 'Pod ID', value: log.pod_id },

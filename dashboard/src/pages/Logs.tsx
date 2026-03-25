@@ -91,14 +91,14 @@ export function Logs() {
     setFilters(prev => ({
       ...prev,
       keyword: parsed.keyword || '',
-      service: parsed.service || prev.service,
-      level: parsed.level || prev.level,
-      pod_id: parsed.pod_id || prev.pod_id,
-      trace_id: parsed.trace_id || prev.trace_id,
-      host: parsed.host || prev.host,
-      source: parsed.source || prev.source,
-      namespace: parsed.namespace || prev.namespace,
-      node_name: parsed.node_name || prev.node_name,
+      service: parsed.service || null,
+      level: parsed.level || null,
+      pod_id: parsed.pod_id || null,
+      trace_id: parsed.trace_id || null,
+      host: parsed.host || null,
+      source: parsed.source || null,
+      namespace: parsed.namespace || null,
+      node_name: parsed.node_name || null,
     }));
   };
 

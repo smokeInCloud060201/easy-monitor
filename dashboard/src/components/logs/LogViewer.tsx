@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { Virtuoso } from 'react-virtuoso';
 import type { LogLine } from '../../lib/api';
 import { LogDetailPanel } from './LogDetailPanel';
@@ -16,6 +16,14 @@ const levelColors: Record<string, { badge: string; border: string }> = {
   WARN: { badge: 'bg-amber-500/20 text-amber-400', border: 'border-l-amber-500' },
   INFO: { badge: 'bg-blue-500/20 text-blue-400', border: 'border-l-blue-500' },
   DEBUG: { badge: 'bg-gray-600/30 text-gray-500', border: 'border-l-gray-600' },
+};
+
+const getLevelName = (level: string) => {
+  const map: Record<string, string> = {
+    '0': 'EMERG', '1': 'ALERT', '2': 'CRITICAL', '3': 'ERROR',
+    '4': 'WARN', '5': 'NOTICE', '6': 'INFO', '7': 'DEBUG'
+  };
+  return map[level] || level;
 };
 
 export function LogViewer({ logs, onLoadMore, selectedLogIndex, onSelectLog, onFilterByService }: LogViewerProps) {
@@ -48,7 +56,8 @@ export function LogViewer({ logs, onLoadMore, selectedLogIndex, onSelectLog, onF
       endReached={handleEndReached}
       overscan={200}
       itemContent={(index, log) => {
-        const colors = levelColors[log.level] || levelColors.INFO;
+        const levelName = getLevelName(log.level);
+        const colors = levelColors[levelName] || levelColors.INFO;
         const isSelected = selectedLogIndex === index;
 
         return (
@@ -68,7 +77,7 @@ export function LogViewer({ logs, onLoadMore, selectedLogIndex, onSelectLog, onF
 
               {/* Level Badge */}
               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${colors.badge} w-[50px] text-center flex-shrink-0`}>
-                {log.level}
+                {levelName}
               </span>
 
               {/* Service */}

@@ -235,6 +235,7 @@ pub async fn search_traces(State(state): State<ApiState>, Json(payload): Json<Tr
 #[derive(Deserialize)]
 pub struct LogsQueryRequest {
     pub keyword: Option<String>,
+    pub service: Option<String>,
     pub limit: Option<usize>,
     pub offset: Option<usize>,
 }
@@ -306,7 +307,7 @@ fn parse_graylog_to_sql(query: &str) -> String {
             continue;
         }
 
-        let op = pending_operator.take().unwrap_or_else(|| "OR".to_string());
+        let op = pending_operator.take().unwrap_or_else(|| "AND".to_string());
         let logical_op = if sql.is_empty() { "".to_string() } else { format!(" {} ", op) };
 
         let condition = if let Some((key, val)) = token.split_once(':') {
@@ -342,11 +343,16 @@ pub async fn query_logs(State(state): State<ApiState>, Json(payload): Json<LogsQ
     let mut logs = Vec::new();
     let mut total = 0u64;
 
-    let where_str = if let Some(kw) = &payload.keyword {
-        parse_graylog_to_sql(kw)
-    } else {
-        "1=1".to_string()
-    };
+    let mut where_clauses = Vec::new();
+    if let Some(kw) = &payload.keyword {
+        where_clauses.push(format!("({})", parse_graylog_to_sql(kw)));
+    }
+    if let Some(svc) = &payload.service {
+        if !svc.is_empty() && svc != "all" {
+            where_clauses.push(format!("service = '{}'", svc.replace('\'', "")));
+        }
+    }
+    let where_str = if where_clauses.is_empty() { "1=1".to_string() } else { where_clauses.join(" AND ") };
 
     let limit = payload.limit.unwrap_or(100).min(500);
     let offset = payload.offset.unwrap_or(0);
@@ -415,6 +421,7 @@ pub async fn query_logs(State(state): State<ApiState>, Json(payload): Json<LogsQ
 #[derive(Deserialize)]
 pub struct LogHistogramRequest {
     pub keyword: Option<String>,
+    pub service: Option<String>,
     pub from_ts: Option<i64>,
     pub to_ts: Option<i64>,
     pub interval: Option<String>,
@@ -442,14 +449,15 @@ pub async fn log_histogram(State(state): State<ApiState>, Json(payload): Json<Lo
         _ => "toStartOfMinute",
     };
 
-    let base_where = if let Some(kw) = &payload.keyword {
-        parse_graylog_to_sql(kw)
-    } else {
-        "1=1".to_string()
-    };
-    
-    // We must forcefully merge from_ts and to_ts for the histogram bounds!
-    let mut final_clauses = vec![format!("({})", base_where)];
+    let mut final_clauses = Vec::new();
+    if let Some(kw) = &payload.keyword {
+        final_clauses.push(format!("({})", parse_graylog_to_sql(kw)));
+    }
+    if let Some(svc) = &payload.service {
+        if !svc.is_empty() && svc != "all" {
+            final_clauses.push(format!("service = '{}'", svc.replace('\'', "")));
+        }
+    }
     if let Some(from) = payload.from_ts {
         final_clauses.push(format!("timestamp >= {}", from));
     }
@@ -457,7 +465,7 @@ pub async fn log_histogram(State(state): State<ApiState>, Json(payload): Json<Lo
         final_clauses.push(format!("timestamp <= {}", to));
     }
     
-    let where_str = final_clauses.join(" AND ");
+    let where_str = if final_clauses.is_empty() { "1=1".to_string() } else { final_clauses.join(" AND ") };
 
     let query = format!(
         "SELECT toUnixTimestamp({}(toDateTime(timestamp / 1000))) * 1000 as bucket, \

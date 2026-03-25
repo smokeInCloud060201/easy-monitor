@@ -65,15 +65,6 @@ async fn main() -> Result<()> {
         }
     });
 
-    // Spawn Raw Multi-line File Tailer
-    let wal_file_logs = wal.clone();
-    let log_dir = std::env::var("AGENT_LOG_DIR").unwrap_or_else(|_| "../mock-app/.logs".to_string());
-    tokio::spawn(async move {
-        if let Err(e) = logs::tailer::start_file_tailer(wal_file_logs, &log_dir).await {
-            tracing::error!("Raw File Tailer Worker failed: {}", e);
-        }
-    });
-
     tokio::signal::ctrl_c().await?;
     info!("Shutting down Node Agent.");
 

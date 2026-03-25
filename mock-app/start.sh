@@ -83,9 +83,9 @@ start_java() {
   OTEL_SERVICE_NAME=$1 \
   OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4317 \
   OTEL_EXPORTER_OTLP_PROTOCOL=grpc \
-  OTEL_LOGS_EXPORTER=otlp \
   OTEL_METRICS_EXPORTER=otlp \
   java -javaagent:../../agents/java/opentelemetry-javaagent.jar \
+       -Dotel.javaagent.extensions=../../agents/java/build/libs/easymonitor-extension-1.0.0-SNAPSHOT.jar \
        -jar build/libs/$1.jar \
        --server.port=$2 \
        > "$LOG_DIR/${1%-service}.log" 2>&1 &
