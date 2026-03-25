@@ -1,5 +1,5 @@
 use sqlx::PgPool;
-use crate::domain::InventoryLog;
+use crate::domain::Inventory;
 
 pub struct InventoryRepository {
     pool: PgPool,
@@ -11,14 +11,12 @@ impl InventoryRepository {
     }
 
     pub async fn init_schema(&self) -> Result<(), sqlx::Error> {
+        // Table already seeded by seed.sql but keep IF NOT EXISTS
         sqlx::query(
-            "CREATE TABLE IF NOT EXISTS inventory_logs (
-                id VARCHAR(255) PRIMARY KEY,
-                order_id VARCHAR(255) NOT NULL,
-                recipient VARCHAR(255) NOT NULL,
-                channel VARCHAR(255) NOT NULL,
-                status VARCHAR(255) NOT NULL,
-                sent_at TIMESTAMPTZ NOT NULL
+            "CREATE TABLE IF NOT EXISTS inventory (
+                product_id VARCHAR(50) PRIMARY KEY,
+                stock_qty INT DEFAULT 0,
+                warehouse_location VARCHAR(100)
             )"
         )
         .execute(&self.pool)
@@ -26,29 +24,13 @@ impl InventoryRepository {
         Ok(())
     }
 
-    pub async fn save(&self, log: &InventoryLog) -> Result<(), sqlx::Error> {
-        sqlx::query(
-            "INSERT INTO inventory_logs (id, order_id, recipient, channel, status, sent_at)
-             VALUES ($1, $2, $3, $4, $5, $6)"
+    pub async fn find_product_inventory(&self, product_id: &str) -> Result<Option<crate::domain::Inventory>, sqlx::Error> {
+        let inv = sqlx::query_as::<_, crate::domain::Inventory>(
+            "SELECT product_id, stock_qty, warehouse_location FROM inventory WHERE product_id = $1"
         )
-        .bind(&log.id)
-        .bind(&log.order_id)
-        .bind(&log.recipient)
-        .bind(&log.channel)
-        .bind(&log.status)
-        .bind(log.sent_at)
-        .execute(&self.pool)
-        .await?;
-        Ok(())
-    }
-
-    pub async fn find_by_order_id(&self, order_id: &str) -> Result<Option<InventoryLog>, sqlx::Error> {
-        let log = sqlx::query_as::<_, InventoryLog>(
-            "SELECT id, order_id, recipient, channel, status, sent_at FROM inventory_logs WHERE order_id = $1 LIMIT 1"
-        )
-        .bind(order_id)
+        .bind(product_id)
         .fetch_optional(&self.pool)
         .await?;
-        Ok(log)
+        Ok(inv)
     }
 }

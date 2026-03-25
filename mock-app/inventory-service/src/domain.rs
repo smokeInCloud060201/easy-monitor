@@ -1,13 +1,10 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, sqlx::FromRow, Clone)]
-pub struct InventoryLog {
-    pub id: String,
-    pub order_id: String,
-    pub recipient: String,
-    pub channel: String,
-    pub status: String,
-    pub sent_at: chrono::DateTime<chrono::Utc>,
+pub struct Inventory {
+    pub product_id: String,
+    pub stock_qty: i32,
+    pub warehouse_location: String,
 }
 
 #[derive(Deserialize)]
@@ -29,10 +26,9 @@ pub struct NotifyResponse {
 
 #[derive(Serialize)]
 pub struct InventoryStatusResponse {
-    pub inventory_id: String,
-    pub order_id: String,
-    pub status: String,
-    pub sent_at: String,
+    pub product_id: String,
+    pub stock_qty: i32,
+    pub warehouse_location: String,
 }
 
 #[derive(Serialize)]

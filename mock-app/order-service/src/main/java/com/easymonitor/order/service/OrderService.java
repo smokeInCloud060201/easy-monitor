@@ -52,6 +52,7 @@ public class OrderService {
             try {
                 restTemplate.getForObject("http://localhost:8081/api/product/" + categoryId, String.class); // product metadata
                 restTemplate.getForObject("http://localhost:8089/api/pricings/" + categoryId, String.class); // calculate true cart price
+                restTemplate.getForObject("http://localhost:8086/api/inventorys/" + categoryId, String.class); // check real inventory DB
             } catch (Exception e) {}
             
             subtotal += price * qty;
@@ -62,7 +63,6 @@ public class OrderService {
 
         // Phase 3: Fulfillment Coordination (Once per order)
         try {
-            restTemplate.getForObject("http://localhost:8086/api/inventorys/" + orderId, String.class); // soft-reserve stock
             restTemplate.getForObject("http://localhost:8087/api/shipping/status/" + orderId, String.class); // prepare shipping manifest
         } catch (Exception e) {}
 
