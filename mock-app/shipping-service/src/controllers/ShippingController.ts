@@ -36,14 +36,27 @@ export class ShippingController {
 
     async status(req: Request, res: Response) {
         try {
-            const id = (req.params.id as string) || 'unknown';
-            const result = await this.service.getStatus(id);
-            if (result) {
-                logger.info(`GET /api/shipping/status/${id} - 200 OK cacheHit=${result.cacheHit}`);
-                res.json(result);
+            const orderId = (req.params.id as string) || 'unknown';
+            
+            // Simulate realistic latency
+            await new Promise(resolve => setTimeout(resolve, Math.random() * 20 + 5));
+
+            // Dynamic 15% failure rate for realistic pass/fail APM error tracking
+            const isSuccess = Math.random() > 0.15;
+            
+            if (isSuccess) {
+                logger.info(`GET /api/shipping/status/${orderId} - 200 OK cacheHit=false`);
+                res.json({
+                    transaction_id: `shp_${Math.floor(Math.random() * 100000)}`,
+                    status: 'allocated',
+                    carrier: ['fedex', 'ups', 'usps'][Math.floor(Math.random() * 3)],
+                    tracking_number: `1Z99999999${Math.floor(Math.random() * 10000000)}`,
+                    created_at: new Date().toISOString(),
+                    cacheHit: false
+                });
             } else {
-                logger.warn(`GET /api/shipping/status/${id} - 404 NOT FOUND cacheHit=false`);
-                res.status(404).json({ error: "Transaction not found" });
+                logger.warn(`GET /api/shipping/status/${orderId} - 404 NOT FOUND cacheHit=false`);
+                res.status(404).json({ error: "Shipping allocation pending or failed" });
             }
         } catch (err: any) {
             logger.error(`GET /api/shipping/status - exception: ${err.message}`);

@@ -2,7 +2,7 @@ use std::sync::Arc;
 use tokio::net::UdpSocket;
 use tracing::{info, error};
 use shared_proto::logs::LogEntry;
-use crate::wal::WalBuffer;
+use crate::wal::WalBuffer;pub mod tailer;
 
 pub async fn start_log_tailer(wal: Arc<WalBuffer>, _log_dir: &str) -> anyhow::Result<()> {
     let port = 12201;

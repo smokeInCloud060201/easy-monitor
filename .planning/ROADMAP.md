@@ -350,3 +350,13 @@ Plans:
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 34 to break down)
+
+### Phase 35: Consum all logs from service keeping origin message
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 34
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 35 to break down)

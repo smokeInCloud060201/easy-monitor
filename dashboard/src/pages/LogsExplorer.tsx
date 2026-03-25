@@ -114,7 +114,7 @@ export default function LogsExplorer() {
               <div key={i} className="hover:bg-white/5 px-2 py-1 -mx-2 rounded transition-colors break-words flex flex-wrap lg:flex-nowrap gap-x-3 mb-1">
                 <span className="text-gray-500 shrink-0">[{log.trace_id.substring(0, 8)}]</span>
                 <span className="text-emerald-400 shrink-0 font-bold w-32 truncate" title={log.service}>{log.service}</span>
-                <span className="text-gray-300 ml-2">{log.message}</span>
+                <span className="text-gray-300 ml-2 whitespace-pre-wrap text-xs">{log.message}</span>
               </div>
             ))
           )}
