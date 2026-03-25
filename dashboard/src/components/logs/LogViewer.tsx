@@ -1,10 +1,10 @@
 import { useCallback } from 'react';
 import { Virtuoso } from 'react-virtuoso';
-import type { LogLine } from '../../lib/api';
 import { LogDetailPanel } from './LogDetailPanel';
 
 interface LogViewerProps {
-  logs: LogLine[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  logs: any[];
   onLoadMore?: () => void;
   selectedLogIndex: number | null;
   onSelectLog: (index: number | null) => void;
@@ -27,15 +27,6 @@ const getLevelName = (level: string) => {
 };
 
 export function LogViewer({ logs, onLoadMore, selectedLogIndex, onSelectLog, onFilterByService }: LogViewerProps) {
-  if (!logs || logs.length === 0) {
-    return (
-      <div className="h-full flex items-center justify-center text-gray-500 flex-col gap-2">
-        <span className="text-3xl">📭</span>
-        <span className="text-sm">No logs found</span>
-      </div>
-    );
-  }
-
   const formatTime = (ts: string) => {
     try {
       const d = new Date(ts);
@@ -48,6 +39,15 @@ export function LogViewer({ logs, onLoadMore, selectedLogIndex, onSelectLog, onF
   const handleEndReached = useCallback(() => {
     onLoadMore?.();
   }, [onLoadMore]);
+
+  if (!logs || logs.length === 0) {
+    return (
+      <div className="h-full flex items-center justify-center text-gray-500 flex-col gap-2">
+        <span className="text-3xl">📭</span>
+        <span className="text-sm">No logs found</span>
+      </div>
+    );
+  }
 
   return (
     <Virtuoso

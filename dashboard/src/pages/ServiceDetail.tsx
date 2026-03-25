@@ -29,21 +29,23 @@ export default function ServiceDetail() {
 
   useEffect(() => {
     if (!name) return;
-    setLoading(true);
-    Promise.all([
-      fetchServiceSummary(name, timeRange).catch(() => null),
-      fetchResourcesWithMetrics(name).catch(() => []),
-      fetchServiceErrors(name).catch(() => []),
-      fetchLatencyDistribution(name, timeRange),
-      fetchServiceDependencies(name, timeRange),
-    ]).then(([s, r, e, ld, d]) => {
+    const load = async () => {
+      setLoading(true);
+      const [s, r, e, ld, d] = await Promise.all([
+        fetchServiceSummary(name, timeRange).catch(() => null),
+        fetchResourcesWithMetrics(name).catch(() => []),
+        fetchServiceErrors(name).catch(() => []),
+        fetchLatencyDistribution(name, timeRange).catch(() => null),
+        fetchServiceDependencies(name, timeRange).catch(() => null),
+      ]);
       setSummary(s);
       setResources(r);
       setErrors(e || []);
       setLatencyDist(ld);
       setDeps(d);
       setLoading(false);
-    });
+    };
+    load();
   }, [name, timeRange]);
 
   if (loading) {
@@ -181,7 +183,6 @@ export default function ServiceDetail() {
         timeseries={errorTimeseries}
         totalErrors={effectiveErrors}
         errorRate={errorRate}
-        serviceName={name || ''}
       />
 
       {/* ─── SECTION 5: Endpoints / Resources ─── */}

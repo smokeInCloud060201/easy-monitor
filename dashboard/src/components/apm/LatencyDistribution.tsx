@@ -33,6 +33,7 @@ export function LatencyDistributionChart({ data }: LatencyDistributionChartProps
           <YAxis tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} width={40} />
           <Tooltip
             contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, fontSize: 12 }}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             formatter={(value: number, _name: string, props: any) => [
               `${value.toLocaleString()} (${props.payload.percentage.toFixed(1)}%)`,
               'Requests'

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 
 interface User {
   sub: string;
@@ -51,14 +51,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (token) {
-      const decoded = decodeToken(token);
-      if (!decoded) {
-        logout();
-      } else {
-        setUser(decoded);
+    const check = async () => {
+      if (token) {
+        const decoded = decodeToken(token);
+        if (!decoded) {
+          logout();
+        } else {
+          setUser(decoded);
+        }
       }
-    }
+    };
+    check();
   }, [token, logout]);
 
   // Periodically check token expiry
@@ -81,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');

@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ServiceDependencies, ServiceDependencyItem } from '../../lib/api';
 
@@ -40,8 +40,8 @@ export function DependencyMiniMap({ data, currentService, healthStatus }: Depend
   const nodeRectsRef = useRef<{ x: number; y: number; w: number; h: number; service: string }[]>([]);
   const navigate = useNavigate();
 
-  const upstream = data.upstream || [];
-  const downstream = data.downstream || [];
+  const upstream = useMemo(() => data.upstream || [], [data.upstream]);
+  const downstream = useMemo(() => data.downstream || [], [data.downstream]);
   const maxSide = Math.max(upstream.length, downstream.length, 1);
   const canvasH = Math.max(200, maxSide * 78 + 60);
 
@@ -229,7 +229,7 @@ export function DependencyMiniMap({ data, currentService, healthStatus }: Depend
       ctx!.clearRect(0, 0, W, H);
 
       // ─── Upstream edges (left → center) ───
-      upstream.forEach((dep, i) => {
+      upstream.forEach((dep: ServiceDependencyItem, i: number) => {
         const depY = upStartY + i * (NODE_H + 16);
         const fromX = upX + NODE_W;
         const fromY = depY + NODE_H / 2;
@@ -239,7 +239,7 @@ export function DependencyMiniMap({ data, currentService, healthStatus }: Depend
       });
 
       // ─── Downstream edges (center → right) ───
-      downstream.forEach((dep, i) => {
+      downstream.forEach((dep: ServiceDependencyItem, i: number) => {
         const depY = dnStartY + i * (NODE_H + 16);
         const fromX = centerX + CENTER_W;
         const fromY = centerY + CENTER_H / 2;
@@ -262,14 +262,14 @@ export function DependencyMiniMap({ data, currentService, healthStatus }: Depend
       drawServiceNode(centerX, centerY, CENTER_W, CENTER_H, centerDep, true);
 
       // Upstream nodes
-      upstream.forEach((dep, i) => {
+      upstream.forEach((dep: ServiceDependencyItem, i: number) => {
         const depY = upStartY + i * (NODE_H + 16);
         drawServiceNode(upX, depY, NODE_W, NODE_H, dep, false);
         rects.push({ x: upX, y: depY, w: NODE_W, h: NODE_H, service: dep.service });
       });
 
       // Downstream nodes
-      downstream.forEach((dep, i) => {
+      downstream.forEach((dep: ServiceDependencyItem, i: number) => {
         const depY = dnStartY + i * (NODE_H + 16);
         drawServiceNode(dnX, depY, NODE_W, NODE_H, dep, false);
         rects.push({ x: dnX, y: depY, w: NODE_W, h: NODE_H, service: dep.service });

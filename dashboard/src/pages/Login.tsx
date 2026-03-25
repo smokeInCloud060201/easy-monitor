@@ -30,65 +30,25 @@ export function Login() {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: '#030712',
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-    }}>
-      <div style={{
-        width: '100%',
-        maxWidth: '400px',
-        padding: '40px',
-        backgroundColor: '#111827',
-        borderRadius: '12px',
-        border: '1px solid #1f2937',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-      }}>
+    <div className="min-h-screen flex items-center justify-center bg-gray-950 font-sans">
+      <div className="w-full max-w-[400px] p-10 bg-gray-900 rounded-xl border border-gray-800 shadow-2xl">
         {/* Logo / Title */}
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '16px',
-            fontSize: '24px',
-          }}>
+        <div className="text-center mb-8">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 inline-flex items-center justify-center mb-4 text-2xl">
             📊
           </div>
-          <h1 style={{
-            fontSize: '24px',
-            fontWeight: 700,
-            color: '#f9fafb',
-            margin: '0 0 4px 0',
-          }}>
+          <h1 className="text-2xl font-bold text-gray-50 mb-1">
             Easy Monitor
           </h1>
-          <p style={{
-            fontSize: '14px',
-            color: '#6b7280',
-            margin: 0,
-          }}>
+          <p className="text-sm text-gray-500 m-0">
             Sign in to your account
           </p>
         </div>
 
         <form onSubmit={handleSubmit}>
           {/* Username */}
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{
-              display: 'block',
-              fontSize: '13px',
-              fontWeight: 500,
-              color: '#9ca3af',
-              marginBottom: '6px',
-            }}>
+          <div className="mb-5">
+            <label className="block text-[13px] font-medium text-gray-400 mb-1.5">
               Username
             </label>
             <input
@@ -99,32 +59,13 @@ export function Login() {
               autoFocus
               autoComplete="username"
               required
-              style={{
-                width: '100%',
-                padding: '10px 14px',
-                backgroundColor: '#1f2937',
-                border: '1px solid #374151',
-                borderRadius: '8px',
-                color: '#f9fafb',
-                fontSize: '14px',
-                outline: 'none',
-                transition: 'border-color 0.15s',
-                boxSizing: 'border-box',
-              }}
-              onFocus={e => e.target.style.borderColor = '#3b82f6'}
-              onBlur={e => e.target.style.borderColor = '#374151'}
+              className="w-full px-3.5 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-gray-50 text-sm outline-none transition-colors focus:border-blue-500 box-border"
             />
           </div>
 
           {/* Password */}
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{
-              display: 'block',
-              fontSize: '13px',
-              fontWeight: 500,
-              color: '#9ca3af',
-              marginBottom: '6px',
-            }}>
+          <div className="mb-6">
+            <label className="block text-[13px] font-medium text-gray-400 mb-1.5">
               Password
             </label>
             <input
@@ -134,34 +75,13 @@ export function Login() {
               onChange={e => setPassword(e.target.value)}
               autoComplete="current-password"
               required
-              style={{
-                width: '100%',
-                padding: '10px 14px',
-                backgroundColor: '#1f2937',
-                border: '1px solid #374151',
-                borderRadius: '8px',
-                color: '#f9fafb',
-                fontSize: '14px',
-                outline: 'none',
-                transition: 'border-color 0.15s',
-                boxSizing: 'border-box',
-              }}
-              onFocus={e => e.target.style.borderColor = '#3b82f6'}
-              onBlur={e => e.target.style.borderColor = '#374151'}
+              className="w-full px-3.5 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-gray-50 text-sm outline-none transition-colors focus:border-blue-500 box-border"
             />
           </div>
 
           {/* Error Message */}
           {error && (
-            <div style={{
-              padding: '10px 14px',
-              backgroundColor: 'rgba(239, 68, 68, 0.1)',
-              border: '1px solid rgba(239, 68, 68, 0.2)',
-              borderRadius: '8px',
-              color: '#ef4444',
-              fontSize: '13px',
-              marginBottom: '20px',
-            }}>
+            <div className="px-3.5 py-2.5 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 text-[13px] mb-5">
               {error}
             </div>
           )}
@@ -171,21 +91,11 @@ export function Login() {
             id="login-submit"
             type="submit"
             disabled={loading || !username || !password}
-            style={{
-              width: '100%',
-              padding: '10px',
-              background: loading || !username || !password
-                ? '#374151'
-                : 'linear-gradient(135deg, #3b82f6, #6366f1)',
-              border: 'none',
-              borderRadius: '8px',
-              color: '#ffffff',
-              fontSize: '14px',
-              fontWeight: 600,
-              cursor: loading || !username || !password ? 'not-allowed' : 'pointer',
-              transition: 'all 0.15s',
-              opacity: loading ? 0.7 : 1,
-            }}
+            className={`w-full p-2.5 rounded-lg text-white text-sm font-semibold transition-all duration-150 ${
+              loading || !username || !password
+                ? 'bg-gray-700 cursor-not-allowed opacity-70'
+                : 'bg-gradient-to-br from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 cursor-pointer'
+            }`}
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
-export function UserMenu() {
+export function UserMenu({ isCollapsed }: { isCollapsed?: boolean }) {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -29,86 +29,51 @@ export function UserMenu() {
   const initials = user.sub.slice(0, 2).toUpperCase();
 
   return (
-    <div ref={menuRef} style={{ position: 'relative' }}>
+    <div ref={menuRef} className="relative">
       {/* Avatar button */}
       <button
         id="user-menu-button"
         onClick={() => setOpen(!open)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '6px 12px',
-          backgroundColor: open ? '#1f2937' : 'transparent',
-          border: '1px solid transparent',
-          borderRadius: '8px',
-          cursor: 'pointer',
-          transition: 'all 0.15s',
-          color: '#d1d5db',
-        }}
-        onMouseEnter={e => {
-          if (!open) (e.currentTarget as HTMLElement).style.backgroundColor = '#1f2937';
-        }}
-        onMouseLeave={e => {
-          if (!open) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
-        }}
+        className={`flex items-center gap-2 w-full rounded-lg cursor-pointer transition-colors border-none text-gray-300 hover:bg-gray-800 ${
+          isCollapsed ? 'justify-center p-1.5' : 'justify-start px-3 py-1.5'
+        } ${open ? 'bg-gray-800' : 'bg-transparent'}`}
       >
         {/* Avatar circle */}
-        <div style={{
-          width: '28px',
-          height: '28px',
-          borderRadius: '50%',
-          background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '11px',
-          fontWeight: 700,
-          color: '#fff',
-        }}>
+        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-[11px] font-bold text-white shrink-0">
           {initials}
         </div>
-        <span style={{ fontSize: '13px', fontWeight: 500 }}>{user.sub}</span>
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ opacity: 0.5 }}>
-          <path d="M3 5L6 8L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
+        
+        {!isCollapsed && (
+          <>
+            <span className="text-[13px] font-medium flex-1 text-left whitespace-nowrap overflow-hidden text-ellipsis">
+              {user.sub}
+            </span>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="opacity-50 shrink-0">
+              <path d="M3 5L6 8L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </>
+        )}
       </button>
 
       {/* Dropdown */}
       {open && (
-        <div style={{
-          position: 'absolute',
-          right: 0,
-          top: '100%',
-          marginTop: '4px',
-          width: '200px',
-          backgroundColor: '#1f2937',
-          border: '1px solid #374151',
-          borderRadius: '8px',
-          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.3)',
-          overflow: 'hidden',
-          zIndex: 50,
-        }}>
+        <div 
+          className="absolute w-[200px] bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-hidden z-50"
+          style={{
+            left: isCollapsed ? '100%' : '0',
+            bottom: isCollapsed ? '0' : '100%',
+            marginLeft: isCollapsed ? '12px' : '0',
+            marginBottom: isCollapsed ? '0' : '4px',
+          }}
+        >
           {/* User info */}
-          <div style={{
-            padding: '12px 14px',
-            borderBottom: '1px solid #374151',
-          }}>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: '#f9fafb' }}>
+          <div className="px-3.5 py-3 border-b border-gray-700">
+            <div className="text-[13px] font-semibold text-gray-50 whitespace-nowrap overflow-hidden text-ellipsis">
               {user.sub}
             </div>
-            <div style={{
-              display: 'inline-block',
-              marginTop: '4px',
-              padding: '2px 8px',
-              fontSize: '11px',
-              fontWeight: 600,
-              borderRadius: '4px',
-              backgroundColor: user.role === 'Admin'
-                ? 'rgba(168, 85, 247, 0.15)'
-                : 'rgba(59, 130, 246, 0.15)',
-              color: user.role === 'Admin' ? '#a855f7' : '#3b82f6',
-            }}>
+            <div className={`inline-block mt-1 px-2 py-0.5 text-[11px] font-semibold rounded ${
+              user.role === 'Admin' ? 'bg-purple-500/15 text-purple-400' : 'bg-blue-500/15 text-blue-400'
+            }`}>
               {user.role}
             </div>
           </div>
@@ -117,21 +82,7 @@ export function UserMenu() {
           <button
             id="logout-button"
             onClick={handleLogout}
-            style={{
-              width: '100%',
-              padding: '10px 14px',
-              backgroundColor: 'transparent',
-              border: 'none',
-              borderTop: 'none',
-              color: '#ef4444',
-              fontSize: '13px',
-              fontWeight: 500,
-              cursor: 'pointer',
-              textAlign: 'left',
-              transition: 'background-color 0.15s',
-            }}
-            onMouseEnter={e => (e.currentTarget as HTMLElement).style.backgroundColor = '#111827'}
-            onMouseLeave={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'}
+            className="w-full px-3.5 py-2.5 bg-transparent text-red-500 text-[13px] font-medium cursor-pointer text-left transition-colors hover:bg-gray-900 border-none"
           >
             Sign Out
           </button>

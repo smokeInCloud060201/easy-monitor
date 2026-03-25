@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import type { HistogramBucket } from '../../lib/api';
 
 interface LogHistogramProps {
@@ -48,7 +48,8 @@ export function LogHistogram({ buckets }: LogHistogramProps) {
               fontSize: '12px',
               color: '#e5e7eb',
             }}
-            formatter={(value: number, name: string) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            formatter={(value: any, name: any) => {
               const labels: Record<string, string> = {
                 info_count: 'Info/Debug',
                 warn_count: 'Warnings',

@@ -97,43 +97,48 @@ export function EndpointDrawer({ isOpen, onClose, serviceName, resource, resourc
   // Load endpoint summary + traces when drawer opens
   useEffect(() => {
     if (!isOpen || !resource) return;
-    setSummary(null);
-    setTraces([]);
-    setAllSpans([]);
-    setSelectedTraceId(null);
+    const load = async () => {
+      setSummary(null);
+      setTraces([]);
+      setAllSpans([]);
+      setSelectedTraceId(null);
 
-    setLoadingSummary(true);
-    fetchResourceSummary(serviceName, resource, '1h')
-      .then(s => setSummary(s))
-      .catch(() => setSummary(null))
-      .finally(() => setLoadingSummary(false));
+      setLoadingSummary(true);
+      fetchResourceSummary(serviceName, resource, '1h')
+        .then(s => setSummary(s))
+        .catch(() => setSummary(null))
+        .finally(() => setLoadingSummary(false));
 
-    setLoadingTraces(true);
-    searchTraces({ service: serviceName, resource, limit: 20 })
-      .then(r => {
-        const t = r.traces || [];
-        setTraces(t);
-        // Load spans from first 5 traces for dependency/summary analysis
-        if (t.length > 0) {
-          setLoadingSpans(true);
-          const toLoad = t.slice(0, 5);
-          Promise.all(toLoad.map(tr => fetchTrace(tr.trace_id)))
-            .then(results => setAllSpans(results.flat()))
-            .catch(() => setAllSpans([]))
-            .finally(() => setLoadingSpans(false));
-        }
-      })
-      .catch(() => setTraces([]))
-      .finally(() => setLoadingTraces(false));
+      setLoadingTraces(true);
+      searchTraces({ service: serviceName, resource, limit: 20 })
+        .then(r => {
+          const t = r.traces || [];
+          setTraces(t);
+          if (t.length > 0) {
+            setLoadingSpans(true);
+            const toLoad = t.slice(0, 5);
+            Promise.all(toLoad.map(tr => fetchTrace(tr.trace_id)))
+              .then(results => setAllSpans(results.flat()))
+              .catch(() => setAllSpans([]))
+              .finally(() => setLoadingSpans(false));
+          }
+        })
+        .catch(() => setTraces([]))
+        .finally(() => setLoadingTraces(false));
+    };
+    load();
   }, [isOpen, resource, serviceName]);
 
   // Reset on close
   useEffect(() => {
     if (!isOpen) {
-      setSelectedTraceId(null);
-      setSummary(null);
-      setTraces([]);
-      setAllSpans([]);
+      const reset = async () => {
+        setSelectedTraceId(null);
+        setSummary(null);
+        setTraces([]);
+        setAllSpans([]);
+      };
+      reset();
     }
   }, [isOpen]);
 

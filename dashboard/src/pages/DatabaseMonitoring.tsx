@@ -170,7 +170,11 @@ const MiniChart = memo(function MiniChart({ data, dataKey, color, label }: { dat
     values.forEach((v, i) => {
       const x = pad + (i / (values.length - 1)) * (w - 2 * pad);
       const y = h - pad - (v / max) * (h - 2 * pad);
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      if (i === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
     });
     ctx.strokeStyle = color;
     ctx.lineWidth = 1.5;
@@ -429,36 +433,46 @@ export default function DatabaseMonitoring() {
 
   // Load database overview
   useEffect(() => {
-    setLoading(true);
-    apiFetch(`/api/v1/databases?from=${timeRange}`)
-      .then((data: { databases: DatabaseInfo[] }) => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const data = await apiFetch(`/api/v1/databases?from=${timeRange}`);
         setDatabases(data.databases || []);
         if (!selectedDb && data.databases?.length > 0) {
           setSelectedDb(data.databases[0].db_type);
         }
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [timeRange]);
+      } catch (err) {
+        console.error(err);
+      }
+      setLoading(false);
+    };
+    load();
+  }, [timeRange, selectedDb]);
 
   // Load details for selected DB type
   useEffect(() => {
-    if (!selectedDb) return;
-    setDetailLoading(true);
+    const load = async () => {
+      if (!selectedDb) return;
+      setDetailLoading(true);
 
-    Promise.all([
-      apiFetch(`/api/v1/databases/${selectedDb}/queries?from=${timeRange}`),
-      apiFetch(`/api/v1/databases/${selectedDb}/slow-queries?from=${timeRange}`),
-      apiFetch(`/api/v1/databases/${selectedDb}/services?from=${timeRange}`),
-      apiFetch(`/api/v1/databases/${selectedDb}/timeseries?from=${timeRange}`),
-    ]).then(([qData, slowData, svcData, tsData]) => {
-      setQueries(qData.queries || []);
-      setSlowQueries(slowData.queries || []);
-      setSlowThreshold(slowData.threshold_ms || 100);
-      setServices(svcData.services || []);
-      setTimeseries(tsData.timeseries || []);
+      try {
+        const [qData, slowData, svcData, tsData] = await Promise.all([
+          apiFetch(`/api/v1/databases/${selectedDb}/queries?from=${timeRange}`),
+          apiFetch(`/api/v1/databases/${selectedDb}/slow-queries?from=${timeRange}`),
+          apiFetch(`/api/v1/databases/${selectedDb}/services?from=${timeRange}`),
+          apiFetch(`/api/v1/databases/${selectedDb}/timeseries?from=${timeRange}`),
+        ]);
+        setQueries(qData.queries || []);
+        setSlowQueries(slowData.queries || []);
+        setSlowThreshold(slowData.threshold_ms || 100);
+        setServices(svcData.services || []);
+        setTimeseries(tsData.timeseries || []);
+      } catch (err) {
+        console.error(err);
+      }
       setDetailLoading(false);
-    }).catch(() => setDetailLoading(false));
+    };
+    load();
   }, [selectedDb, timeRange]);
 
   const timeRanges = ['1h', '6h', '24h', '7d'];

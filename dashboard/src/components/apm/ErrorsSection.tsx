@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { AlertTriangle } from 'lucide-react';
 
@@ -19,10 +18,9 @@ interface ErrorsSectionProps {
   timeseries: TimePoint[];
   totalErrors: number;
   errorRate: number;
-  serviceName: string;
 }
 
-export function ErrorsSection({ errors, timeseries, totalErrors, errorRate, serviceName }: ErrorsSectionProps) {
+export function ErrorsSection({ errors, timeseries, totalErrors, errorRate }: ErrorsSectionProps) {
   return (
     <div className="glass-panel p-4 shadow-xl">
       <div className="flex items-center justify-between mb-4">

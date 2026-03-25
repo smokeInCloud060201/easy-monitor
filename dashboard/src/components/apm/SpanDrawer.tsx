@@ -154,28 +154,38 @@ export function SpanDrawer({ isOpen, onClose, serviceName, resource, traces, loa
   // Auto-select first trace when traces load
   useEffect(() => {
     if (traces.length > 0 && !selectedTraceId) {
-      setSelectedTraceId(traces[0].trace_id);
+      const init = async () => setSelectedTraceId(traces[0].trace_id);
+      init();
     }
   }, [traces, selectedTraceId]);
 
   // Reset selection when drawer closes
   useEffect(() => {
     if (!isOpen) {
-      setSelectedTraceId(null);
-      setSpans([]);
-      setSelectedSpan(null);
+      const init = async () => {
+        setSelectedTraceId(null);
+        setSpans([]);
+        setSelectedSpan(null);
+      };
+      init();
     }
   }, [isOpen]);
 
   // Load spans when a trace is selected
   useEffect(() => {
-    if (!selectedTraceId) { setSpans([]); setSelectedSpan(null); return; }
-    setLoadingSpans(true);
-    setSelectedSpan(null);
-    fetchTrace(selectedTraceId)
-      .then(s => setSpans(s))
-      .catch(() => setSpans([]))
-      .finally(() => setLoadingSpans(false));
+    const load = async () => {
+      if (!selectedTraceId) { setSpans([]); setSelectedSpan(null); return; }
+      setLoadingSpans(true);
+      setSelectedSpan(null);
+      try {
+        const s = await fetchTrace(selectedTraceId);
+        setSpans(s);
+      } catch {
+        setSpans([]);
+      }
+      setLoadingSpans(false);
+    };
+    load();
   }, [selectedTraceId]);
 
   // Body scroll lock

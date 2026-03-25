@@ -81,6 +81,9 @@ progress:
 - Phase 35 added: Consum all logs from service keeping origin message
 - Phase 36 added: Logs page: delete fields menu, just show logs message and search input. Follow Graylog search syntax (key:"value" AND OR)
 - Phase 37 added: Now the logs will send with GELF, the agent agents will handle it and send to node-agent
+- Phase 38 added: Menubar UI improve, the menu bar in the left screen will have 2 mode: Full and short, with full mode will show the full menu icon + text, in short mdoe just show icon only, move the login button from header right to menu bar bottom side
+- Phase 39 added: Update Dashboard to use tailwindcss instead inner style
+- Phase 40 added: Fix React frontend ESLint errors and strict mode compliance
 
 ## Session Info
 

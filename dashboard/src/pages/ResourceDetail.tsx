@@ -19,15 +19,17 @@ export default function ResourceDetail() {
 
   useEffect(() => {
     if (!name || !decodedResource) return;
-    setLoading(true);
-    Promise.all([
-      fetchResourceSummary(name, decodedResource, timeRange).catch(() => null),
-      searchTraces({ service: name, resource: decodedResource, limit: 20 }).then(r => r.traces).catch(() => []),
-    ]).then(([s, t]) => {
+    const load = async () => {
+      setLoading(true);
+      const [s, t] = await Promise.all([
+        fetchResourceSummary(name, decodedResource, timeRange).catch(() => null),
+        searchTraces({ service: name, resource: decodedResource, limit: 20 }).then(r => r.traces).catch(() => []),
+      ]);
       setSummary(s);
       setTraces(t);
       setLoading(false);
-    });
+    };
+    load();
   }, [name, decodedResource, timeRange]);
 
   if (loading) {

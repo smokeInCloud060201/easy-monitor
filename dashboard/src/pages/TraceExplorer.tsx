@@ -23,13 +23,10 @@ export default function TraceExplorer() {
     fetchServices().then(setServices);
   }, []);
 
-  useEffect(() => {
-    doSearch();
-  }, [service, status, offset]);
-
   const doSearch = async () => {
     setLoading(true);
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const filters: any = { limit, offset };
       if (service) filters.service = service;
       if (status === 'error') filters.status = 'error';
@@ -44,6 +41,13 @@ export default function TraceExplorer() {
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    doSearch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [service, status, offset]);
+
+
 
   const handleDirectLookup = (e: React.FormEvent) => {
     e.preventDefault();

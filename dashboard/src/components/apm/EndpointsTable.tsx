@@ -77,10 +77,7 @@ export function EndpointsTable({ resources, serviceName }: EndpointsTableProps) 
     setDrawerEndpoint(drawerEndpoint === resource ? null : resource);
   };
 
-  const SortIcon = ({ col }: { col: SortKey }) => {
-    if (sortKey !== col) return null;
-    return sortAsc ? <ChevronUp size={12} /> : <ChevronDown size={12} />;
-  };
+
 
   return (
     <div className="glass-panel p-4 shadow-xl">
@@ -97,22 +94,22 @@ export function EndpointsTable({ resources, serviceName }: EndpointsTableProps) 
             <thead>
               <tr className="text-left text-gray-400 border-b border-white/10">
                 <th className="pb-3 font-semibold cursor-pointer hover:text-white" onClick={() => handleSort('resource')}>
-                  <span className="flex items-center gap-1">Endpoint <SortIcon col="resource" /></span>
+                  <span className="flex items-center gap-1">Endpoint <SortIcon col="resource" sortKey={sortKey} sortAsc={sortAsc} /></span>
                 </th>
                 <th className="pb-3 font-semibold text-right cursor-pointer hover:text-white" onClick={() => handleSort('requests')}>
-                  <span className="flex items-center justify-end gap-1">Requests <SortIcon col="requests" /></span>
+                  <span className="flex items-center justify-end gap-1">Requests <SortIcon col="requests" sortKey={sortKey} sortAsc={sortAsc} /></span>
                 </th>
                 <th className="pb-3 font-semibold text-right cursor-pointer hover:text-white" onClick={() => handleSort('errors')}>
-                  <span className="flex items-center justify-end gap-1">Errors <SortIcon col="errors" /></span>
+                  <span className="flex items-center justify-end gap-1">Errors <SortIcon col="errors" sortKey={sortKey} sortAsc={sortAsc} /></span>
                 </th>
                 <th className="pb-3 font-semibold text-right cursor-pointer hover:text-white" onClick={() => handleSort('error_rate')}>
-                  <span className="flex items-center justify-end gap-1">Error Rate <SortIcon col="error_rate" /></span>
+                  <span className="flex items-center justify-end gap-1">Error Rate <SortIcon col="error_rate" sortKey={sortKey} sortAsc={sortAsc} /></span>
                 </th>
                 <th className="pb-3 font-semibold text-right cursor-pointer hover:text-white" onClick={() => handleSort('avg_duration_ms')}>
-                  <span className="flex items-center justify-end gap-1">Avg Latency <SortIcon col="avg_duration_ms" /></span>
+                  <span className="flex items-center justify-end gap-1">Avg Latency <SortIcon col="avg_duration_ms" sortKey={sortKey} sortAsc={sortAsc} /></span>
                 </th>
                 <th className="pb-3 font-semibold text-right cursor-pointer hover:text-white" onClick={() => handleSort('p95_duration_ms')}>
-                  <span className="flex items-center justify-end gap-1">P95 <SortIcon col="p95_duration_ms" /></span>
+                  <span className="flex items-center justify-end gap-1">P95 <SortIcon col="p95_duration_ms" sortKey={sortKey} sortAsc={sortAsc} /></span>
                 </th>
               </tr>
             </thead>
@@ -169,4 +166,9 @@ export function EndpointsTable({ resources, serviceName }: EndpointsTableProps) 
       />
     </div>
   );
+}
+
+function SortIcon({ col, sortKey, sortAsc }: { col: SortKey; sortKey: SortKey; sortAsc: boolean }) {
+  if (sortKey !== col) return null;
+  return sortAsc ? <ChevronUp size={12} /> : <ChevronDown size={12} />;
 }

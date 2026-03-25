@@ -380,3 +380,43 @@ Plans:
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 37 to break down)
+
+### Phase 38: Menubar UI improve, the menu bar in the left screen will have 2 mode: Full and short, with full mode will show the full menu icon + text, in short mdoe just show icon only, move the login button from header right to menu bar bottom side
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 37
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 38 to break down)
+
+### Phase 39: Update Dashboard to use tailwindcss instead inner style
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 38
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 39 to break down)
+
+### Phase 40: Fix React frontend ESLint errors and strict mode compliance
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 39
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 40 to break down)
+
+### Phase 41: Logs page - inline row expansion instead of popup
+
+**Goal:** Modify the logs viewer so that clicking a log row expands its details inline beneath the row rather than opening a popup/sidebar panel.
+**Requirements**: TBD
+**Depends on:** Phase 40
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 41 to break down)

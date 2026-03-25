@@ -34,19 +34,21 @@ export function TracesSection({ serviceName, timeRange }: TracesSectionProps) {
 
   // Load initial traces
   useEffect(() => {
-    setLoading(true);
-    setExpandedTraceId(null);
-    setExpandedSpans([]);
-    searchTraces({ service: serviceName, limit: PAGE_SIZE, offset: 0 })
-      .then(r => {
+    const load = async () => {
+      setLoading(true);
+      setExpandedTraceId(null);
+      setExpandedSpans([]);
+      try {
+        const r = await searchTraces({ service: serviceName, limit: PAGE_SIZE, offset: 0 });
         setTraces(r.traces);
         setTotal(r.total);
-      })
-      .catch(() => {
+      } catch {
         setTraces([]);
         setTotal(0);
-      })
-      .finally(() => setLoading(false));
+      }
+      setLoading(false);
+    };
+    load();
   }, [serviceName, timeRange]);
 
   // Load more traces

@@ -13,10 +13,6 @@ export default function LogsExplorer() {
   const [keyword, setKeyword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetchLogsData();
-  }, []);
-
   const fetchLogsData = () => {
     setLoading(true);
     fetchLogsEnhanced({
@@ -29,6 +25,13 @@ export default function LogsExplorer() {
     .catch(console.error)
     .finally(() => setLoading(false));
   };
+
+  useEffect(() => {
+    fetchLogsData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 h-[calc(100vh-8rem)] flex flex-col">

@@ -28,19 +28,19 @@ export function TraceDetail() {
   useEffect(() => {
     if (!traceId) return;
     let active = true;
-    setLoading(true);
-    
-    Promise.all([
-      fetchTrace(traceId),
-      fetchLogs('now-1h', 'now', traceId)
-    ]).then(([fetchedSpans, fetchedLogs]) => {
+    const load = async () => {
+      setLoading(true);
+      const [fetchedSpans, fetchedLogs] = await Promise.all([
+        fetchTrace(traceId).catch(() => []),
+        fetchLogs('now-1h', 'now', traceId).catch(() => [])
+      ]);
       if (active) {
         setSpans(fetchedSpans);
         setLogs(fetchedLogs);
         setLoading(false);
       }
-    });
-
+    };
+    load();
     return () => { active = false; };
   }, [traceId]);
 

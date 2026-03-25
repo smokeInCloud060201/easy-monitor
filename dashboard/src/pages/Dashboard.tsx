@@ -11,14 +11,15 @@ export function Dashboard() {
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
-
-    fetchMetrics(from, to).then(result => {
+    const load = async () => {
+      setLoading(true);
+      const result = await fetchMetrics(from, to).catch(() => []);
       if (active) {
         setData(result);
         setLoading(false);
       }
-    });
+    };
+    load();
 
     return () => { active = false; };
   }, [from, to]);
