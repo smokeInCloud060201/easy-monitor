@@ -6,8 +6,8 @@ interface LogViewerProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   logs: any[];
   onLoadMore?: () => void;
-  selectedLogIndex: number | null;
-  onSelectLog: (index: number | null) => void;
+  expandedLogIndices: Set<number>;
+  onToggleLog: (index: number) => void;
   onFilterByService?: (service: string) => void;
 }
 
@@ -26,7 +26,7 @@ const getLevelName = (level: string) => {
   return map[level] || level;
 };
 
-export function LogViewer({ logs, onLoadMore, selectedLogIndex, onSelectLog, onFilterByService }: LogViewerProps) {
+export function LogViewer({ logs, onLoadMore, expandedLogIndices, onToggleLog, onFilterByService }: LogViewerProps) {
   const formatTime = (ts: string) => {
     try {
       const d = new Date(ts);
@@ -58,16 +58,16 @@ export function LogViewer({ logs, onLoadMore, selectedLogIndex, onSelectLog, onF
       itemContent={(index, log) => {
         const levelName = getLevelName(log.level);
         const colors = levelColors[levelName] || levelColors.INFO;
-        const isSelected = selectedLogIndex === index;
+        const isExpanded = expandedLogIndices.has(index);
 
         return (
           <div>
             <div
-              onClick={() => onSelectLog(isSelected ? null : index)}
-              className={`flex items-center gap-3 px-4 py-1.5 cursor-pointer border-l-2 transition-all font-mono text-sm ${colors.border} ${
-                isSelected
+              onClick={() => onToggleLog(index)}
+              className={`flex items-start gap-3 px-4 py-1.5 cursor-pointer border-l-2 transition-all font-mono text-sm ${colors.border} ${
+                isExpanded
                   ? 'bg-blue-500/10 border-b-0'
-                  : 'hover:bg-white/5 border-b border-b-gray-800/40'
+                  : 'hover:bg-white/5 border-b border-b-gray-800/40 items-center'
               }`}
             >
               {/* Timestamp */}
@@ -86,16 +86,15 @@ export function LogViewer({ logs, onLoadMore, selectedLogIndex, onSelectLog, onF
               </span>
 
               {/* Message */}
-              <span className="text-gray-300 flex-1 truncate text-xs">
+              <span className={`text-gray-300 flex-1 text-xs break-all ${isExpanded ? 'whitespace-pre-wrap mt-0.5' : 'truncate'}`}>
                 {log.message}
               </span>
             </div>
 
             {/* Expandable Detail */}
-            {isSelected && (
+            {isExpanded && (
               <LogDetailPanel
                 log={log}
-                onClose={() => onSelectLog(null)}
                 onFilterByService={onFilterByService}
               />
             )}

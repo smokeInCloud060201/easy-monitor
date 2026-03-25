@@ -1,10 +1,9 @@
 import { Link } from 'react-router-dom';
-import { X, ExternalLink, Copy, Filter } from 'lucide-react';
+import { ExternalLink, Copy, Filter } from 'lucide-react';
 import type { LogLine } from '../../lib/api';
 
 interface LogDetailPanelProps {
   log: LogLine;
-  onClose: () => void;
   onFilterByService?: (service: string) => void;
 }
 
@@ -23,7 +22,7 @@ const getLevelName = (level: string) => {
   return map[level] || level;
 };
 
-export function LogDetailPanel({ log, onClose, onFilterByService }: LogDetailPanelProps) {
+export function LogDetailPanel({ log, onFilterByService }: LogDetailPanelProps) {
   const copyLog = () => {
     navigator.clipboard.writeText(JSON.stringify(log, null, 2));
   };
@@ -44,48 +43,34 @@ export function LogDetailPanel({ log, onClose, onFilterByService }: LogDetailPan
   const attrs = Object.entries(log.attributes || {});
 
   return (
-    <div className="bg-gray-900 border border-gray-700 rounded-lg mx-2 mb-1 animate-in slide-in-from-top-2 duration-200 overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 bg-gray-800/50 border-b border-gray-700">
-        <span className="text-xs font-semibold text-gray-300 tracking-wide uppercase">Log Detail</span>
-        <div className="flex items-center gap-2">
-          {log.trace_id && (
-            <Link
-              to={`/traces/${log.trace_id}`}
-              className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
-            >
-              <ExternalLink size={12} />
-              View Trace
-            </Link>
-          )}
-          <button
-            onClick={copyLog}
-            className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-200 transition-colors"
+    <div className="bg-gray-900/40 pt-3 pb-5 px-6 w-full border-t border-gray-800/60 animate-in slide-in-from-top-1 duration-200">
+      {/* Action Buttons */}
+      <div className="flex items-center justify-end gap-3 mb-4">
+        {log.trace_id && (
+          <Link
+            to={`/traces/${log.trace_id}`}
+            className="flex items-center gap-1.5 text-[11px] font-medium text-blue-400 hover:text-blue-300 transition-colors bg-blue-500/10 hover:bg-blue-500/20 px-2.5 py-1.5 rounded"
           >
-            <Copy size={12} />
-            Copy
+            <ExternalLink size={12} />
+            View Trace
+          </Link>
+        )}
+        <button
+          onClick={copyLog}
+          className="flex items-center gap-1.5 text-[11px] font-medium text-gray-400 hover:text-gray-200 transition-colors bg-white/5 hover:bg-white/10 px-2.5 py-1.5 rounded"
+        >
+          <Copy size={12} />
+          Copy JSON
+        </button>
+        {onFilterByService && log.service && (
+          <button
+            onClick={() => onFilterByService(log.service)}
+            className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-400 hover:text-emerald-300 transition-colors bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1.5 rounded"
+          >
+            <Filter size={12} />
+            Filter Service
           </button>
-          {onFilterByService && log.service && (
-            <button
-              onClick={() => onFilterByService(log.service)}
-              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-200 transition-colors"
-            >
-              <Filter size={12} />
-              Filter
-            </button>
-          )}
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-300 transition-colors">
-            <X size={16} />
-          </button>
-        </div>
-      </div>
-
-      {/* Message */}
-      <div className="px-4 py-3 border-b border-gray-800">
-        <div className="text-xs text-gray-500 mb-1">Message</div>
-        <pre className="text-sm text-gray-200 font-mono whitespace-pre-wrap break-all leading-relaxed">
-          {log.message}
-        </pre>
+        )}
       </div>
 
       {/* Fields Grid */}

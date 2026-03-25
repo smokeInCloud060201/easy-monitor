@@ -29,7 +29,7 @@ export function Logs() {
   const [currentPage, setCurrentPage] = useState(1);
   const [histogram, setHistogram] = useState<HistogramBucket[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedLogIndex, setSelectedLogIndex] = useState<number | null>(null);
+  const [expandedLogIndices, setExpandedLogIndices] = useState<Set<number>>(new Set());
   const [filters, setFilters] = useState<Filters>({
     keyword: '', service: null, level: null, pod_id: null, trace_id: null,
     host: null, source: null, namespace: null, node_name: null,
@@ -39,7 +39,7 @@ export function Logs() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    setSelectedLogIndex(null);
+    setExpandedLogIndices(new Set());
 
     const apiFilters = {
       keyword: filters.keyword || undefined,
@@ -112,7 +112,22 @@ export function Logs() {
   const handleFilterByService = (service: string) => {
     setCurrentPage(1);
     setFilters(prev => ({ ...prev, service }));
+    setSearchInput(prev => {
+      if (prev.includes(`service:"${service}"`) || prev.includes(`service:${service}`)) return prev;
+      const clean = prev.replace(/service:"?[^"\s]+"?/g, '').trim();
+      return clean ? `${clean} service:"${service}"` : `service:"${service}"`;
+    });
   };
+
+  const handleToggleLog = useCallback((index: number) => {
+    setExpandedLogIndices(prev => {
+      if (prev.has(index)) {
+        return new Set();
+      } else {
+        return new Set([index]);
+      }
+    });
+  }, []);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const rangeStart = (currentPage - 1) * PAGE_SIZE + 1;
@@ -205,8 +220,8 @@ export function Logs() {
           <div className="flex-1 h-[calc(100%-68px)]">
             <LogViewer
               logs={logs}
-              selectedLogIndex={selectedLogIndex}
-              onSelectLog={setSelectedLogIndex}
+              expandedLogIndices={expandedLogIndices}
+              onToggleLog={handleToggleLog}
               onFilterByService={handleFilterByService}
             />
           </div>
