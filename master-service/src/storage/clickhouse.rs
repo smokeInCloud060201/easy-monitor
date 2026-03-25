@@ -45,6 +45,7 @@ pub async fn initialize_clickhouse(client: &Client) -> anyhow::Result<()> {
             name String,
             resource String,
             error Int8,
+            status_code UInt16 DEFAULT 0,
             duration Int64,
             timestamp Int64
         ) ENGINE = MergeTree()

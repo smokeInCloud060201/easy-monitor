@@ -6,10 +6,11 @@ use tokio::time::{self, Duration};
 use tracing::{info, error};
 
 use shared_proto::metrics::MetricPayload;
+use shared_proto::traces::Span;
 use crate::bus::{EventBusTx, EventBusRx, Event};
 
 use crate::storage::CH_URL;
-use crate::utils::sanitize_resource;
+use crate::utils::{sanitize_resource, is_error_span};
 
 /// Per-resource aggregate bucket for one 10-second window
 struct ResourceBucket {
@@ -51,7 +52,7 @@ pub async fn start_trace_metrics_engine(tx: EventBusTx, mut rx: EventBusRx) -> a
                         let key = format!("{}:{}", span.service, sanitized_resource);
                         let mut entry = buckets_clone.entry(key).or_insert_with(ResourceBucket::new);
                         entry.count += 1.0;
-                        if span.error > 0 {
+                        if is_error_span(span.error, &span.meta) {
                             entry.errors += 1.0;
                         }
                         entry.durations.push(span.duration as f64 / 1000.0); // μs → ms

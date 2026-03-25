@@ -340,3 +340,13 @@ Plans:
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 33 to break down)
+
+### Phase 34: APM error rate consistency - count 4xx/5xx HTTP status as errors across all APIs
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 33
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 34 to break down)

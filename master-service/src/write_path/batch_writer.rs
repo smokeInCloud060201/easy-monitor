@@ -6,7 +6,7 @@ use tokio::sync::mpsc;
 use tokio::time::{self, Duration};
 use tracing::{error, info};
 
-use crate::utils::sanitize_resource;
+use crate::utils::{sanitize_resource, is_error_span, extract_status_code};
 
 /// Flush configuration for batch writers.
 const FLUSH_MAX_ROWS: usize = 1000;
@@ -166,6 +166,10 @@ async fn flush_traces(client: &Client, ch_url: &str, batch: &mut Vec<Span>) {
         let attributes_json =
             serde_json::to_string(&span.meta).unwrap_or_else(|_| "{}".to_string());
 
+        // Override error flag: count 4xx/5xx HTTP responses as errors
+        let effective_error = if is_error_span(span.error, &span.meta) { 1 } else { 0 };
+        let status_code = extract_status_code(&span.meta);
+
         let row = json!({
             "trace_id": span.trace_id,
             "span_id": span.span_id,
@@ -173,7 +177,8 @@ async fn flush_traces(client: &Client, ch_url: &str, batch: &mut Vec<Span>) {
             "service": span.service,
             "name": sanitized_name,
             "resource": sanitized_resource,
-            "error": span.error,
+            "error": effective_error,
+            "status_code": status_code,
             "duration": span.duration,
             "timestamp": span.start_time,
             "attributes": attributes_json,

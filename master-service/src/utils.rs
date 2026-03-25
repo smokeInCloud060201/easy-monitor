@@ -137,6 +137,28 @@ pub fn is_internal_service(service: &str) -> bool {
     INTERNAL_SERVICES.contains(&service)
 }
 
+/// Check if a span's HTTP status code indicates an error (4xx or 5xx).
+/// Reads from the `http.status_code` key in the span's meta attributes.
+pub fn is_http_error(meta: &std::collections::HashMap<String, String>) -> bool {
+    meta.get("http.status_code")
+        .and_then(|s| s.parse::<u16>().ok())
+        .map(|code| code >= 400)
+        .unwrap_or(false)
+}
+
+/// Determine if a span should be considered an error.
+/// Returns true if the agent set error > 0 OR the HTTP status is 4xx/5xx.
+pub fn is_error_span(error_flag: i32, meta: &std::collections::HashMap<String, String>) -> bool {
+    error_flag > 0 || is_http_error(meta)
+}
+
+/// Extract the HTTP status code from span meta, defaulting to 0.
+pub fn extract_status_code(meta: &std::collections::HashMap<String, String>) -> u16 {
+    meta.get("http.status_code")
+        .and_then(|s| s.parse::<u16>().ok())
+        .unwrap_or(0)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

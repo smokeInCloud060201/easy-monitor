@@ -54,9 +54,12 @@ export default function ServiceDetail() {
     );
   }
 
+  // Compute effective errors: RED summary + inbound errors from the errors endpoint
+  const errorsFromApi = errors.reduce((sum, e) => sum + e.count, 0);
+  const effectiveErrors = Math.max(summary?.total_errors || 0, errorsFromApi);
   const errorRate = summary && summary.total_requests > 0
-    ? (summary.total_errors / summary.total_requests * 100)
-    : 0;
+    ? (effectiveErrors / summary.total_requests * 100)
+    : errorsFromApi > 0 ? 100 : 0;
   const isHealthy = errorRate < 5;
 
   const chartData = summary?.timeseries.map(p => ({
@@ -176,7 +179,7 @@ export default function ServiceDetail() {
       <ErrorsSection
         errors={errors}
         timeseries={errorTimeseries}
-        totalErrors={summary?.total_errors || 0}
+        totalErrors={effectiveErrors}
         errorRate={errorRate}
         serviceName={name || ''}
       />
