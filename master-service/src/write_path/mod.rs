@@ -24,6 +24,12 @@ pub async fn start_writers(receivers: WriteReceivers) -> anyhow::Result<()> {
         batch_writer::start_traces_writer(receivers.traces_rx, &traces_url).await;
     });
 
+    // Metrics drainer (raw metrics not persisted yet, just drain to avoid full channel warnings)
+    let mut metrics_rx = receivers.metrics_rx;
+    tokio::spawn(async move {
+        while let Some(_) = metrics_rx.recv().await {}
+    });
+
     info!("Write-path batch writers started (logs, traces).");
     Ok(())
 }
