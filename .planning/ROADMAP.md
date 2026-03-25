@@ -360,3 +360,13 @@ Plans:
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 35 to break down)
+
+### Phase 36: Logs page: delete fields menu, just show logs message and search input. Follow Graylog search syntax (key:"value" AND OR)
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 35
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 36 to break down)

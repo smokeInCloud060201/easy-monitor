@@ -235,16 +235,6 @@ pub async fn search_traces(State(state): State<ApiState>, Json(payload): Json<Tr
 #[derive(Deserialize)]
 pub struct LogsQueryRequest {
     pub keyword: Option<String>,
-    pub service: Option<String>,
-    pub level: Option<String>,
-    pub pod_id: Option<String>,
-    pub trace_id: Option<String>,
-    pub host: Option<String>,
-    pub source: Option<String>,
-    pub namespace: Option<String>,
-    pub node_name: Option<String>,
-    pub from_ts: Option<i64>,
-    pub to_ts: Option<i64>,
     pub limit: Option<usize>,
     pub offset: Option<usize>,
 }
@@ -272,68 +262,91 @@ pub struct LogsQueryResponse {
     pub total: u64,
 }
 
-fn build_logs_where_clauses(payload: &LogsQueryRequest) -> Vec<String> {
-    let mut clauses = Vec::new();
-    if let Some(ref svc) = payload.service {
-        if !svc.is_empty() && svc != "all" {
-            clauses.push(format!("service = '{}'", svc.replace('\'', "")));
+fn parse_graylog_to_sql(query: &str) -> String {
+    let q = query.trim();
+    if q.is_empty() {
+        return "1=1".to_string();
+    }
+    
+    let mut tokens = Vec::new();
+    let mut current = String::new();
+    let mut in_quotes = false;
+    for c in q.chars() {
+        match c {
+            '"' => {
+                in_quotes = !in_quotes;
+                current.push(c);
+            }
+            ' ' if !in_quotes => {
+                if !current.is_empty() {
+                    tokens.push(current.clone());
+                    current.clear();
+                }
+            }
+            _ => {
+                current.push(c);
+            }
         }
     }
-    if let Some(ref lvl) = payload.level {
-        if !lvl.is_empty() && lvl != "all" {
-            clauses.push(format!("level = '{}'", lvl.replace('\'', "")));
+    if !current.is_empty() {
+        tokens.push(current);
+    }
+
+    let mut sql = String::new();
+    let mut next_is_not = false;
+    let mut pending_operator = None;
+
+    for token in tokens {
+        if token == "AND" || token == "OR" {
+            pending_operator = Some(token);
+            continue;
         }
-    }
-    if let Some(ref pod) = payload.pod_id {
-        if !pod.is_empty() && pod != "all" {
-            clauses.push(format!("pod_id = '{}'", pod.replace('\'', "")));
+        if token == "NOT" {
+            next_is_not = true;
+            continue;
         }
+
+        let op = pending_operator.take().unwrap_or_else(|| "OR".to_string());
+        let logical_op = if sql.is_empty() { "".to_string() } else { format!(" {} ", op) };
+
+        let condition = if let Some((key, val)) = token.split_once(':') {
+            let clean_val = val.trim_matches('"').replace('\'', "''");
+            if next_is_not {
+                format!("{} != '{}'", key, clean_val)
+            } else {
+                format!("{} = '{}'", key, clean_val)
+            }
+        } else {
+            let clean_val = token.trim_matches('"').replace('\'', "''");
+            if next_is_not {
+                format!("message NOT ILIKE '%{}%'", clean_val)
+            } else {
+                format!("message ILIKE '%{}%'", clean_val)
+            }
+        };
+
+        sql.push_str(&format!("{}{}", logical_op, condition));
+        next_is_not = false;
     }
-    if let Some(ref tid) = payload.trace_id {
-        if !tid.is_empty() {
-            clauses.push(format!("trace_id = '{}'", tid.replace('\'', "")));
-        }
+
+    if sql.is_empty() {
+        "1=1".to_string()
+    } else {
+        format!("({})", sql)
     }
-    if let Some(kw) = &payload.keyword {
-        if !kw.is_empty() {
-            clauses.push(format!("message ILIKE '%{}%'", kw.replace('\'', "")));
-        }
-    }
-    if let Some(ref host) = payload.host {
-        if !host.is_empty() {
-            clauses.push(format!("host = '{}'", host.replace('\'', "")));
-        }
-    }
-    if let Some(ref source) = payload.source {
-        if !source.is_empty() {
-            clauses.push(format!("source = '{}'", source.replace('\'', "")));
-        }
-    }
-    if let Some(ref ns) = payload.namespace {
-        if !ns.is_empty() {
-            clauses.push(format!("namespace = '{}'", ns.replace('\'', "")));
-        }
-    }
-    if let Some(ref node) = payload.node_name {
-        if !node.is_empty() {
-            clauses.push(format!("node_name = '{}'", node.replace('\'', "")));
-        }
-    }
-    if let Some(from) = payload.from_ts {
-        clauses.push(format!("timestamp >= {}", from));
-    }
-    if let Some(to) = payload.to_ts {
-        clauses.push(format!("timestamp <= {}", to));
-    }
-    clauses
 }
+
+
 
 pub async fn query_logs(State(state): State<ApiState>, Json(payload): Json<LogsQueryRequest>) -> Json<LogsQueryResponse> {
     let mut logs = Vec::new();
     let mut total = 0u64;
 
-    let where_clauses = build_logs_where_clauses(&payload);
-    let where_str = if where_clauses.is_empty() { "1=1".to_string() } else { where_clauses.join(" AND ") };
+    let where_str = if let Some(kw) = &payload.keyword {
+        parse_graylog_to_sql(kw)
+    } else {
+        "1=1".to_string()
+    };
 
     let limit = payload.limit.unwrap_or(100).min(500);
     let offset = payload.offset.unwrap_or(0);
@@ -401,12 +414,7 @@ pub async fn query_logs(State(state): State<ApiState>, Json(payload): Json<LogsQ
 
 #[derive(Deserialize)]
 pub struct LogHistogramRequest {
-    pub service: Option<String>,
-    pub level: Option<String>,
     pub keyword: Option<String>,
-    pub host: Option<String>,
-    pub source: Option<String>,
-    pub namespace: Option<String>,
     pub from_ts: Option<i64>,
     pub to_ts: Option<i64>,
     pub interval: Option<String>,
@@ -434,45 +442,22 @@ pub async fn log_histogram(State(state): State<ApiState>, Json(payload): Json<Lo
         _ => "toStartOfMinute",
     };
 
-    let mut where_clauses = Vec::new();
-    if let Some(ref svc) = payload.service {
-        if !svc.is_empty() && svc != "all" {
-            where_clauses.push(format!("service = '{}'", svc.replace('\'', "")));
-        }
-    }
-    if let Some(ref lvl) = payload.level {
-        if !lvl.is_empty() && lvl != "all" {
-            where_clauses.push(format!("level = '{}'", lvl.replace('\'', "")));
-        }
-    }
-    if let Some(ref kw) = payload.keyword {
-        if !kw.is_empty() {
-            where_clauses.push(format!("message ILIKE '%{}%'", kw.replace('\'', "")));
-        }
-    }
-    if let Some(ref host) = payload.host {
-        if !host.is_empty() {
-            where_clauses.push(format!("host = '{}'", host.replace('\'', "")));
-        }
-    }
-    if let Some(ref source) = payload.source {
-        if !source.is_empty() {
-            where_clauses.push(format!("source = '{}'", source.replace('\'', "")));
-        }
-    }
-    if let Some(ref ns) = payload.namespace {
-        if !ns.is_empty() {
-            where_clauses.push(format!("namespace = '{}'", ns.replace('\'', "")));
-        }
-    }
+    let base_where = if let Some(kw) = &payload.keyword {
+        parse_graylog_to_sql(kw)
+    } else {
+        "1=1".to_string()
+    };
+    
+    // We must forcefully merge from_ts and to_ts for the histogram bounds!
+    let mut final_clauses = vec![format!("({})", base_where)];
     if let Some(from) = payload.from_ts {
-        where_clauses.push(format!("timestamp >= {}", from));
+        final_clauses.push(format!("timestamp >= {}", from));
     }
     if let Some(to) = payload.to_ts {
-        where_clauses.push(format!("timestamp <= {}", to));
+        final_clauses.push(format!("timestamp <= {}", to));
     }
-
-    let where_str = if where_clauses.is_empty() { "1=1".to_string() } else { where_clauses.join(" AND ") };
+    
+    let where_str = final_clauses.join(" AND ");
 
     let query = format!(
         "SELECT toUnixTimestamp({}(toDateTime(timestamp / 1000))) * 1000 as bucket, \
@@ -515,102 +500,7 @@ pub async fn log_histogram(State(state): State<ApiState>, Json(payload): Json<Lo
     Json(LogHistogramResponse { buckets })
 }
 
-// ─── Logs Field Statistics ───
 
-#[derive(Deserialize)]
-pub struct LogFieldsRequest {
-    pub from_ts: Option<i64>,
-    pub to_ts: Option<i64>,
-    pub service: Option<String>,
-}
-
-#[derive(Serialize)]
-pub struct FieldValue {
-    pub value: String,
-    pub count: u64,
-    pub percentage: f64,
-}
-
-#[derive(Serialize)]
-pub struct FieldStat {
-    pub field: String,
-    pub top_values: Vec<FieldValue>,
-}
-
-#[derive(Serialize)]
-pub struct LogFieldsResponse {
-    pub fields: Vec<FieldStat>,
-    pub total_logs: u64,
-}
-
-pub async fn log_fields(State(state): State<ApiState>, Json(payload): Json<LogFieldsRequest>) -> Json<LogFieldsResponse> {
-    let mut fields = Vec::new();
-    let mut total_logs = 0u64;
-
-    let mut where_clauses = Vec::new();
-    if let Some(ref svc) = payload.service {
-        if !svc.is_empty() && svc != "all" {
-            where_clauses.push(format!("service = '{}'", svc.replace('\'', "")));
-        }
-    }
-    if let Some(from) = payload.from_ts {
-        where_clauses.push(format!("timestamp >= {}", from));
-    }
-    if let Some(to) = payload.to_ts {
-        where_clauses.push(format!("timestamp <= {}", to));
-    }
-    let where_str = if where_clauses.is_empty() { "1=1".to_string() } else { where_clauses.join(" AND ") };
-
-    // Get total count
-    let count_q = format!("SELECT count() as cnt FROM easy_monitor_logs WHERE {} FORMAT JSON", where_str);
-    let count_url = format!("{}&query={}", CH_URL, urlencoding::encode(&count_q));
-    if let Ok(res) = state.read_pool.client.get(&count_url).send().await {
-        if let Ok(json_res) = res.json::<Value>().await {
-            if let Some(data) = json_res.get("data").and_then(|d| d.as_array()).and_then(|a| a.first()) {
-                total_logs = data.get("cnt")
-                    .and_then(|v| v.as_str()).and_then(|s| s.parse::<u64>().ok())
-                    .or_else(|| data.get("cnt").and_then(|v| v.as_u64()))
-                    .unwrap_or(0);
-            }
-        }
-    }
-
-    // Query top values for each field
-    let field_names = ["service", "level", "pod_id", "namespace", "node_name", "host", "source"];
-    for field_name in &field_names {
-        let q = format!(
-            "SELECT {} as val, count() as cnt FROM easy_monitor_logs WHERE {} GROUP BY val ORDER BY cnt DESC LIMIT 10 FORMAT JSON",
-            field_name, where_str
-        );
-        let url = format!("{}&query={}", CH_URL, urlencoding::encode(&q));
-
-        let mut top_values = Vec::new();
-        if let Ok(res) = state.read_pool.client.get(&url).send().await {
-            if let Ok(json_res) = res.json::<Value>().await {
-                if let Some(data) = json_res.get("data").and_then(|d| d.as_array()) {
-                    for row in data {
-                        let val = row.get("val").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                        let cnt = row.get("cnt")
-                            .and_then(|v| v.as_str()).and_then(|s| s.parse::<u64>().ok())
-                            .or_else(|| row.get("cnt").and_then(|v| v.as_u64()))
-                            .unwrap_or(0);
-                        if !val.is_empty() {
-                            let pct = if total_logs > 0 { (cnt as f64 / total_logs as f64) * 100.0 } else { 0.0 };
-                            top_values.push(FieldValue { value: val, count: cnt, percentage: pct });
-                        }
-                    }
-                }
-            }
-        }
-
-        if !top_values.is_empty() {
-            fields.push(FieldStat { field: field_name.to_string(), top_values });
-        }
-    }
-
-
-    Json(LogFieldsResponse { fields, total_logs })
-}
 
 // ─── RED Metrics Query ───
 

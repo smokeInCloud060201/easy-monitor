@@ -1,11 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Search, RefreshCcw, Loader2 } from 'lucide-react';
-import { fetchLogsEnhanced, fetchLogHistogram, fetchLogFields } from '../lib/api';
+import { fetchLogsEnhanced, fetchLogHistogram } from '../lib/api';
 import { parseLogQuery } from '../lib/queryParser';
-import type { LogLine, HistogramBucket, FieldStat } from '../lib/api';
+import type { LogLine, HistogramBucket } from '../lib/api';
 import { LogViewer } from '../components/logs/LogViewer';
 import { LogHistogram } from '../components/logs/LogHistogram';
-import { LogFieldsSidebar } from '../components/logs/LogFieldsSidebar';
 
 const LEVELS = ['All', 'INFO', 'WARN', 'ERROR', 'DEBUG'];
 const PAGE_SIZE = 100;
@@ -29,8 +28,6 @@ export function Logs() {
   const [total, setTotal] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [histogram, setHistogram] = useState<HistogramBucket[]>([]);
-  const [fields, setFields] = useState<FieldStat[]>([]);
-  const [totalLogs, setTotalLogs] = useState(0);
   const [loading, setLoading] = useState(false);
   const [selectedLogIndex, setSelectedLogIndex] = useState<number | null>(null);
   const [filters, setFilters] = useState<Filters>({
@@ -61,7 +58,7 @@ export function Logs() {
     };
 
     try {
-      const [logsData, histData, fieldsData] = await Promise.all([
+      const [logsData, histData] = await Promise.all([
         fetchLogsEnhanced(apiFilters),
         fetchLogHistogram({
           service: apiFilters.service,
@@ -72,19 +69,12 @@ export function Logs() {
           namespace: apiFilters.namespace,
           from_ts: apiFilters.from_ts,
           to_ts: apiFilters.to_ts,
-        }),
-        fetchLogFields({
-          service: apiFilters.service,
-          from_ts: apiFilters.from_ts,
-          to_ts: apiFilters.to_ts,
-        }),
+        })
       ]);
 
       setLogs(logsData.logs);
       setTotal(logsData.total);
       setHistogram(histData);
-      setFields(fieldsData.fields);
-      setTotalLogs(fieldsData.total_logs);
     } catch (err) {
       console.error('Failed to fetch log data:', err);
     } finally {
@@ -117,17 +107,7 @@ export function Logs() {
     setFilters(prev => ({ ...prev, level: level === 'All' ? null : level }));
   };
 
-  const handleFieldFilter = (field: string, value: string | null) => {
-    setCurrentPage(1);
-    if (field === 'service') {
-      setFilters(prev => ({ ...prev, service: value }));
-    } else if (field === 'level') {
-      setFilters(prev => ({ ...prev, level: value }));
-    } else if (field === 'pod_id') {
-      setFilters(prev => ({ ...prev, pod_id: value }));
-    }
-    // Other fields: add more as needed
-  };
+
 
   const handleFilterByService = (service: string) => {
     setCurrentPage(1);
@@ -211,12 +191,6 @@ export function Logs() {
 
       {/* Main Content: Sidebar + Log Table */}
       <div className="flex flex-1 overflow-hidden">
-        <LogFieldsSidebar
-          fields={fields}
-          totalLogs={totalLogs}
-          activeFilters={activeFilters}
-          onFilterChange={handleFieldFilter}
-        />
 
         <div className="flex-1 overflow-hidden bg-black/30">
           {/* Column Headers */}

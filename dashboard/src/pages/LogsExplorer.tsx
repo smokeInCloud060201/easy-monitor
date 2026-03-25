@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Search, Terminal, Filter, RefreshCcw, Loader2 } from 'lucide-react';
-import { fetchServices, fetchLogsEnhanced } from '../lib/api';
+import { Search, Terminal, RefreshCcw, Loader2 } from 'lucide-react';
+import { fetchLogsEnhanced } from '../lib/api';
 
 interface LogLine {
   trace_id: string;
@@ -10,25 +10,16 @@ interface LogLine {
 
 export default function LogsExplorer() {
   const [logs, setLogs] = useState<LogLine[]>([]);
-  const [services, setServices] = useState<string[]>([]);
-  const [selectedService, setSelectedService] = useState('all');
-  const [podId, setPodId] = useState('');
   const [keyword, setKeyword] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetchServices()
-      .then(s => setServices(s))
-      .catch(console.error);
-    
     fetchLogsData();
   }, []);
 
   const fetchLogsData = () => {
     setLoading(true);
     fetchLogsEnhanced({
-      service: selectedService === 'all' ? undefined : selectedService,
-      pod_id: podId || undefined,
       keyword: keyword || undefined,
       limit: 200
     })
@@ -47,35 +38,11 @@ export default function LogsExplorer() {
           <p className="text-gray-400">Real-time full-text search directly over massive ClickHouse clusters natively.</p>
         </div>
         <div className="flex gap-4 items-center">
-          <div className="relative">
-            <Filter className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-            <select 
-              value={selectedService}
-              onChange={e => setSelectedService(e.target.value)}
-              className="glass-panel pl-9 pr-8 py-2 appearance-none text-sm bg-black/40 border-primary/20 text-gray-300 focus:outline-none focus:border-primary"
-            >
-              <option value="all">All Services</option>
-              {services.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-          
-          <div className="relative w-48">
-            <Terminal className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-            <input 
-              type="text" 
-              placeholder="Pod ID..." 
-              value={podId}
-              onChange={e => setPodId(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && fetchLogsData()}
-              className="glass-panel pl-9 pr-4 py-2 w-full text-sm bg-black/40 border-primary/20 focus:outline-none focus:border-primary placeholder:text-gray-600"
-            />
-          </div>
-
-          <div className="relative w-64">
+          <div className="relative w-[400px]">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
             <input 
               type="text" 
-              placeholder="Search Lucene keywords..." 
+              placeholder="Search Graylog syntax (e.g. level:ERROR AND message:&quot;failed&quot;)..." 
               value={keyword}
               onChange={e => setKeyword(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && fetchLogsData()}

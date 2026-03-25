@@ -87,15 +87,6 @@ export interface HistogramBucket {
   warn_count: number;
 }
 
-export interface FieldStat {
-  field: string;
-  top_values: { value: string; count: number; percentage: number }[];
-}
-
-export interface LogFieldsResponse {
-  fields: FieldStat[];
-  total_logs: number;
-}
 
 /** @deprecated Use fetchLogsEnhanced instead */
 export async function fetchLogs(_from: string, _to: string, query: string = ''): Promise<LogLineResponse[]> {
@@ -166,23 +157,7 @@ export async function fetchLogHistogram(filters: {
   }
 }
 
-export async function fetchLogFields(filters: {
-  from_ts?: number;
-  to_ts?: number;
-  service?: string;
-}): Promise<LogFieldsResponse> {
-  try {
-    const res = await apiFetch('/api/v1/logs/fields', {
-      method: 'POST',
-      body: JSON.stringify(filters),
-    });
-    if (!res.ok) throw new Error('Failed to fetch fields');
-    return res.json();
-  } catch (err) {
-    console.error(err);
-    return { fields: [], total_logs: 0 };
-  }
-}
+
 
 // Service Map
 export interface ServiceMapNode {
