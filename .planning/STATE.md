@@ -84,6 +84,7 @@ progress:
 - Phase 38 added: Menubar UI improve, the menu bar in the left screen will have 2 mode: Full and short, with full mode will show the full menu icon + text, in short mdoe just show icon only, move the login button from header right to menu bar bottom side
 - Phase 39 added: Update Dashboard to use tailwindcss instead inner style
 - Phase 40 added: Fix React frontend ESLint errors and strict mode compliance
+- Phase 42 added: In the logs page, I want to improve the UI for logs details, when click the message line, dont show the popup for message details, we should expand the message logs details instead
 
 ## Session Info
 

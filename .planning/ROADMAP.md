@@ -420,3 +420,13 @@ Plans:
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 41 to break down)
+
+### Phase 42: In the logs page, I want to improve the UI for logs details, when click the message line, dont show the popup for message details, we should expand the message logs details instead
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 41
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 42 to break down)
