@@ -12,6 +12,7 @@ import ServiceDetail from './pages/ServiceDetail';
 import ResourceDetail from './pages/ResourceDetail';
 import TraceExplorer from './pages/TraceExplorer';
 import { ServiceMap } from './pages/ServiceMap';
+import DatabaseMonitoring from './pages/DatabaseMonitoring';
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
             <Route path="/traces/:traceId" element={<TraceDetail />} />
             <Route path="/logs" element={<Logs />} />
             <Route path="/service-map" element={<ServiceMap />} />
+            <Route path="/databases" element={<DatabaseMonitoring />} />
             <Route element={<AdminGuard />}>
               <Route path="/admin/users" element={<Admin />} />
             </Route>

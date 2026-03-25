@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Activity, List, Server, Zap, Network, BarChart3, Shield } from 'lucide-react';
+import { Activity, List, Server, Zap, Network, BarChart3, Shield, Database } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 export function Sidebar() {
@@ -38,6 +38,10 @@ export function Sidebar() {
         <NavLink to="/service-map" className={linkClass}>
           <Network size={16} />
           <span>Service Map</span>
+        </NavLink>
+        <NavLink to="/databases" className={linkClass}>
+          <Database size={16} />
+          <span>Databases</span>
         </NavLink>
 
         {/* Analysis */}

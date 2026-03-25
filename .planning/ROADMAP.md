@@ -320,3 +320,13 @@ Plans:
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 31 to break down)
+
+### Phase 32: Database infrastructure monitoring — PostgreSQL, Redis, and extensible to other database types (MySQL, MongoDB, etc.)
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 31
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 32 to break down)

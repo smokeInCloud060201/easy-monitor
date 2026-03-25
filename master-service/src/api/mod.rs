@@ -9,6 +9,7 @@ use crate::bus::{EventBusRx, Event};
 use crate::read_path::ReadPool;
 
 pub mod apm;
+pub mod db_monitoring;
 pub mod queries;
 pub mod auth;
 
@@ -68,6 +69,11 @@ pub async fn start_api_gateway(mut rx: EventBusRx, jwt_secret: String) -> anyhow
         .route("/logs/fields", post(queries::log_fields))
         .route("/metrics/query", post(queries::query_metrics))
         .route("/system/metrics", get(queries::get_system_metrics))
+        .route("/databases", get(db_monitoring::get_databases))
+        .route("/databases/:db_type/queries", get(db_monitoring::get_db_queries))
+        .route("/databases/:db_type/slow-queries", get(db_monitoring::get_slow_queries))
+        .route("/databases/:db_type/services", get(db_monitoring::get_db_services))
+        .route("/databases/:db_type/timeseries", get(db_monitoring::get_db_timeseries))
         .route("/auth/me", get(auth::me))
         .nest("/admin", admin_routes)
         .route_layer(middleware::from_fn_with_state(state.clone(), auth::require_jwt));
