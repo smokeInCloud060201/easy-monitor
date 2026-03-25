@@ -535,20 +535,17 @@ pub async fn get_service_errors(
     State(state): State<ApiState>,
     Path(service_name): Path<String>,
 ) -> Json<ErrorSummaryResponse> {
-    let svc = service_name.replace('\'', "");
-    let mut errors = Vec::new();
-
-    // 1) Direct errors: spans owned by this service with error > 0
-    let direct_query = format!(
+    let query = format!(
         "SELECT name, resource, count() as cnt, max(timestamp) as last_ts \
          FROM easy_monitor_traces \
-         WHERE service = '{}' AND error > 0 \
+         WHERE service = '{}' AND error > 0 AND resource NOT LIKE '%http.client%' \
          GROUP BY name, resource ORDER BY cnt DESC LIMIT 50 FORMAT JSON",
-        svc
+        service_name.replace('\'', "")
     );
-    let direct_url = format!("{}&query={}", CH_URL, urlencoding::encode(&direct_query));
+    let ch_url = format!("{}&query={}", CH_URL, urlencoding::encode(&query));
 
-    if let Ok(res) = state.read_pool.client.get(&direct_url).send().await {
+    let mut errors = Vec::new();
+    if let Ok(res) = state.read_pool.client.get(&ch_url).send().await {
         if let Ok(json_res) = res.json::<Value>().await {
             if let Some(data) = json_res.get("data").and_then(|d| d.as_array()) {
                 for row in data {
@@ -569,62 +566,6 @@ pub async fn get_service_errors(
             }
         }
     }
-
-    // 2) Inbound errors: caller spans that target this service and have error > 0
-    //    This catches cases where order-service calls inventory-service and gets a 500,
-    //    recording the error on the client-side span (order-service owner) but the
-    //    server-side span (inventory-service) doesn't have error flag set.
-    let inbound_query = format!(
-        "SELECT caller.name as name, caller.resource as resource, \
-         count() as cnt, max(caller.timestamp) as last_ts \
-         FROM easy_monitor_traces AS caller \
-         INNER JOIN easy_monitor_traces AS callee \
-            ON callee.parent_id = caller.span_id AND callee.trace_id = caller.trace_id \
-         WHERE callee.service = '{svc}' AND caller.service != '{svc}' AND caller.error > 0 \
-         GROUP BY name, resource ORDER BY cnt DESC LIMIT 50 FORMAT JSON",
-        svc = svc
-    );
-    let inbound_url = format!("{}&query={}", CH_URL, urlencoding::encode(&inbound_query));
-
-    if let Ok(res) = state.read_pool.client.get(&inbound_url).send().await {
-        if let Ok(json_res) = res.json::<Value>().await {
-            if let Some(data) = json_res.get("data").and_then(|d| d.as_array()) {
-                for row in data {
-                    let ts = parse_i64(row, "last_ts");
-                    let cnt = row.get("cnt")
-                        .and_then(|v| v.as_str()).and_then(|s| s.parse::<u64>().ok())
-                        .or_else(|| row.get("cnt").and_then(|v| v.as_u64()))
-                        .unwrap_or(0);
-                    let name = row.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                    let resource = row.get("resource").and_then(|v| v.as_str()).unwrap_or("").to_string();
-
-                    // Merge: if same name+resource already exists from direct errors, sum the counts
-                    if let Some(existing) = errors.iter_mut().find(|e| e.name == name && e.resource == resource) {
-                        existing.count += cnt;
-                        let existing_ts = chrono::DateTime::parse_from_rfc3339(&existing.last_seen)
-                            .map(|dt| dt.timestamp_millis()).unwrap_or(0);
-                        if ts > existing_ts {
-                            existing.last_seen = chrono::DateTime::from_timestamp_millis(ts)
-                                .map(|dt| dt.to_rfc3339())
-                                .unwrap_or_default();
-                        }
-                    } else {
-                        errors.push(ErrorEntry {
-                            name: format!("inbound · {}", name),
-                            resource,
-                            count: cnt,
-                            last_seen: chrono::DateTime::from_timestamp_millis(ts)
-                                .map(|dt| dt.to_rfc3339())
-                                .unwrap_or_default(),
-                        });
-                    }
-                }
-            }
-        }
-    }
-
-    // Sort by count descending
-    errors.sort_by(|a, b| b.count.cmp(&a.count));
 
     Json(ErrorSummaryResponse { service: service_name, errors })
 }
