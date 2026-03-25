@@ -70,6 +70,19 @@ interface DbTimePoint {
   p95_latency_ms: number;
 }
 
+// ─── Database Logos ───
+
+import postgresqlLogo from '../assets/postgresql-logo-svgrepo-com.svg';
+import redisLogo from '../assets/redis-svgrepo-com.svg';
+
+function DbLogo({ dbType, size = 28 }: { dbType: string; size?: number }) {
+  switch (dbType) {
+    case 'postgresql': return <img src={postgresqlLogo} alt="PostgreSQL" width={size} height={size} />;
+    case 'redis': return <img src={redisLogo} alt="Redis" width={size} height={size} />;
+    default: return <Database size={size} className="text-gray-400" />;
+  }
+}
+
 // ─── Database Overview Cards ───
 
 function DatabaseCard({ db, onClick, isSelected }: { db: DatabaseInfo; onClick: () => void; isSelected: boolean }) {
@@ -86,7 +99,7 @@ function DatabaseCard({ db, onClick, isSelected }: { db: DatabaseInfo; onClick: 
 
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <span className="text-2xl">{db.icon}</span>
+          <DbLogo dbType={db.db_type} />
           <div>
             <h3 className="text-sm font-bold text-gray-100">{db.display_name}</h3>
             <p className="text-[11px] text-gray-500">{db.service_count} service{db.service_count !== 1 ? 's' : ''}</p>
