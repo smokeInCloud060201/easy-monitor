@@ -79,6 +79,7 @@ progress:
 - Phase 33 added: Dashboard performance review
 - Phase 34 added: APM error rate consistency - count 4xx/5xx HTTP status as errors across all APIs
 - Phase 35 added: Consum all logs from service keeping origin message
+- Phase 36 added: Logs page: delete fields menu, just show logs message and search input. Follow Graylog search syntax (key:"value" AND OR)
 
 ## Session Info
 
