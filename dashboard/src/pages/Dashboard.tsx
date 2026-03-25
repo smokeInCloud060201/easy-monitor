@@ -62,3 +62,4 @@ function MetricCard({ icon, label, value, accent }: { icon: React.ReactNode; lab
     </div>
   );
 }
+export default Dashboard;

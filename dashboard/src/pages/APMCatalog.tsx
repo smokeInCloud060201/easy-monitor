@@ -1,10 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { Loader2, Server, Activity, ChevronRight } from 'lucide-react';
-import { fetchServices, type ResourceWithMetrics } from '../lib/api';
-import axios from 'axios';
-
-const API_BASE = 'http://localhost:3000/api/v1';
+import { fetchServices, fetchResourcesWithMetrics, type ResourceWithMetrics } from '../lib/api';
 
 interface Metrics {
   rate: number;
@@ -12,47 +9,23 @@ interface Metrics {
   duration_sum: number;
 }
 
-function ServiceCard({ service }: { service: string }) {
+const ServiceCard = memo(function ServiceCard({ service }: { service: string }) {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-    axios.get(`${API_BASE}/apm/services/${service}/resources`, { headers })
-      .then(res => {
-         const resources: ResourceWithMetrics[] = res.data.resources || [];
-         if (resources.length > 0) {
-           let rate = 0; let error = 0; let duration = 0;
-           resources.forEach(r => {
-             rate += r.requests;
-             error += r.errors;
-             duration += r.avg_duration_ms * r.requests;
-           });
-           setMetrics({ rate, error_count: error, duration_sum: duration });
-         } else {
-           // Fallback to old metrics query
-           axios.get(`${API_BASE}/apm/services/${service}/resources`, { headers })
-             .then(res2 => {
-                const resNames = res2.data.resources?.map((r: any) => r.resource || r) || [];
-                if (resNames.length > 0) {
-                  Promise.all(resNames.map((r: string) => axios.post(`${API_BASE}/metrics/query`, { service, resource: r }, { headers })))
-                    .then(responses => {
-                       let r2 = 0; let e2 = 0; let d2 = 0;
-                       responses.forEach(resp => {
-                         r2 += resp.data.rate;
-                         e2 += resp.data.error_count;
-                         d2 += resp.data.duration_sum;
-                       });
-                       setMetrics({ rate: r2, error_count: e2, duration_sum: d2 });
-                    })
-                    .catch(() => setMetrics({ rate: 0, error_count: 0, duration_sum: 0 }));
-                } else {
-                  setMetrics({ rate: 0, error_count: 0, duration_sum: 0 });
-                }
-             })
-             .catch(() => setMetrics({ rate: 0, error_count: 0, duration_sum: 0 }));
-         }
+    fetchResourcesWithMetrics(service)
+      .then((resources: ResourceWithMetrics[]) => {
+        if (resources.length > 0) {
+          let rate = 0; let error = 0; let duration = 0;
+          resources.forEach(r => {
+            rate += r.requests;
+            error += r.errors;
+            duration += r.avg_duration_ms * r.requests;
+          });
+          setMetrics({ rate, error_count: error, duration_sum: duration });
+        } else {
+          setMetrics({ rate: 0, error_count: 0, duration_sum: 0 });
+        }
       })
       .catch(() => setMetrics({ rate: 0, error_count: 0, duration_sum: 0 }));
   }, [service]);
@@ -109,7 +82,7 @@ function ServiceCard({ service }: { service: string }) {
       </div>
     </Link>
   );
-}
+});
 
 export default function APMCatalog() {
   const [services, setServices] = useState<string[]>([]);

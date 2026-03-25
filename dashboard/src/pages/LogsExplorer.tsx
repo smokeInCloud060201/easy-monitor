@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { Search, Terminal, Filter, RefreshCcw, Loader2 } from 'lucide-react';
-
-const API_BASE = 'http://localhost:3000/api/v1';
+import { fetchServices, fetchLogsEnhanced } from '../lib/api';
 
 interface LogLine {
   trace_id: string;
@@ -19,23 +17,23 @@ export default function LogsExplorer() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    axios.get(`${API_BASE}/apm/services`)
-      .then(res => setServices(res.data.services || []))
+    fetchServices()
+      .then(s => setServices(s))
       .catch(console.error);
     
-    fetchLogs();
+    fetchLogsData();
   }, []);
 
-  const fetchLogs = () => {
+  const fetchLogsData = () => {
     setLoading(true);
-    axios.post(`${API_BASE}/logs/query`, {
-      service: selectedService === 'all' ? null : selectedService,
-      pod_id: podId || null,
-      keyword: keyword || null,
+    fetchLogsEnhanced({
+      service: selectedService === 'all' ? undefined : selectedService,
+      pod_id: podId || undefined,
+      keyword: keyword || undefined,
       limit: 200
     })
     .then(res => {
-      setLogs(res.data.logs || []);
+      setLogs(res.logs || []);
     })
     .catch(console.error)
     .finally(() => setLoading(false));
@@ -68,7 +66,7 @@ export default function LogsExplorer() {
               placeholder="Pod ID..." 
               value={podId}
               onChange={e => setPodId(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && fetchLogs()}
+              onKeyDown={e => e.key === 'Enter' && fetchLogsData()}
               className="glass-panel pl-9 pr-4 py-2 w-full text-sm bg-black/40 border-primary/20 focus:outline-none focus:border-primary placeholder:text-gray-600"
             />
           </div>
@@ -80,13 +78,13 @@ export default function LogsExplorer() {
               placeholder="Search Lucene keywords..." 
               value={keyword}
               onChange={e => setKeyword(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && fetchLogs()}
+              onKeyDown={e => e.key === 'Enter' && fetchLogsData()}
               className="glass-panel pl-9 pr-4 py-2 w-full text-sm bg-black/40 border-primary/20 focus:outline-none focus:border-primary placeholder:text-gray-600"
             />
           </div>
           
           <button 
-            onClick={fetchLogs}
+            onClick={fetchLogsData}
             className="btn btn-primary p-2 h-[38px] w-[38px] flex justify-center items-center"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCcw className="w-4 h-4" />}

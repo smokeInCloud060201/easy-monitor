@@ -281,3 +281,4 @@ export function Logs() {
     </div>
   );
 }
+export default Logs;

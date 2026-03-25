@@ -153,3 +153,4 @@ export function ServiceMap() {
     </div>
   );
 }
+export default ServiceMap;

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { Database, Loader2, Clock, AlertTriangle, Server, ArrowUpDown, ChevronRight, Search, Zap } from 'lucide-react';
 
@@ -85,7 +85,7 @@ function DbLogo({ dbType, size = 28 }: { dbType: string; size?: number }) {
 
 // ─── Database Overview Cards ───
 
-function DatabaseCard({ db, onClick, isSelected }: { db: DatabaseInfo; onClick: () => void; isSelected: boolean }) {
+const DatabaseCard = memo(function DatabaseCard({ db, onClick, isSelected }: { db: DatabaseInfo; onClick: () => void; isSelected: boolean }) {
   const isHealthy = db.error_rate < 5;
 
   return (
@@ -130,11 +130,11 @@ function DatabaseCard({ db, onClick, isSelected }: { db: DatabaseInfo; onClick: 
       </div>
     </div>
   );
-}
+});
 
 // ─── Timeseries Mini Chart (Canvas) ───
 
-function MiniChart({ data, dataKey, color, label }: { data: DbTimePoint[]; dataKey: keyof DbTimePoint; color: string; label: string }) {
+const MiniChart = memo(function MiniChart({ data, dataKey, color, label }: { data: DbTimePoint[]; dataKey: keyof DbTimePoint; color: string; label: string }) {
   const canvasRef = useCallback((canvas: HTMLCanvasElement | null) => {
     if (!canvas || data.length < 2) return;
     const ctx = canvas.getContext('2d');
@@ -189,7 +189,7 @@ function MiniChart({ data, dataKey, color, label }: { data: DbTimePoint[]; dataK
       {data.length < 2 && <div className="h-12 flex items-center justify-center text-gray-600 text-[11px]">No data</div>}
     </div>
   );
-}
+});
 
 // ─── Top Queries Table ───
 

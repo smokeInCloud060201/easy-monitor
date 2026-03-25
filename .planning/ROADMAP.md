@@ -330,3 +330,13 @@ Plans:
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 32 to break down)
+
+### Phase 33: Dashboard performance review
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 32
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 33 to break down)

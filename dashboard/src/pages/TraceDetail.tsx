@@ -174,3 +174,4 @@ function DetailRow({ icon, label, value, color }: { icon?: React.ReactNode; labe
     </div>
   );
 }
+export default TraceDetail;
