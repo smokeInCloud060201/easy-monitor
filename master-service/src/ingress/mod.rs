@@ -1,6 +1,6 @@
 use std::net::SocketAddr;
 use tonic::{transport::Server, Request, Response, Status};
-use tracing::info;
+use tracing::{info, warn};
 
 use shared_proto::metrics::{
     metrics_service_server::{MetricsService, MetricsServiceServer},
@@ -15,17 +15,18 @@ use shared_proto::traces::{
     SyncTracesRequest, SyncTracesResponse,
 };
 
-use crate::bus::{Event, EventBusTx};
+use crate::bus::{Event, EventBusTx, WriteChannels};
 use crate::utils::is_internal_service;
 
 #[derive(Clone)]
 pub struct GrpcIngress {
-    tx: EventBusTx,
+    write: WriteChannels, // mpsc senders for write-path (high-throughput, drop-oldest)
+    tx: EventBusTx,       // broadcast for processors (fan-out)
 }
 
 impl GrpcIngress {
-    pub fn new(tx: EventBusTx) -> Self {
-        Self { tx }
+    pub fn new(write: WriteChannels, tx: EventBusTx) -> Self {
+        Self { write, tx }
     }
 }
 
@@ -39,6 +40,13 @@ impl MetricsService for GrpcIngress {
         let payloads = req.payloads;
         
         info!("Received {} metrics", payloads.len());
+
+        // Write-path: send to mpsc (drop if full)
+        if let Err(_) = self.write.metrics_tx.try_send(payloads.clone()) {
+            warn!("Write-path: metrics channel full, dropping batch");
+        }
+
+        // Processor broadcast (best-effort)
         let _ = self.tx.send(Event::Metrics(payloads));
 
         Ok(Response::new(SyncMetricsResponse {
@@ -61,6 +69,13 @@ impl LogsService for GrpcIngress {
         
         if !entries.is_empty() {
             info!("Received {} logs", entries.len());
+
+            // Write-path: send to mpsc (drop if full)
+            if let Err(_) = self.write.logs_tx.try_send(entries.clone()) {
+                warn!("Write-path: logs channel full, dropping batch");
+            }
+
+            // Processor broadcast (best-effort)
             let _ = self.tx.send(Event::Logs(entries));
         }
 
@@ -84,6 +99,13 @@ impl TracesService for GrpcIngress {
         
         if !spans.is_empty() {
             info!("Received {} spans", spans.len());
+
+            // Write-path: send to mpsc (drop if full)
+            if let Err(_) = self.write.traces_tx.try_send(spans.clone()) {
+                warn!("Write-path: traces channel full, dropping batch");
+            }
+
+            // Processor broadcast (best-effort)
             let _ = self.tx.send(Event::Traces(spans));
         }
 
@@ -96,7 +118,7 @@ impl TracesService for GrpcIngress {
 
 use tonic::transport::{Identity, ServerTlsConfig, Certificate};
 
-pub async fn start_grpc_server(tx: EventBusTx) -> anyhow::Result<()> {
+pub async fn start_grpc_server(write: WriteChannels, tx: EventBusTx) -> anyhow::Result<()> {
     let addr: SocketAddr = "127.0.0.1:50051".parse()?;
     info!("gRPC Ingress listening on {}", addr);
 
@@ -111,7 +133,7 @@ pub async fn start_grpc_server(tx: EventBusTx) -> anyhow::Result<()> {
         .identity(server_identity)
         .client_ca_root(client_ca_cert);
 
-    let ingress = GrpcIngress::new(tx);
+    let ingress = GrpcIngress::new(write, tx);
 
     Server::builder()
         .tls_config(tls)?

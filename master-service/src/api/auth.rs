@@ -50,7 +50,7 @@ pub async fn login(
     Json(body): Json<LoginRequest>,
 ) -> Result<Json<LoginResponse>, StatusCode> {
     // 1. Query ClickHouse for user
-    let user = users::find_user_by_username(&state.ch_client, &body.username)
+    let user = users::find_user_by_username(&state.read_pool.client, &body.username)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .ok_or(StatusCode::UNAUTHORIZED)?;
@@ -142,7 +142,7 @@ pub async fn require_admin(
 pub async fn list_users_handler(
     State(state): State<ApiState>,
 ) -> Result<Json<Vec<UserInfo>>, StatusCode> {
-    let users = users::list_users(&state.ch_client)
+    let users = users::list_users(&state.read_pool.client)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -166,7 +166,7 @@ pub async fn create_user_handler(
     }
 
     // Check if user already exists
-    if users::find_user_by_username(&state.ch_client, &body.username)
+    if users::find_user_by_username(&state.read_pool.client, &body.username)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .is_some()
@@ -174,7 +174,7 @@ pub async fn create_user_handler(
         return Err(StatusCode::CONFLICT);
     }
 
-    let user = users::create_user(&state.ch_client, &body.username, &body.password, &body.role)
+    let user = users::create_user(&state.read_pool.client, &body.username, &body.password, &body.role)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -203,7 +203,7 @@ pub async fn delete_user_handler(
         }
     }
 
-    users::delete_user(&state.ch_client, &username)
+    users::delete_user(&state.read_pool.client, &username)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 

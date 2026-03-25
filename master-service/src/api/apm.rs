@@ -30,7 +30,7 @@ pub async fn get_services(State(state): State<ApiState>) -> Json<ServicesRespons
     // Also query ClickHouse for services in RED metrics
     let red_query = "SELECT DISTINCT service FROM easy_monitor_red_metrics FORMAT JSON";
     let red_url = format!("{}\u{0026}query={}", CH_URL, urlencoding::encode(red_query));
-    if let Ok(res) = state.ch_client.get(&red_url).send().await {
+    if let Ok(res) = state.read_pool.client.get(&red_url).send().await {
         if let Ok(json_res) = res.json::<Value>().await {
             if let Some(data) = json_res.get("data").and_then(|d| d.as_array()) {
                 for row in data {
@@ -45,7 +45,7 @@ pub async fn get_services(State(state): State<ApiState>) -> Json<ServicesRespons
     // Also query ClickHouse for services in traces
     let trace_query = "SELECT DISTINCT service FROM easy_monitor_traces FORMAT JSON";
     let trace_url = format!("{}\u{0026}query={}", CH_URL, urlencoding::encode(trace_query));
-    if let Ok(res) = state.ch_client.get(&trace_url).send().await {
+    if let Ok(res) = state.read_pool.client.get(&trace_url).send().await {
         if let Ok(json_res) = res.json::<Value>().await {
             if let Some(data) = json_res.get("data").and_then(|d| d.as_array()) {
                 for row in data {
@@ -92,7 +92,7 @@ pub async fn get_resources(State(state): State<ApiState>, Path(service_name): Pa
     );
     let ch_url = format!("{}&query={}", CH_URL, urlencoding::encode(&query));
 
-    if let Ok(res) = state.ch_client.get(&ch_url).send().await {
+    if let Ok(res) = state.read_pool.client.get(&ch_url).send().await {
         if let Ok(json_res) = res.json::<Value>().await {
             if let Some(data) = json_res.get("data").and_then(|d| d.as_array()) {
                 if !data.is_empty() {
@@ -209,7 +209,7 @@ pub async fn get_service_summary(
     let mut max_p95 = 0.0f64;
     let mut max_p99 = 0.0f64;
 
-    if let Ok(res) = state.ch_client.get(&ch_url).send().await {
+    if let Ok(res) = state.read_pool.client.get(&ch_url).send().await {
         if let Ok(json_res) = res.json::<Value>().await {
             if let Some(data) = json_res.get("data").and_then(|d| d.as_array()) {
                 for row in data {
@@ -279,7 +279,7 @@ pub async fn get_resource_summary(
     let mut max_p95 = 0.0f64;
     let mut max_p99 = 0.0f64;
 
-    if let Ok(res) = state.ch_client.get(&ch_url).send().await {
+    if let Ok(res) = state.read_pool.client.get(&ch_url).send().await {
         if let Ok(json_res) = res.json::<Value>().await {
             if let Some(data) = json_res.get("data").and_then(|d| d.as_array()) {
                 for row in data {
@@ -403,7 +403,7 @@ pub async fn get_service_map(
     );
     let edge_url = format!("{}&query={}", CH_URL, urlencoding::encode(&edge_query));
 
-    if let Ok(res) = state.ch_client.get(&edge_url).send().await {
+    if let Ok(res) = state.read_pool.client.get(&edge_url).send().await {
         if let Ok(json_res) = res.json::<Value>().await {
             if let Some(data) = json_res.get("data").and_then(|d| d.as_array()) {
                 for row in data {
@@ -444,7 +444,7 @@ pub async fn get_service_map(
         );
         let node_url = format!("{}&query={}", CH_URL, urlencoding::encode(&node_query));
 
-        if let Ok(res) = state.ch_client.get(&node_url).send().await {
+        if let Ok(res) = state.read_pool.client.get(&node_url).send().await {
             if let Ok(json_res) = res.json::<Value>().await {
                 if let Some(data) = json_res.get("data").and_then(|d| d.as_array()) {
                     for row in data {
@@ -489,7 +489,7 @@ pub async fn get_service_map(
         from_ms
     );
     let standalone_url = format!("{}\u{0026}query={}", CH_URL, urlencoding::encode(&standalone_query));
-    if let Ok(res) = state.ch_client.get(&standalone_url).send().await {
+    if let Ok(res) = state.read_pool.client.get(&standalone_url).send().await {
         if let Ok(json_res) = res.json::<Value>().await {
             if let Some(data) = json_res.get("data").and_then(|d| d.as_array()) {
                 let existing: HashSet<String> = nodes.iter().map(|n| n.service.clone()).collect();
@@ -545,7 +545,7 @@ pub async fn get_service_errors(
     let ch_url = format!("{}&query={}", CH_URL, urlencoding::encode(&query));
 
     let mut errors = Vec::new();
-    if let Ok(res) = state.ch_client.get(&ch_url).send().await {
+    if let Ok(res) = state.read_pool.client.get(&ch_url).send().await {
         if let Ok(json_res) = res.json::<Value>().await {
             if let Some(data) = json_res.get("data").and_then(|d| d.as_array()) {
                 for row in data {
@@ -622,7 +622,7 @@ pub async fn get_latency_distribution(
     );
     let ch_url = format!("{}&query={}", CH_URL, urlencoding::encode(&query));
 
-    if let Ok(res) = state.ch_client.get(&ch_url).send().await {
+    if let Ok(res) = state.read_pool.client.get(&ch_url).send().await {
         if let Ok(json_res) = res.json::<Value>().await {
             if let Some(data) = json_res.get("data").and_then(|d| d.as_array()).and_then(|a| a.first()) {
                 let total = data.get("total").and_then(|v| v.as_str()).and_then(|s| s.parse::<u64>().ok())
@@ -710,7 +710,7 @@ pub async fn get_service_dependencies(
         svc, svc, from_ms
     );
     let up_url = format!("{}&query={}", CH_URL, urlencoding::encode(&up_query));
-    if let Ok(res) = state.ch_client.get(&up_url).send().await {
+    if let Ok(res) = state.read_pool.client.get(&up_url).send().await {
         if let Ok(json_res) = res.json::<Value>().await {
             if let Some(data) = json_res.get("data").and_then(|d| d.as_array()) {
                 for row in data {
@@ -741,7 +741,7 @@ pub async fn get_service_dependencies(
         svc, svc, from_ms
     );
     let down_url = format!("{}&query={}", CH_URL, urlencoding::encode(&down_query));
-    if let Ok(res) = state.ch_client.get(&down_url).send().await {
+    if let Ok(res) = state.read_pool.client.get(&down_url).send().await {
         if let Ok(json_res) = res.json::<Value>().await {
             if let Some(data) = json_res.get("data").and_then(|d| d.as_array()) {
                 for row in data {

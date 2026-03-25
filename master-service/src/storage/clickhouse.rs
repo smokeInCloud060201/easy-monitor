@@ -1,11 +1,7 @@
 use reqwest::Client;
-use serde_json::json;
 use tracing::{info, error};
-use tokio::time::{self, Duration};
-use crate::bus::{EventBusRx, Event};
 
 use super::CH_URL;
-use crate::utils::sanitize_resource;
 
 pub async fn initialize_clickhouse(client: &Client) -> anyhow::Result<()> {
     info!("Initializing ClickHouse schema definitions...");
@@ -87,113 +83,80 @@ pub async fn initialize_clickhouse(client: &Client) -> anyhow::Result<()> {
     }
     
     info!("ClickHouse OLAP tables initialized (logs, traces, red_metrics).");
+
+    // ─── Materialized Views for Read-Path (CQRS) ───
+    initialize_materialized_views(client).await;
+
     Ok(())
 }
 
-pub async fn start_clickhouse_writer(mut rx: EventBusRx) -> anyhow::Result<()> {
-    let client = Client::new();
-    
-    // Attempt initialization but don't crash hard if DB isn't running yet, we can retry.
-    let _ = initialize_clickhouse(&client).await.map_err(|e| error!("Failed initializing OLAP schema: {}", e));
+/// Create ClickHouse materialized views for per-minute rollups.
+/// These auto-aggregate raw tables into read-optimized summary tables.
+/// MVs only process NEW inserts after creation.
+async fn initialize_materialized_views(client: &Client) {
+    info!("Initializing ClickHouse materialized views for CQRS read-path...");
 
-    info!("Starting ClickHouse Asynchronous Storage Writer...");
-    let mut logs_batch = Vec::new();
-    let mut traces_batch = Vec::new();
-    
-    let mut interval = time::interval(Duration::from_secs(3));
+    let mv_definitions = vec![
+        // Per-minute log rollup by service and level
+        "CREATE TABLE IF NOT EXISTS mv_logs_per_minute_tbl (
+            service String,
+            level String,
+            minute DateTime,
+            log_count UInt64
+        ) ENGINE = SummingMergeTree()
+        ORDER BY (service, level, minute)",
 
-    loop {
-        tokio::select! {
-            result = rx.recv() => {
-                match result {
-                    Ok(Event::Logs(logs)) => {
-                        logs_batch.extend(logs);
-                    }
-                    Ok(Event::Traces(spans)) => {
-                        traces_batch.extend(spans);
-                    }
-                    Ok(_) => {}
-                    Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
-                    Err(_) => {}
+        "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_logs_per_minute
+        TO mv_logs_per_minute_tbl
+        AS SELECT
+            service,
+            level,
+            toStartOfMinute(toDateTime(intDiv(timestamp, 1000))) AS minute,
+            count() AS log_count
+        FROM easy_monitor_logs
+        GROUP BY service, level, minute",
+
+        // Per-minute trace rollup (request counts, error counts, latency stats)
+        "CREATE TABLE IF NOT EXISTS mv_traces_per_minute_tbl (
+            service String,
+            resource String,
+            minute DateTime,
+            request_count UInt64,
+            error_count UInt64,
+            duration_sum Float64,
+            duration_avg Float64,
+            duration_min Float64,
+            duration_max Float64
+        ) ENGINE = SummingMergeTree()
+        ORDER BY (service, resource, minute)",
+
+        "CREATE MATERIALIZED VIEW IF NOT EXISTS mv_traces_per_minute
+        TO mv_traces_per_minute_tbl
+        AS SELECT
+            service,
+            resource,
+            toStartOfMinute(toDateTime(intDiv(timestamp, 1000))) AS minute,
+            count() AS request_count,
+            countIf(error > 0) AS error_count,
+            sum(duration) AS duration_sum,
+            avg(duration) AS duration_avg,
+            min(duration) AS duration_min,
+            max(duration) AS duration_max
+        FROM easy_monitor_traces
+        GROUP BY service, resource, minute",
+    ];
+
+    for ddl in mv_definitions {
+        match client.post(CH_URL).body(ddl.to_string()).send().await {
+            Ok(resp) => {
+                if !resp.status().is_success() {
+                    let body = resp.text().await.unwrap_or_default();
+                    error!("MV creation failed: {}", body);
                 }
             }
-            _ = interval.tick() => {
-                if !logs_batch.is_empty() {
-                    let mut payload = String::new();
-                    for log in logs_batch.drain(..) {
-                        let pod_id = log.tags.get("pod_id").cloned().unwrap_or_default();
-                        let namespace = log.tags.get("namespace").cloned().unwrap_or_default();
-                        let node_name = log.tags.get("node_name").cloned().unwrap_or_default();
-                        let host = log.tags.get("host").cloned().unwrap_or_default();
-                        let source = log.tags.get("source").cloned().unwrap_or_default();
-                        let span_id = log.tags.get("span_id").cloned().unwrap_or_default();
-
-                        // Build attributes JSON from remaining tags
-                        let known_keys = ["pod_id", "namespace", "node_name", "host", "source", "span_id"];
-                        let extra_attrs: serde_json::Map<String, serde_json::Value> = log.tags.iter()
-                            .filter(|(k, _)| !known_keys.contains(&k.as_str()))
-                            .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
-                            .collect();
-                        let attributes_json = serde_json::to_string(&extra_attrs).unwrap_or_else(|_| "{}".to_string());
-
-                        let row = json!({
-                            "trace_id": log.trace_id,
-                            "span_id": span_id,
-                            "service": log.service,
-                            "level": log.level.to_uppercase(),
-                            "message": log.message,
-                            "pod_id": pod_id,
-                            "namespace": namespace,
-                            "node_name": node_name,
-                            "host": host,
-                            "source": source,
-                            "attributes": attributes_json,
-                            "timestamp": log.timestamp,
-                        });
-                        payload.push_str(&row.to_string());
-                        payload.push('\n');
-                    }
-                    
-                    let req = client.post(&format!("{}&query=INSERT INTO easy_monitor_logs FORMAT JSONEachRow", CH_URL))
-                        .body(payload);
-                    
-                    if let Err(e) = req.send().await {
-                        error!("ClickHouse logs flush explicitly failed: {}", e);
-                    }
-                }
-
-                if !traces_batch.is_empty() {
-                    let mut payload = String::new();
-                    for span in traces_batch.drain(..) {
-                        let sanitized_resource = sanitize_resource(&span.resource);
-                        let sanitized_name = sanitize_resource(&span.name);
-                        let attributes_json = serde_json::to_string(&span.meta).unwrap_or_else(|_| "{}".to_string());
-                        let row = json!({
-                            "trace_id": span.trace_id,
-                            "span_id": span.span_id,
-                            "parent_id": span.parent_id,
-                            "service": span.service,
-                            "name": sanitized_name,
-                            "resource": sanitized_resource,
-                            "error": span.error,
-                            "duration": span.duration,
-                            "timestamp": span.start_time,
-                            "attributes": attributes_json,
-                        });
-                        payload.push_str(&row.to_string());
-                        payload.push('\n');
-                    }
-                    
-                    let req = client.post(&format!("{}&query=INSERT INTO easy_monitor_traces FORMAT JSONEachRow", CH_URL))
-                        .body(payload);
-                    
-                    if let Err(e) = req.send().await {
-                        error!("ClickHouse traces flush explicitly failed: {}", e);
-                    }
-                }
-            }
+            Err(e) => error!("MV creation request failed: {}", e),
         }
     }
 
-    Ok(())
+    info!("ClickHouse materialized views initialized (mv_logs_per_minute, mv_traces_per_minute).");
 }

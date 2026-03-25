@@ -40,7 +40,7 @@ pub async fn query_traces(State(state): State<ApiState>, Json(payload): Json<Tra
     );
     let ch_url = format!("{}&query={}", CH_URL, urlencoding::encode(&query));
 
-    if let Ok(res) = state.ch_client.get(&ch_url).send().await {
+    if let Ok(res) = state.read_pool.client.get(&ch_url).send().await {
         if let Ok(json_res) = res.json::<Value>().await {
             if let Some(data) = json_res.get("data").and_then(|d| d.as_array()) {
                 if !data.is_empty() {
@@ -182,7 +182,7 @@ pub async fn search_traces(State(state): State<ApiState>, Json(payload): Json<Tr
     let mut traces = Vec::new();
     let mut total = 0u64;
 
-    if let Ok(res) = state.ch_client.get(&ch_url).send().await {
+    if let Ok(res) = state.read_pool.client.get(&ch_url).send().await {
         if let Ok(json_res) = res.json::<Value>().await {
             if let Some(rows_val) = json_res.get("rows").and_then(|v| v.as_str()).and_then(|s| s.parse::<u64>().ok())
                 .or_else(|| json_res.get("rows").and_then(|v| v.as_u64())) {
@@ -346,7 +346,7 @@ pub async fn query_logs(State(state): State<ApiState>, Json(payload): Json<LogsQ
     );
     let ch_url = format!("{}&query={}", CH_URL, urlencoding::encode(&query));
 
-    if let Ok(res) = state.ch_client.get(&ch_url).send().await {
+    if let Ok(res) = state.read_pool.client.get(&ch_url).send().await {
         if let Ok(json_res) = res.json::<Value>().await {
             if let Some(data) = json_res.get("data").and_then(|d| d.as_array()) {
                 for row in data {
@@ -383,7 +383,7 @@ pub async fn query_logs(State(state): State<ApiState>, Json(payload): Json<LogsQ
         "SELECT count() as cnt FROM easy_monitor_logs WHERE {} FORMAT JSON", where_str
     );
     let count_url = format!("{}&query={}", CH_URL, urlencoding::encode(&count_query));
-    if let Ok(res) = state.ch_client.get(&count_url).send().await {
+    if let Ok(res) = state.read_pool.client.get(&count_url).send().await {
         if let Ok(json_res) = res.json::<Value>().await {
             if let Some(data) = json_res.get("data").and_then(|d| d.as_array()).and_then(|a| a.first()) {
                 total = data.get("cnt")
@@ -485,7 +485,7 @@ pub async fn log_histogram(State(state): State<ApiState>, Json(payload): Json<Lo
     );
     let ch_url = format!("{}&query={}", CH_URL, urlencoding::encode(&query));
 
-    if let Ok(res) = state.ch_client.get(&ch_url).send().await {
+    if let Ok(res) = state.read_pool.client.get(&ch_url).send().await {
         if let Ok(json_res) = res.json::<Value>().await {
             if let Some(data) = json_res.get("data").and_then(|d| d.as_array()) {
                 for row in data {
@@ -564,7 +564,7 @@ pub async fn log_fields(State(state): State<ApiState>, Json(payload): Json<LogFi
     // Get total count
     let count_q = format!("SELECT count() as cnt FROM easy_monitor_logs WHERE {} FORMAT JSON", where_str);
     let count_url = format!("{}&query={}", CH_URL, urlencoding::encode(&count_q));
-    if let Ok(res) = state.ch_client.get(&count_url).send().await {
+    if let Ok(res) = state.read_pool.client.get(&count_url).send().await {
         if let Ok(json_res) = res.json::<Value>().await {
             if let Some(data) = json_res.get("data").and_then(|d| d.as_array()).and_then(|a| a.first()) {
                 total_logs = data.get("cnt")
@@ -585,7 +585,7 @@ pub async fn log_fields(State(state): State<ApiState>, Json(payload): Json<LogFi
         let url = format!("{}&query={}", CH_URL, urlencoding::encode(&q));
 
         let mut top_values = Vec::new();
-        if let Ok(res) = state.ch_client.get(&url).send().await {
+        if let Ok(res) = state.read_pool.client.get(&url).send().await {
             if let Ok(json_res) = res.json::<Value>().await {
                 if let Some(data) = json_res.get("data").and_then(|d| d.as_array()) {
                     for row in data {

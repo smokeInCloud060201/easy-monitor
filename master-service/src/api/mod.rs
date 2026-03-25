@@ -6,6 +6,7 @@ use tower_http::services::{ServeDir, ServeFile};
 use tracing::{info, error};
 
 use crate::bus::{EventBusRx, Event};
+use crate::read_path::ReadPool;
 
 pub mod apm;
 pub mod queries;
@@ -15,7 +16,7 @@ pub mod auth;
 pub struct ApiState {
     pub latest_metrics: Arc<DashMap<String, f64>>,
     pub jwt_secret: String,
-    pub ch_client: reqwest::Client,
+    pub read_pool: ReadPool, // CQRS read-path: dedicated connection pool for queries
 }
 
 pub async fn start_api_gateway(mut rx: EventBusRx, jwt_secret: String) -> anyhow::Result<()> {
@@ -42,7 +43,7 @@ pub async fn start_api_gateway(mut rx: EventBusRx, jwt_secret: String) -> anyhow
     let state = ApiState {
         latest_metrics,
         jwt_secret,
-        ch_client: reqwest::Client::new(),
+        read_pool: ReadPool::new(), // CQRS: dedicated read connection pool
     };
 
     // Admin-only routes (behind both JWT + admin middleware)

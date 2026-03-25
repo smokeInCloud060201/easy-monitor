@@ -74,6 +74,7 @@ progress:
 - Phase 28 added: APM endpoint detail drawer with dependencies, span summary, and traces sections
 - Phase 29 added: Add pagination to logs page with 100 records per page
 - Phase 30 added: Node agent Kafka-style batch sending — flush after 5s or 100 records to reduce IO overhead
+- Phase 31 added: CQRS pattern for master service with high-write DB
 
 ## Session Info
 

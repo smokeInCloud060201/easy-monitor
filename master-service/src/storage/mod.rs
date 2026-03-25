@@ -2,24 +2,26 @@ pub mod clickhouse;
 pub mod users;
 
 use tracing::info;
-use crate::bus::EventBusRx;
 use reqwest::Client;
 
 pub const CH_URL: &str = "http://localhost:8123/?user=default&password=password";
 
-pub async fn start_storage_writer(rx: EventBusRx) -> anyhow::Result<()> {
-    info!("Bootstrapping delegated Storage Engine dependencies natively...");
+/// Initialize storage dependencies (schema, users table).
+/// Note: The batch writer loop is now in write_path/ module (CQRS separation).
+pub async fn initialize_storage() -> anyhow::Result<()> {
+    info!("Bootstrapping Storage Engine dependencies...");
     
-    // Initialize users table
     let client = Client::new();
+
+    // Initialize ClickHouse schema + materialized views
+    if let Err(e) = clickhouse::initialize_clickhouse(&client).await {
+        tracing::error!("Failed initializing OLAP schema: {}", e);
+    }
+
+    // Initialize users table
     if let Err(e) = users::initialize_users_table(&client).await {
         tracing::error!("Failed to initialize users table: {}", e);
     }
     
-    tokio::spawn(async move {
-        if let Err(e) = clickhouse::start_clickhouse_writer(rx).await {
-            tracing::error!("ClickHouse storage loop crashed: {}", e);
-        }
-    });
     Ok(())
 }

@@ -48,3 +48,6 @@ mock-app/category-service/category-service
 # Mock service logs
 mock-app/.logs/
 *.log
+
+
+.idea/
