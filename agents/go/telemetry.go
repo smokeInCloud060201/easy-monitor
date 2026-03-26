@@ -5,11 +5,9 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/binary"
-	"encoding/hex"
 	"log"
 	"net/http"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/vmihailenco/msgpack/v5"
@@ -140,7 +138,20 @@ func SendSpan(s *Span) {
 
 func WrapHTTPHandler(next http.Handler, serviceName string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		span, ctx := StartSpanFromContext(r.Context(), "http.server.request")
+		ctx := r.Context()
+		traceIDStr := r.Header.Get("x-easymonitor-trace-id")
+		parentIDStr := r.Header.Get("x-easymonitor-parent-id")
+		
+		if traceIDStr != "" && parentIDStr != "" {
+			traceID, _ := strconv.ParseUint(traceIDStr, 10, 64)
+			parentID, _ := strconv.ParseUint(parentIDStr, 10, 64)
+			if traceID != 0 {
+				parentSpan := &Span{TraceID: traceID, SpanID: parentID}
+				ctx = context.WithValue(ctx, traceContextKey{}, parentSpan)
+			}
+		}
+
+		span, ctx := StartSpanFromContext(ctx, "http.server.request")
 		span.Resource = r.Method + " " + r.URL.Path
 		span.SetTag("http.method", r.Method)
 		span.SetTag("http.url", r.URL.String())

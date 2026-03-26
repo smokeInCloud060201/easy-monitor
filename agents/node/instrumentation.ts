@@ -1,13 +1,14 @@
 import { AsyncLocalStorage } from 'async_hooks';
 import * as http from 'http';
 import * as os from 'os';
+import * as crypto from 'crypto';
 import { Hook } from 'require-in-the-middle';
 import { encode } from '@msgpack/msgpack';
 
 const SERVICE_NAME = process.env.OTEL_SERVICE_NAME || 'node-agent';
 
 function generateId(): bigint {
-    return BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER));
+    return crypto.randomBytes(8).readBigUInt64BE(0);
 }
 
 export class Span {

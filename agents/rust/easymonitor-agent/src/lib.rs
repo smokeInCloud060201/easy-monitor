@@ -65,9 +65,14 @@ where
         let mut visitor = TagVisitor(&mut meta);
         attrs.record(&mut visitor);
 
-        let mut trace_id = rand::thread_rng().gen::<u64>();
-        let mut parent_id = 0;
+        let ext_trace_id = meta.get("trace_id").and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+        let mut trace_id = if ext_trace_id != 0 { ext_trace_id } else { rand::thread_rng().gen::<u64>() };
+        
+        let mut parent_id = meta.get("parent_id").and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
         let span_id = rand::thread_rng().gen::<u64>();
+
+        meta.remove("trace_id");
+        meta.remove("parent_id");
 
         if let Some(parent) = span.parent() {
             if let Some(ext) = parent.extensions().get::<SpanData>() {
@@ -174,6 +179,12 @@ impl<'a> tracing::field::Visit for TagVisitor<'a> {
         self.0.insert(field.name().to_string(), format!("{:?}", value));
     }
     fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
+        self.0.insert(field.name().to_string(), value.to_string());
+    }
+    fn record_u64(&mut self, field: &tracing::field::Field, value: u64) {
+        self.0.insert(field.name().to_string(), value.to_string());
+    }
+    fn record_i64(&mut self, field: &tracing::field::Field, value: i64) {
         self.0.insert(field.name().to_string(), value.to_string());
     }
 }

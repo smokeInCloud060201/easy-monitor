@@ -43,11 +43,23 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
+        let trace_id = req.headers().get("x-easymonitor-trace-id")
+            .and_then(|h| h.to_str().ok())
+            .and_then(|s| s.parse::<u64>().ok())
+            .unwrap_or(0);
+        
+        let parent_id = req.headers().get("x-easymonitor-parent-id")
+            .and_then(|h| h.to_str().ok())
+            .and_then(|s| s.parse::<u64>().ok())
+            .unwrap_or(0);
+
         // Automatically inject trace span
         let span = tracing::info_span!(
             "http.request",
             http.method = %req.method(),
-            http.url = %req.uri()
+            http.url = %req.uri(),
+            trace_id = trace_id,
+            parent_id = parent_id
         );
 
         let srv = self.service.clone();

@@ -28,17 +28,17 @@ public class ServletAdvice {
         
         try {
             if (traceIdStr != null && !traceIdStr.isEmpty()) {
-                span.traceId = Long.parseLong(traceIdStr);
+                span.traceId = Long.parseUnsignedLong(traceIdStr);
             } else {
-                span.traceId = Math.abs(java.util.concurrent.ThreadLocalRandom.current().nextLong());
+                span.traceId = java.util.concurrent.ThreadLocalRandom.current().nextLong();
             }
             if (parentIdStr != null && !parentIdStr.isEmpty()) {
-                span.parentId = Long.parseLong(parentIdStr);
+                span.parentId = Long.parseUnsignedLong(parentIdStr);
             }
-            span.spanId = Math.abs(java.util.concurrent.ThreadLocalRandom.current().nextLong());
+            span.spanId = java.util.concurrent.ThreadLocalRandom.current().nextLong();
         } catch (Exception e) {
-            span.traceId = Math.abs(java.util.concurrent.ThreadLocalRandom.current().nextLong());
-            span.spanId = Math.abs(java.util.concurrent.ThreadLocalRandom.current().nextLong());
+            span.traceId = java.util.concurrent.ThreadLocalRandom.current().nextLong();
+            span.spanId = java.util.concurrent.ThreadLocalRandom.current().nextLong();
         }
         
         span.start = System.currentTimeMillis() * 1000000L; // ns
