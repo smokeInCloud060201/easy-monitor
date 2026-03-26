@@ -1,78 +1,127 @@
-use opentelemetry::KeyValue;
-use opentelemetry_otlp::WithExportConfig;
-use opentelemetry_sdk::propagation::TraceContextPropagator;
-use opentelemetry_sdk::trace as sdktrace;
-use opentelemetry_sdk::Resource;
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::Registry;
-use tracing_subscriber::Layer;
-use tracing_subscriber::EnvFilter;
+use std::collections::{BTreeMap, HashMap};
 use std::net::UdpSocket;
-use std::collections::BTreeMap;
-use serde_json::Value;
+use std::sync::{Arc, Mutex};
+use std::time::SystemTime;
 use tracing::{Event, Subscriber};
 use tracing_subscriber::layer::Context;
-use tracing_opentelemetry::OpenTelemetrySpanExt;
+use tracing_subscriber::{EnvFilter, Layer, Registry};
+use tracing_subscriber::layer::SubscriberExt;
+use serde::Serialize;
+use rand::Rng;
 
 pub mod actix_middleware;
 
-/// Initializes the EasyMonitor unified OpenTelemetry tracer and logger pipelines
-pub fn init_telemetry(service_name: &str) {
-    // Trace exporter
-    let trace_exporter = opentelemetry_otlp::new_exporter()
-        .tonic()
-        .with_endpoint("http://localhost:4317");
-
-    let _tracer = opentelemetry_otlp::new_pipeline()
-        .tracing()
-        .with_exporter(trace_exporter)
-        .with_trace_config(
-            sdktrace::config().with_resource(Resource::new(vec![
-                KeyValue::new("service.name", service_name.to_string()),
-            ])),
-        )
-        .install_batch(opentelemetry_sdk::runtime::Tokio)
-        .expect("Failed to init tracer");
-
-
-
-    // Set global propagator for W3C TraceContext
-    opentelemetry::global::set_text_map_propagator(TraceContextPropagator::new());
-
-    // Bind tracer and logger tightly, scoping filters locally to prevent global overrides!
-    let trace_filter = EnvFilter::new("trace")
-        .add_directive("h2=off".parse().unwrap())
-        .add_directive("hyper=off".parse().unwrap())
-        .add_directive("tonic=off".parse().unwrap())
-        .add_directive("reqwest=off".parse().unwrap())
-        .add_directive("mio=off".parse().unwrap());
-        
-    let log_filter = EnvFilter::new("info")
-        .add_directive("h2=off".parse().unwrap())
-        .add_directive("hyper=off".parse().unwrap())
-        .add_directive("tonic=off".parse().unwrap())
-        .add_directive("reqwest=off".parse().unwrap())
-        .add_directive("mio=off".parse().unwrap());
-
-    let telemetry = tracing_opentelemetry::layer().with_tracer(_tracer).with_filter(trace_filter);
-    let log_layer = GelfLayer::new(service_name.to_string()).with_filter(log_filter);
-
-    let subscriber = Registry::default()
-        .with(telemetry)
-        .with(log_layer);
-        
-    tracing::subscriber::set_global_default(subscriber).expect("Failed to install tracing subscriber");
-
-    tracing::info!("  [EasyMonitor] Rust Agent attached to {}!", service_name);
+#[derive(Debug, Serialize, Clone)]
+pub struct DatadogSpan {
+    pub trace_id: u64,
+    pub span_id: u64,
+    pub parent_id: u64,
+    pub name: String,
+    pub resource: String,
+    pub service: String,
+    pub r#type: String,
+    pub start: i64,
+    pub duration: i64,
+    pub error: i32,
+    pub meta: HashMap<String, String>,
+    pub metrics: HashMap<String, f64>,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+struct SpanData {
+    trace_id: u64,
+    span_id: u64,
+    parent_id: u64,
+    start_time: SystemTime,
+    error: i32,
+    meta: HashMap<String, String>,
+}
 
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
+pub struct DatadogTracingLayer {
+    service_name: String,
+    client: reqwest::Client,
+    endpoint: String,
+}
+
+impl DatadogTracingLayer {
+    pub fn new(service_name: String) -> Self {
+        Self {
+            service_name,
+            client: reqwest::Client::new(),
+            endpoint: "http://127.0.0.1:8126/v0.4/traces".to_string(),
+        }
+    }
+}
+
+impl<S> Layer<S> for DatadogTracingLayer
+where
+    S: Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>,
+{
+    fn on_new_span(&self, attrs: &tracing::span::Attributes<'_>, id: &tracing::Id, ctx: Context<'_, S>) {
+        let span = ctx.span(id).expect("Span not found");
+        let mut meta = HashMap::new();
+        
+        let mut visitor = TagVisitor(&mut meta);
+        attrs.record(&mut visitor);
+
+        let mut trace_id = rand::thread_rng().gen::<u64>();
+        let mut parent_id = 0;
+        let span_id = rand::thread_rng().gen::<u64>();
+
+        if let Some(parent) = span.parent() {
+            if let Some(ext) = parent.extensions().get::<SpanData>() {
+                trace_id = ext.trace_id;
+                parent_id = ext.span_id;
+            }
+        }
+
+        let data = SpanData {
+            trace_id,
+            span_id,
+            parent_id,
+            start_time: SystemTime::now(),
+            error: 0,
+            meta,
+        };
+
+        span.extensions_mut().insert(data);
+    }
+
+    fn on_close(&self, id: tracing::Id, ctx: Context<'_, S>) {
+        let span = ctx.span(&id).expect("Span not found");
+        let data_opt = span.extensions_mut().remove::<SpanData>();
+        if let Some(data) = data_opt {
+            let duration = SystemTime::now().duration_since(data.start_time).unwrap_or_default().as_nanos() as i64;
+            let start = data.start_time.duration_since(SystemTime::UNIX_EPOCH).unwrap_or_default().as_nanos() as i64;
+
+            let dd_span = DatadogSpan {
+                trace_id: data.trace_id,
+                span_id: data.span_id,
+                parent_id: data.parent_id,
+                name: span.name().to_string(),
+                resource: span.name().to_string(),
+                service: self.service_name.clone(),
+                r#type: "web".to_string(),
+                start,
+                duration,
+                error: data.error,
+                meta: data.meta,
+                metrics: HashMap::new(),
+            };
+
+            let payload = vec![vec![dd_span]];
+            let client = self.client.clone();
+            let endpoint = self.endpoint.clone();
+
+            tokio::spawn(async move {
+                if let Ok(body) = rmp_serde::to_vec_named(&payload) {
+                    let _ = client.post(&endpoint)
+                        .header("Content-Type", "application/msgpack")
+                        .body(body)
+                        .send()
+                        .await;
+                }
+            });
+        }
     }
 }
 
@@ -92,28 +141,38 @@ impl GelfLayer {
     }
 }
 
-struct JsonVisitor<'a>(&'a mut BTreeMap<String, Value>);
+struct JsonVisitor<'a>(&'a mut BTreeMap<String, serde_json::Value>);
 impl<'a> tracing::field::Visit for JsonVisitor<'a> {
     fn record_f64(&mut self, field: &tracing::field::Field, value: f64) {
-        self.0.insert(field.name().to_string(), Value::from(value));
+        self.0.insert(field.name().to_string(), serde_json::Value::from(value));
     }
     fn record_i64(&mut self, field: &tracing::field::Field, value: i64) {
-        self.0.insert(field.name().to_string(), Value::from(value));
+        self.0.insert(field.name().to_string(), serde_json::Value::from(value));
     }
     fn record_u64(&mut self, field: &tracing::field::Field, value: u64) {
-        self.0.insert(field.name().to_string(), Value::from(value));
+        self.0.insert(field.name().to_string(), serde_json::Value::from(value));
     }
     fn record_bool(&mut self, field: &tracing::field::Field, value: bool) {
-        self.0.insert(field.name().to_string(), Value::from(value));
+        self.0.insert(field.name().to_string(), serde_json::Value::from(value));
     }
     fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
-        self.0.insert(field.name().to_string(), Value::from(value));
+        self.0.insert(field.name().to_string(), serde_json::Value::from(value));
     }
     fn record_error(&mut self, field: &tracing::field::Field, value: &(dyn std::error::Error + 'static)) {
-        self.0.insert(field.name().to_string(), Value::from(value.to_string()));
+        self.0.insert(field.name().to_string(), serde_json::Value::from(value.to_string()));
     }
     fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
-        self.0.insert(field.name().to_string(), Value::from(format!("{:?}", value)));
+        self.0.insert(field.name().to_string(), serde_json::Value::from(format!("{:?}", value)));
+    }
+}
+
+struct TagVisitor<'a>(&'a mut HashMap<String, String>);
+impl<'a> tracing::field::Visit for TagVisitor<'a> {
+    fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
+        self.0.insert(field.name().to_string(), format!("{:?}", value));
+    }
+    fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
+        self.0.insert(field.name().to_string(), value.to_string());
     }
 }
 
@@ -129,13 +188,9 @@ impl<S: Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>> Layer
         let mut span_id = String::new();
 
         if let Some(span) = ctx.lookup_current() {
-            if let Some(ext) = span.extensions().get::<tracing_opentelemetry::OtelData>() {
-                if let Some(tid) = ext.builder.trace_id {
-                    trace_id = tid.to_string();
-                }
-                if let Some(sid) = ext.builder.span_id {
-                    span_id = sid.to_string();
-                }
+            if let Some(ext) = span.extensions().get::<SpanData>() {
+                trace_id = format!("{:16x}", ext.trace_id);
+                span_id = format!("{:16x}", ext.span_id);
             }
         }
 
@@ -165,4 +220,31 @@ impl<S: Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>> Layer
             }
         }
     }
+}
+
+pub fn init_telemetry(service_name: &str) {
+    let trace_filter = EnvFilter::new("trace")
+        .add_directive("h2=off".parse().unwrap())
+        .add_directive("hyper=off".parse().unwrap())
+        .add_directive("tonic=off".parse().unwrap())
+        .add_directive("reqwest=off".parse().unwrap())
+        .add_directive("mio=off".parse().unwrap());
+        
+    let log_filter = EnvFilter::new("info")
+        .add_directive("h2=off".parse().unwrap())
+        .add_directive("hyper=off".parse().unwrap())
+        .add_directive("tonic=off".parse().unwrap())
+        .add_directive("reqwest=off".parse().unwrap())
+        .add_directive("mio=off".parse().unwrap());
+
+    let telemetry = DatadogTracingLayer::new(service_name.to_string()).with_filter(trace_filter);
+    let log_layer = GelfLayer::new(service_name.to_string()).with_filter(log_filter);
+
+    let subscriber = Registry::default()
+        .with(telemetry)
+        .with(log_layer);
+        
+    tracing::subscriber::set_global_default(subscriber).expect("Failed to install tracing subscriber");
+
+    tracing::info!("  [EasyMonitor] Native Rust Agent attached to {}!", service_name);
 }

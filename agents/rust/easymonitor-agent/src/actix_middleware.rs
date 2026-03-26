@@ -3,9 +3,6 @@ use actix_web::{
     Error,
 };
 use futures_util::future::{ok, LocalBoxFuture, Ready};
-use opentelemetry::global;
-use opentelemetry::propagation::Extractor;
-use tracing_opentelemetry::OpenTelemetrySpanExt;
 use std::rc::Rc;
 
 pub struct EasyMonitorActix;
@@ -33,18 +30,6 @@ pub struct EasyMonitorMiddleware<S> {
     service: Rc<S>,
 }
 
-struct HeaderExtractor<'a>(&'a actix_web::http::header::HeaderMap);
-
-impl<'a> Extractor for HeaderExtractor<'a> {
-    fn get(&self, key: &str) -> Option<&str> {
-        self.0.get(key).and_then(|v| v.to_str().ok())
-    }
-
-    fn keys(&self) -> Vec<&str> {
-        self.0.keys().map(|k| k.as_str()).collect()
-    }
-}
-
 impl<S, B> Service<ServiceRequest> for EasyMonitorMiddleware<S>
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
@@ -58,13 +43,16 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        let parent_cx = global::get_text_map_propagator(|prop| {
-            prop.extract(&HeaderExtractor(req.headers()))
-        });
-        tracing::Span::current().set_parent(parent_cx);
+        // Automatically inject trace span
+        let span = tracing::info_span!(
+            "http.request",
+            http.method = %req.method(),
+            http.url = %req.uri()
+        );
 
         let srv = self.service.clone();
         Box::pin(async move {
+            let _enter = span.enter();
             srv.call(req).await
         })
     }

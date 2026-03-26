@@ -25,11 +25,13 @@ async fn main() -> Result<()> {
     std::fs::create_dir_all("/tmp/easy-monitor")?;
     let wal = Arc::new(WalBuffer::new("/tmp/easy-monitor/wal").expect("Failed to initialize WAL"));
 
-    // Spawn APM Tracing Receiver
-    let wal_apm = wal.clone();
+
+
+    // Spawn APM Datadog HTTP Receiver
+    let wal_apm_http = wal.clone();
     tokio::spawn(async move {
-        if let Err(e) = apm::start_apm_receiver(wal_apm).await {
-            tracing::error!("APM Receiver failed: {}", e);
+        if let Err(e) = apm::http_receiver::start_http_receiver(wal_apm_http).await {
+            tracing::error!("APM HTTP Receiver failed: {}", e);
         }
     });
 

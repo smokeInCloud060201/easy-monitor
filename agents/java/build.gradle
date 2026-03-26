@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'com.gradleup.shadow' version '8.3.0'
 }
 
 group = 'com.easymonitor.agent'
@@ -15,13 +16,24 @@ repositories {
 }
 
 dependencies {
-    // API for writing SPI extensions
-    compileOnly 'io.opentelemetry:opentelemetry-sdk-extension-autoconfigure-spi:1.33.0'
-    compileOnly 'io.opentelemetry:opentelemetry-api:1.33.0'
-    compileOnly 'io.opentelemetry:opentelemetry-sdk-logs:1.33.0'
-    compileOnly 'io.opentelemetry:opentelemetry-sdk-common:1.33.0'
+    implementation 'org.msgpack:jackson-dataformat-msgpack:0.9.3'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+    implementation 'net.bytebuddy:byte-buddy:1.14.9'
 }
 
 jar {
-    archiveBaseName.set('easymonitor-extension')
+    archiveBaseName.set('easymonitor-javaagent')
+    manifest {
+        attributes(
+            'Premain-Class': 'com.easymonitor.agent.EasyMonitorAgent',
+            'Can-Redefine-Classes': 'true',
+            'Can-Retransform-Classes': 'true'
+        )
+    }
+}
+
+shadowJar {
+    archiveBaseName.set('easymonitor-javaagent')
+    mergeServiceFiles()
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }

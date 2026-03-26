@@ -440,3 +440,78 @@ Plans:
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 43 to break down)
+
+### Phase 44: Update Easy Monitor Agent Core Functional Specification
+
+**Goal:** Establish the Core Functional Specification and implement the foundational Data Structures and HTTP MessagePack Transport layer across all 4 polyglot agents (Go, Java, Node, Rust).
+**Requirements**: TBD
+**Depends on:** Phase 43
+**Plans:** 2 plans executed
+
+Plans:
+- [x] Plan 1: Node Agent MessagePack Trace Receiver and Roadmap Evolution
+- [x] Plan 2: Polyglot Agents Data Structures and Transport
+
+### Phase 45: Agent Native Instrumentation Modules
+**Goal:** Implement native library and framework hooks (Java Agent/ByteBuddy, Node async_hooks, Go/Rust manual integrations).
+**Requirements**: TBD
+**Depends on:** Phase 44
+**Plans:** 0 plans
+Plans:
+- [ ] TBD (run /gsd-plan-phase 45 to break down)
+
+### Phase 46: Agent Trace Generation & Context Propagation
+**Goal:** Implement Span lifecycle management and distributed tracing header propagation (e.g., x-easymonitor-trace-id).
+**Requirements**: TBD
+**Depends on:** Phase 45
+**Plans:** 0 plans
+Plans:
+- [ ] TBD (run /gsd-plan-phase 46 to break down)
+
+### Phase 47: Agent Buffering, Batching & Sampling Modules
+**Goal:** Optimize trace transmission via memory buffering, batching into MessagePack payloads, and priority sampling.
+**Requirements**: TBD
+**Depends on:** Phase 46
+**Plans:** 0 plans
+Plans:
+- [ ] TBD (run /gsd-plan-phase 47 to break down)
+
+### Phase 48: Agent Metrics Aggregation & Error Collection
+**Goal:** Aggregate local RED metrics and accurately capture exception types and stack traces attached to spans.
+**Requirements**: TBD
+**Depends on:** Phase 47
+**Plans:** 0 plans
+Plans:
+- [ ] TBD (run /gsd-plan-phase 48 to break down)
+
+### Phase 49: Agent Database & External Service Monitoring
+**Goal:** Hook into popular database drivers and HTTP clients to automatically trace database queries and external RPCs.
+**Requirements**: TBD
+**Depends on:** Phase 48
+**Plans:** 0 plans
+Plans:
+- [ ] TBD (run /gsd-plan-phase 49 to break down)
+
+### Phase 50: Agent Metadata Enrichment & Correlation
+**Goal:** Tag spans with environment metadata (host, service, version) and inject trace IDs into application logs.
+**Requirements**: TBD
+**Depends on:** Phase 49
+**Plans:** 0 plans
+Plans:
+- [ ] TBD (run /gsd-plan-phase 50 to break down)
+
+### Phase 51: Service Mapping & Topology Generation
+**Goal:** Map inter-service dependencies dynamically based on incoming trace edges in the Node agent backend.
+**Requirements**: TBD
+**Depends on:** Phase 50
+**Plans:** 0 plans
+Plans:
+- [ ] TBD (run /gsd-plan-phase 51 to break down)
+
+### Phase 52: Agent Runtime Profiling (Optional)
+**Goal:** Continuously profile CPU/Memory and associate with application endpoints.
+**Requirements**: TBD
+**Depends on:** Phase 51
+**Plans:** 0 plans
+Plans:
+- [ ] TBD (run /gsd-plan-phase 52 to break down)
