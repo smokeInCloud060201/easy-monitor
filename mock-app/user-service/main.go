@@ -26,6 +26,7 @@ func main() {
 	if err != nil {
 		slog.Error("Failed to connect to database", "err", err)
 	} else {
+		db.Use(&telemetry.GormTracer{})
 		db.AutoMigrate(&domain.User{})
 	}
 

@@ -33,5 +33,11 @@ public class EasyMonitorAgent {
             .transform(new AgentBuilder.Transformer.ForAdvice()
                     .advice(ElementMatchers.nameStartsWith("execute"), "com.easymonitor.agent.JdbcAdvice$ExecuteAdvice"))
             .installOn(inst);
+
+        new AgentBuilder.Default()
+            .type(ElementMatchers.hasSuperType(ElementMatchers.named("org.springframework.http.client.ClientHttpRequest")))
+            .transform(new AgentBuilder.Transformer.ForAdvice()
+                    .advice(ElementMatchers.named("execute"), "com.easymonitor.agent.SpringHttpAdvice"))
+            .installOn(inst);
     }
 }

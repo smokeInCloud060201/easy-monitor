@@ -67,9 +67,9 @@ where
         );
 
         let srv = self.service.clone();
+        use tracing::Instrument;
         Box::pin(async move {
-            let _enter = span.enter();
-            srv.call(req).await
+            srv.call(req).instrument(span).await
         })
     }
 }
