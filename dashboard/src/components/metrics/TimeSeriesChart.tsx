@@ -8,11 +8,11 @@ interface Props {
 
 export function TimeSeriesChart({ data, loading }: Props) {
   if (loading) {
-    return <div className="h-full w-full flex items-center justify-center text-gray-500">Loading metrics...</div>;
+    return <div className="h-full w-full flex items-center justify-center text-text-muted">Loading metrics...</div>;
   }
   
   if (!data || data.length === 0) {
-    return <div className="h-full w-full flex items-center justify-center text-gray-500">No data for selected time range</div>;
+    return <div className="h-full w-full flex items-center justify-center text-text-muted">No data for selected time range</div>;
   }
 
   return (

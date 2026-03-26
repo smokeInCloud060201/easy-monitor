@@ -28,11 +28,11 @@ export function Dashboard() {
     <div className="page-container">
       <div className="flex items-center justify-between mb-6">
         <h1 className="page-title">System Metrics</h1>
-        <div className="flex items-center gap-2 glass-panel px-4 py-2 text-[13px] text-gray-400">
+        <div className="flex items-center gap-2 glass-panel px-4 py-2 text-[13px] text-text-secondary">
           <span>Time Range:</span>
-          <span className="text-gray-200 font-medium">{from}</span>
+          <span className="text-text-primary font-medium">{from}</span>
           <span>to</span>
-          <span className="text-gray-200 font-medium">{to}</span>
+          <span className="text-text-primary font-medium">{to}</span>
         </div>
       </div>
 
@@ -57,7 +57,7 @@ function MetricCard({ icon, label, value, accent }: { icon: React.ReactNode; lab
     <div className="glass-panel-hover p-4">
       <div className="flex items-center gap-2 mb-2">
         <span className={accent}>{icon}</span>
-        <span className="text-gray-500 text-[11px] font-medium uppercase tracking-wider">{label}</span>
+        <span className="text-text-muted text-[11px] font-medium uppercase tracking-wider">{label}</span>
       </div>
       <div className={`text-2xl font-bold font-mono tabular-nums ${accent}`}>{value}</div>
     </div>

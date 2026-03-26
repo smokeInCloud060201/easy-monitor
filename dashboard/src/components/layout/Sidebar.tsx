@@ -14,29 +14,29 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] transition-all duration-150 relative group ${
       isActive
-        ? 'bg-brand/10 text-brand-light font-semibold border-l-2 border-brand ml-[-1px]'
-        : 'text-gray-400 hover:bg-sidebar-hover hover:text-gray-200'
+        ? 'bg-brand/10 text-brand dark:text-brand-light font-semibold border-l-2 border-brand ml-[-1px]'
+        : 'text-text-muted hover:bg-sidebar-hover hover:text-text-primary'
     } ${isCollapsed ? 'justify-center border-l-0 ml-0' : ''}`;
 
   const spanClass = `whitespace-nowrap transition-all duration-300 overflow-hidden ${isCollapsed ? 'w-0 opacity-0' : 'w-full opacity-100'}`;
 
   return (
-    <div className={`h-screen bg-sidebar-bg text-white flex flex-col border-r border-sidebar-border transition-all duration-300 relative z-20 ${isCollapsed ? 'w-[68px]' : 'w-60'}`}>
+    <div className={`h-screen bg-sidebar-bg text-text-primary flex flex-col border-r border-sidebar-border transition-all duration-300 relative z-20 ${isCollapsed ? 'w-[68px]' : 'w-60'}`}>
       
       {/* Collapse Toggle */}
       <button 
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className={`absolute -right-3 top-6 bg-sidebar-bg border border-sidebar-border rounded-full p-1 text-gray-500 hover:text-white hover:border-gray-500 transition-all z-50 ${isCollapsed ? 'rotate-180' : ''}`}
+        className={`absolute -right-3 top-6 bg-sidebar-bg border border-sidebar-border rounded-full p-1 text-text-muted hover:text-text-primary hover:border-text-muted transition-all z-50 ${isCollapsed ? 'rotate-180' : ''}`}
       >
         <ChevronLeft size={14} />
       </button>
 
       {/* Brand */}
       <div className={`px-4 py-5 flex items-center ${isCollapsed ? 'justify-center' : 'gap-2.5'}`}>
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand to-brand-light flex items-center justify-center shadow-glow-sm shrink-0">
-          <BarChart3 size={16} className="text-white" />
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand to-brand-hover dark:to-brand-light flex items-center justify-center shadow-glow-sm shrink-0">
+          <BarChart3 size={16} className="text-white dark:text-text-primary" />
         </div>
-        <span className={`text-[15px] font-bold tracking-tight bg-gradient-to-r from-brand-light to-purple-300 bg-clip-text text-transparent whitespace-nowrap overflow-hidden transition-all duration-300 ${isCollapsed ? 'w-0 opacity-0' : 'opacity-100'}`}>
+        <span className={`text-[15px] font-bold tracking-tight bg-gradient-to-r from-brand to-purple-600 dark:from-brand-light dark:to-purple-300 bg-clip-text text-transparent whitespace-nowrap overflow-hidden transition-all duration-300 ${isCollapsed ? 'w-0 opacity-0' : 'opacity-100'}`}>
           EasyMonitor
         </span>
       </div>
@@ -93,7 +93,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
       {/* Footer */}
       <div className="px-3 py-4 border-t border-sidebar-border flex flex-col gap-3">
         <UserMenu isCollapsed={isCollapsed} />
-        <div className={`text-[10px] text-gray-600 text-center whitespace-nowrap overflow-hidden transition-all duration-300 ${isCollapsed ? 'h-0 opacity-0 m-0' : 'h-auto opacity-100'}`}>
+        <div className={`text-[10px] text-text-muted text-center whitespace-nowrap overflow-hidden transition-all duration-300 ${isCollapsed ? 'h-0 opacity-0 m-0' : 'h-auto opacity-100'}`}>
           EasyMonitor v1.0
         </div>
       </div>

@@ -79,7 +79,7 @@ export default function ServiceDetail() {
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
       {/* ─── HEADER ─── */}
       <div className="flex items-center gap-4">
-        <Link to="/apm" className="p-2 hover:bg-white/5 rounded-lg text-gray-400 hover:text-white transition-colors">
+        <Link to="/apm" className="p-2 hover:bg-surface-light rounded-lg text-text-secondary hover:text-text-primary transition-colors">
           <ArrowLeft size={20} />
         </Link>
         <div className="flex-1">
@@ -95,11 +95,11 @@ export default function ServiceDetail() {
             </span>
           </div>
         </div>
-        <div className="flex gap-1 bg-surface/50 rounded-lg p-1 border border-white/10">
+        <div className="flex gap-1 bg-surface rounded-lg p-1 border border-border w-fit max-w-full overflow-x-auto no-scrollbar">
           {['15m', '1h', '6h', '24h'].map(t => (
             <button key={t} onClick={() => setTimeRange(t)}
               className={`px-3 py-1.5 text-xs rounded font-bold transition-all ${
-                timeRange === t ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-400 hover:text-white'
+                timeRange === t ? 'bg-primary text-text-inverse shadow-lg shadow-primary/20' : 'text-text-secondary hover:text-text-primary'
               }`}>
               {t}
             </button>
@@ -206,7 +206,7 @@ function MetricCard({ icon, label, value, color }: { icon: React.ReactNode; labe
     <div className="glass-panel p-3 shadow-lg">
       <div className={`flex items-center gap-1.5 mb-1 ${color}`}>
         {icon}
-        <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">{label}</span>
+        <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">{label}</span>
       </div>
       <p className="text-xl font-bold font-mono">{value}</p>
     </div>
@@ -216,7 +216,7 @@ function MetricCard({ icon, label, value, color }: { icon: React.ReactNode; labe
 function ChartPanel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="glass-panel p-4 shadow-xl">
-      <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">{title}</h3>
+      <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider mb-3">{title}</h3>
       {children}
     </div>
   );

@@ -17,14 +17,14 @@ export function LogHistogram({ buckets }: LogHistogramProps) {
 
   if (data.length === 0) {
     return (
-      <div className="h-[120px] bg-gray-900/50 border border-gray-800 rounded-lg flex items-center justify-center text-gray-500 text-sm">
+      <div className="h-[120px] bg-surface border border-border rounded-lg flex items-center justify-center text-text-muted text-sm">
         No histogram data
       </div>
     );
   }
 
   return (
-    <div className="h-[120px] bg-gray-900/50 border border-gray-800 rounded-lg px-2 pt-1 pb-0">
+    <div className="h-[120px] bg-surface border border-border rounded-lg px-2 pt-1 pb-0">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} barCategoryGap={1}>
           <XAxis

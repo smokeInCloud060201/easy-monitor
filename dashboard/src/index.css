@@ -3,8 +3,30 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --color-bg-base: #FFFFFF;
+    --color-bg-surface: #F8F9FA;
+    --color-bg-surface-light: #EAEBEF;
+    --color-text-primary: #121212;
+    --color-text-inverse: #FFFFFF;
+    --color-text-secondary: #4F5568;
+    --color-text-muted: #8E93A3;
+    --color-border: #D0D5DD;
+  }
+
+  .dark {
+    --color-bg-base: #151821;
+    --color-bg-surface: #1E2130;
+    --color-bg-surface-light: #2A2E3F;
+    --color-text-primary: #E6E8EB;
+    --color-text-inverse: #191B28;
+    --color-text-secondary: #8A94A6;
+    --color-text-muted: #5F6B7A;
+    --color-border: #2A2E3F;
+  }
+
   body {
-    @apply bg-background text-gray-100 antialiased font-sans;
+    @apply bg-background text-text-primary antialiased font-sans;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -34,7 +56,7 @@
 @layer components {
   /* Glass panels -> Solid Datadog Dark Surfaces */
   .glass-panel {
-    @apply bg-surface border border-[#2A2E3F] rounded-xl shadow-card;
+    @apply bg-surface border border-border rounded-xl shadow-card;
   }
 
   .glass-panel-hover {
@@ -58,15 +80,15 @@
 
   /* Typography tokens (Datadog Dark Text Hierarchy) */
   .page-title {
-    @apply text-xl font-bold text-[#E6E8EB] tracking-tight;
+    @apply text-xl font-bold text-text-primary tracking-tight;
   }
   .section-title {
-    @apply text-sm font-semibold text-[#E6E8EB];
+    @apply text-sm font-semibold text-text-primary;
   }
 
   /* Section headers */
   .section-header {
-    @apply text-[11px] font-semibold text-[#5F6B7A] uppercase tracking-widest;
+    @apply text-[11px] font-semibold text-text-muted uppercase tracking-widest;
   }
 
   /* Data table */
@@ -74,22 +96,22 @@
     @apply w-full text-[13px];
   }
   .data-table thead tr {
-    @apply bg-background/50;
+    @apply bg-surface;
   }
   .data-table th {
-    @apply text-[11px] font-semibold text-[#8A94A6] uppercase tracking-wider px-3 py-2 text-left border-b border-[#2A2E3F];
+    @apply text-[11px] font-semibold text-text-secondary uppercase tracking-wider px-3 py-2 text-left border-b border-border;
   }
   .data-table td {
-    @apply px-3 py-2 text-[#E6E8EB];
+    @apply px-3 py-2 text-text-primary;
   }
   .data-table tbody tr {
-    @apply border-b border-[#2A2E3F] transition-colors hover:bg-surface-light;
+    @apply border-b border-border transition-colors hover:bg-surface-light;
   }
 
   /* Search bar */
   .search-input {
-    @apply h-9 bg-surface border border-[#2A2E3F] rounded-lg text-[13px] text-[#E6E8EB]
-           placeholder:text-[#8A94A6] focus:border-brand/50 focus:ring-1 focus:ring-brand focus:outline-none;
+    @apply h-9 bg-surface border border-border rounded-lg text-[13px] text-text-primary
+           placeholder:text-text-secondary focus:border-brand/50 focus:ring-1 focus:ring-brand focus:outline-none;
   }
 
   /* Status badges */
@@ -97,19 +119,19 @@
     @apply inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border;
   }
   .badge-error {
-    @apply bg-[#FEF2F2]/10 text-danger border-danger/30;
+    @apply bg-danger/10 text-danger border-danger/30;
   }
   .badge-warn {
-    @apply bg-[#FFFBEB]/10 text-warning border-warning/30;
+    @apply bg-warning/10 text-warning border-warning/30;
   }
   .badge-info {
-    @apply bg-[#EFF6FF]/10 text-info border-info/30;
+    @apply bg-info/10 text-info border-info/30;
   }
   .badge-debug {
-    @apply bg-text-secondary/15 text-[#8A94A6] border-[#2A2E3F];
+    @apply bg-surface-light text-text-muted border-border;
   }
   .badge-success {
-    @apply bg-[#ECFDF5]/10 text-success border-success/30;
+    @apply bg-success/10 text-success border-success/30;
   }
 
   /* Page container */
@@ -119,7 +141,7 @@
 
   /* Filter/select control */
   .filter-select {
-    @apply bg-surface border border-[#2A2E3F] rounded-lg px-3 py-2 text-[13px] text-[#E6E8EB]
+    @apply bg-surface border border-border rounded-lg px-3 py-2 text-[13px] text-text-primary
            focus:border-brand/50 focus:ring-1 focus:ring-brand focus:outline-none;
   }
   
@@ -129,7 +151,7 @@
            transition-all shadow-card;
   }
   .btn-secondary {
-    @apply bg-surface hover:bg-surface-light border border-[#2A2E3F] text-[#E6E8EB] px-4 py-2 rounded-lg text-[13px] font-semibold transition-all;
+    @apply bg-surface hover:bg-surface-light border border-border text-text-primary px-4 py-2 rounded-lg text-[13px] font-semibold transition-all;
   }
   .btn-ghost {
     @apply bg-transparent hover:bg-brand/10 text-brand px-3 py-2 rounded-lg text-[13px] transition-all;

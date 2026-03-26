@@ -1,9 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { Sun, Moon } from 'lucide-react';
+import { useTheme } from './ThemeContext';
 
 export function UserMenu({ isCollapsed }: { isCollapsed?: boolean }) {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -34,12 +37,12 @@ export function UserMenu({ isCollapsed }: { isCollapsed?: boolean }) {
       <button
         id="user-menu-button"
         onClick={() => setOpen(!open)}
-        className={`flex items-center gap-2 w-full rounded-lg cursor-pointer transition-colors border-none text-gray-300 hover:bg-gray-800 ${
+        className={`flex items-center gap-2 w-full rounded-lg cursor-pointer transition-colors border-none text-text-primary hover:bg-surface-light ${
           isCollapsed ? 'justify-center p-1.5' : 'justify-start px-3 py-1.5'
-        } ${open ? 'bg-gray-800' : 'bg-transparent'}`}
+        } ${open ? 'bg-surface-light' : 'bg-transparent'}`}
       >
         {/* Avatar circle */}
-        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-[11px] font-bold text-white shrink-0">
+        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-[11px] font-bold text-text-primary shrink-0">
           {initials}
         </div>
         
@@ -58,7 +61,7 @@ export function UserMenu({ isCollapsed }: { isCollapsed?: boolean }) {
       {/* Dropdown */}
       {open && (
         <div 
-          className="absolute w-[200px] bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-hidden z-50"
+          className="absolute w-[200px] bg-surface border border-border rounded-lg shadow-xl overflow-hidden z-50"
           style={{
             left: isCollapsed ? '100%' : '0',
             bottom: isCollapsed ? '0' : '100%',
@@ -67,8 +70,8 @@ export function UserMenu({ isCollapsed }: { isCollapsed?: boolean }) {
           }}
         >
           {/* User info */}
-          <div className="px-3.5 py-3 border-b border-gray-700">
-            <div className="text-[13px] font-semibold text-gray-50 whitespace-nowrap overflow-hidden text-ellipsis">
+          <div className="px-3.5 py-3 border-b border-border">
+            <div className="text-[13px] font-semibold text-text-inverse whitespace-nowrap overflow-hidden text-ellipsis">
               {user.sub}
             </div>
             <div className={`inline-block mt-1 px-2 py-0.5 text-[11px] font-semibold rounded ${
@@ -78,11 +81,23 @@ export function UserMenu({ isCollapsed }: { isCollapsed?: boolean }) {
             </div>
           </div>
 
+          {/* Theme Toggle */}
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              toggleTheme();
+            }}
+            className="flex items-center gap-2.5 w-full px-3.5 py-2.5 bg-transparent text-text-primary text-[13px] font-medium cursor-pointer text-left transition-colors hover:bg-surface-light border-b border-border hover:text-text-inverse"
+          >
+            {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+            {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+          </button>
+
           {/* Sign out */}
           <button
             id="logout-button"
             onClick={handleLogout}
-            className="w-full px-3.5 py-2.5 bg-transparent text-red-500 text-[13px] font-medium cursor-pointer text-left transition-colors hover:bg-gray-900 border-none"
+            className="w-full px-3.5 py-2.5 bg-transparent text-danger text-[13px] font-medium cursor-pointer text-left transition-colors hover:bg-surface-light border-none"
           >
             Sign Out
           </button>

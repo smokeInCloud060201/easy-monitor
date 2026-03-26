@@ -62,16 +62,16 @@ export function SpanWaterfall({ spans, onSpanClick, activeSpanId }: Props) {
     return { rootSpan: spans.find(s => s.span_id === root?.span_id) || spans[0], flatNodes: flattenTree(tree) };
   }, [spans]);
 
-  if (!rootSpan) return <div className="p-4 text-gray-500">No spans found for trace.</div>;
+  if (!rootSpan) return <div className="p-4 text-text-muted">No spans found for trace.</div>;
 
   const rootStart = new Date(rootSpan.timestamp).getTime();
   const rootDuration = rootSpan.duration_ms;
 
   return (
-    <div className="flex flex-col w-full h-full overflow-y-auto font-sans bg-gray-950">
-      <div className="flex bg-gray-900 border-b border-gray-800 text-xs text-gray-400 p-2 sticky top-0 z-10 font-semibold tracking-wide">
+    <div className="flex flex-col w-full h-full overflow-y-auto font-sans bg-background">
+      <div className="flex bg-surface border-b border-border text-xs text-text-secondary p-2 sticky top-0 z-10 font-semibold tracking-wide">
         <div className="w-1/3 min-w-[300px] pl-4">Service & Operation</div>
-        <div className="w-2/3 flex relative border-l border-gray-800 pl-4 items-center">
+        <div className="w-2/3 flex relative border-l border-border pl-4 items-center">
           <span className="absolute -top-1 left-4">0ms</span>
           <span className="absolute -top-1 right-4">{rootDuration.toFixed(2)}ms</span>
         </div>
@@ -89,17 +89,17 @@ export function SpanWaterfall({ spans, onSpanClick, activeSpanId }: Props) {
           return (
             <div 
               key={node.span_id} 
-              className={`flex border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors cursor-pointer group ${isActive ? 'bg-blue-900/20' : ''}`}
+              className={`flex border-b border-border hover:bg-surface-light transition-colors cursor-pointer group ${isActive ? 'bg-blue-900/20' : ''}`}
               onClick={() => onSpanClick?.(node)}
             >
               <div 
-                className="w-1/3 min-w-[300px] py-2 pr-4 flex items-center gap-2 border-r border-gray-800/50"
+                className="w-1/3 min-w-[300px] py-2 pr-4 flex items-center gap-2 border-r border-border"
                 style={{ paddingLeft: `${1 + node.depth * 1.5}rem` }}
               >
                 <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: getServiceColor(node.service) }}></div>
                 <div className="flex flex-col min-w-0">
-                  <span className="text-sm font-medium text-gray-200 truncate">{node.name}</span>
-                  <span className="text-xs text-gray-500 truncate">{node.service} • {node.duration_ms.toFixed(2)}ms</span>
+                  <span className="text-sm font-medium text-text-primary truncate">{node.name}</span>
+                  <span className="text-xs text-text-muted truncate">{node.service} • {node.duration_ms.toFixed(2)}ms</span>
                 </div>
               </div>
 

@@ -63,7 +63,7 @@ export default function TraceExplorer() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="page-title">Trace Explorer</h1>
-          <p className="text-[13px] text-gray-400 mt-1">Search and analyze distributed traces across all services.</p>
+          <p className="text-[13px] text-text-secondary mt-1">Search and analyze distributed traces across all services.</p>
         </div>
         <span className="badge badge-info font-mono">{total} traces</span>
       </div>
@@ -71,7 +71,7 @@ export default function TraceExplorer() {
       {/* Filter Bar */}
       <div className="glass-panel p-4 mb-4">
         <div className="flex flex-wrap gap-3 items-center">
-          <Filter className="w-4 h-4 text-gray-400" />
+          <Filter className="w-4 h-4 text-text-secondary" />
           
           {/* Service */}
           <select value={service} onChange={e => { setService(e.target.value); setOffset(0); }}
@@ -81,12 +81,12 @@ export default function TraceExplorer() {
           </select>
 
           {/* Status */}
-          <div className="flex gap-1 bg-black/30 rounded-lg p-0.5">
+          <div className="flex gap-1 bg-surface-light rounded-lg p-0.5">
             {['all', 'ok', 'error'].map(s => (
               <button key={s} onClick={() => { setStatus(s); setOffset(0); }}
                 className={`px-3 py-1.5 text-xs rounded font-bold transition-all ${status === s 
                   ? s === 'error' ? 'bg-red-500/30 text-red-400' : s === 'ok' ? 'bg-emerald-500/30 text-emerald-400' : 'bg-primary/30 text-primary' 
-                  : 'text-gray-400 hover:text-white'}`}>
+                  : 'text-text-secondary hover:text-text-primary'}`}>
                 {s.toUpperCase()}
               </button>
             ))}
@@ -96,7 +96,7 @@ export default function TraceExplorer() {
           <div className="flex items-center gap-1">
             <input type="number" placeholder="Min ms" value={minDuration} onChange={e => setMinDuration(e.target.value)}
               className="search-input px-2 w-20" />
-            <span className="text-gray-500">—</span>
+            <span className="text-text-muted">—</span>
             <input type="number" placeholder="Max ms" value={maxDuration} onChange={e => setMaxDuration(e.target.value)}
               className="search-input px-2 w-20" />
           </div>
@@ -109,7 +109,7 @@ export default function TraceExplorer() {
           {/* Direct Trace ID */}
           <form onSubmit={handleDirectLookup} className="ml-auto flex gap-2">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-4 h-4" />
               <input type="text" placeholder="Trace ID..." value={traceIdInput} onChange={e => setTraceIdInput(e.target.value)}
                 className="search-input pl-9 pr-3 w-44 font-mono" />
             </div>
@@ -126,9 +126,9 @@ export default function TraceExplorer() {
           </div>
         ) : traces.length === 0 ? (
           <div className="p-12 text-center">
-            <Zap className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-            <h3 className="text-sm font-semibold text-gray-300 mb-1">No traces found</h3>
-            <p className="text-[11px] text-gray-500">Adjust your filters or wait for new trace data.</p>
+            <Zap className="w-10 h-10 text-text-muted mx-auto mb-3" />
+            <h3 className="text-sm font-semibold text-text-primary mb-1">No traces found</h3>
+            <p className="text-[11px] text-text-muted">Adjust your filters or wait for new trace data.</p>
           </div>
         ) : (
           <>
@@ -152,38 +152,38 @@ export default function TraceExplorer() {
                     <td>
                       <span className={`w-2 h-2 rounded-full inline-block ${t.error ? 'bg-danger' : 'bg-success'}`} />
                     </td>
-                    <td className="font-mono text-[12px] text-gray-400 group-hover:text-brand-light transition-colors">
+                    <td className="font-mono text-[12px] text-text-secondary group-hover:text-brand-light transition-colors">
                       {t.trace_id.slice(0, 16)}
                     </td>
                     <td className="text-brand-light font-semibold">{t.root_service}</td>
-                    <td className="text-gray-300 truncate max-w-[200px]">{t.root_name}</td>
+                    <td className="text-text-primary truncate max-w-[200px]">{t.root_name}</td>
                     <td>
                       <div className="flex items-center gap-2">
-                        <div className="w-24 h-1.5 bg-black/40 rounded-full overflow-hidden">
+                        <div className="w-24 h-1.5 bg-surface-light rounded-full overflow-hidden">
                           <div className={`h-full rounded-full ${t.error ? 'bg-danger' : 'bg-brand'}`}
                             style={{ width: `${Math.min((t.duration_ms / maxDur) * 100, 100)}%` }} />
                         </div>
                         <span className="font-mono text-[12px] tabular-nums text-warning">{t.duration_ms.toFixed(1)}ms</span>
                       </div>
                     </td>
-                    <td className="text-right font-mono text-[12px] tabular-nums text-gray-500">{t.span_count}</td>
-                    <td className="text-right text-gray-500 text-[11px]">{new Date(t.timestamp).toLocaleTimeString()}</td>
+                    <td className="text-right font-mono text-[12px] tabular-nums text-text-muted">{t.span_count}</td>
+                    <td className="text-right text-text-muted text-[11px]">{new Date(t.timestamp).toLocaleTimeString()}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
 
             {/* Pagination */}
-            <div className="flex justify-between items-center px-4 py-3 bg-black/20 border-t border-white/5">
+            <div className="flex justify-between items-center px-4 py-3 bg-surface-light border-t border-border">
               <button onClick={() => setOffset(Math.max(0, offset - limit))} disabled={offset === 0}
-                className="text-sm text-gray-400 hover:text-white disabled:opacity-30 transition-colors">
+                className="text-sm text-text-secondary hover:text-text-primary disabled:opacity-30 transition-colors">
                 ← Previous
               </button>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-text-muted">
                 Showing {offset + 1}–{Math.min(offset + limit, total)} of {total}
               </span>
               <button onClick={() => setOffset(offset + limit)} disabled={offset + limit >= total}
-                className="text-sm text-gray-400 hover:text-white disabled:opacity-30 transition-colors">
+                className="text-sm text-text-secondary hover:text-text-primary disabled:opacity-30 transition-colors">
                 Next →
               </button>
             </div>

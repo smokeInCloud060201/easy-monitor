@@ -319,9 +319,9 @@ export function DependencyMiniMap({ data, currentService, healthStatus }: Depend
 
   return (
     <div className="glass-panel p-4 shadow-xl">
-      <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Dependencies</h3>
+      <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider mb-3">Dependencies</h3>
       {upstream.length === 0 && downstream.length === 0 ? (
-        <p className="text-gray-600 text-xs text-center py-8">No dependencies detected.</p>
+        <p className="text-text-muted text-xs text-center py-8">No dependencies detected.</p>
       ) : (
         <div style={{ height: canvasH }}>
           <canvas

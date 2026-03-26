@@ -79,7 +79,7 @@ function DbLogo({ dbType, size = 28 }: { dbType: string; size?: number }) {
   switch (dbType) {
     case 'postgresql': return <img src={postgresqlLogo} alt="PostgreSQL" width={size} height={size} />;
     case 'redis': return <img src={redisLogo} alt="Redis" width={size} height={size} />;
-    default: return <Database size={size} className="text-gray-400" />;
+    default: return <Database size={size} className="text-text-secondary" />;
   }
 }
 
@@ -101,28 +101,28 @@ const DatabaseCard = memo(function DatabaseCard({ db, onClick, isSelected }: { d
         <div className="flex items-center gap-3">
           <DbLogo dbType={db.db_type} />
           <div>
-            <h3 className="text-sm font-bold text-gray-100">{db.display_name}</h3>
-            <p className="text-[11px] text-gray-500">{db.service_count} service{db.service_count !== 1 ? 's' : ''}</p>
+            <h3 className="text-sm font-bold text-text-primary">{db.display_name}</h3>
+            <p className="text-[11px] text-text-muted">{db.service_count} service{db.service_count !== 1 ? 's' : ''}</p>
           </div>
         </div>
-        <ChevronRight className={`w-4 h-4 transition-colors ${isSelected ? 'text-brand-light' : 'text-gray-600 group-hover:text-brand-light'}`} />
+        <ChevronRight className={`w-4 h-4 transition-colors ${isSelected ? 'text-brand-light' : 'text-text-muted group-hover:text-brand-light'}`} />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-0.5">Queries</p>
-          <p className="text-base font-mono tabular-nums text-gray-100">{formatNumber(db.total_queries)}</p>
+          <p className="text-text-muted text-[10px] uppercase tracking-wider mb-0.5">Queries</p>
+          <p className="text-base font-mono tabular-nums text-text-primary">{formatNumber(db.total_queries)}</p>
         </div>
         <div>
-          <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-0.5">Avg Latency</p>
-          <p className="text-base font-mono tabular-nums text-gray-100">{db.avg_latency_ms.toFixed(2)} ms</p>
+          <p className="text-text-muted text-[10px] uppercase tracking-wider mb-0.5">Avg Latency</p>
+          <p className="text-base font-mono tabular-nums text-text-primary">{db.avg_latency_ms.toFixed(2)} ms</p>
         </div>
         <div>
-          <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-0.5">P95 Latency</p>
-          <p className="text-base font-mono tabular-nums text-gray-100">{db.p95_latency_ms.toFixed(2)} ms</p>
+          <p className="text-text-muted text-[10px] uppercase tracking-wider mb-0.5">P95 Latency</p>
+          <p className="text-base font-mono tabular-nums text-text-primary">{db.p95_latency_ms.toFixed(2)} ms</p>
         </div>
         <div>
-          <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-0.5">Error Rate</p>
+          <p className="text-text-muted text-[10px] uppercase tracking-wider mb-0.5">Error Rate</p>
           <p className={`text-base font-mono tabular-nums ${db.error_rate > 5 ? 'text-danger' : db.error_rate > 1 ? 'text-warning' : 'text-success'}`}>
             {db.error_rate.toFixed(1)}%
           </p>
@@ -186,11 +186,11 @@ const MiniChart = memo(function MiniChart({ data, dataKey, color, label }: { dat
   return (
     <div className="glass-panel p-4">
       <div className="flex justify-between items-baseline mb-2">
-        <p className="text-gray-500 text-[11px] uppercase tracking-wider">{label}</p>
-        <p className="text-sm font-mono tabular-nums text-gray-200">{typeof latestVal === 'number' ? (dataKey.toString().includes('latency') ? latestVal.toFixed(2) + ' ms' : formatNumber(latestVal)) : latestVal}</p>
+        <p className="text-text-muted text-[11px] uppercase tracking-wider">{label}</p>
+        <p className="text-sm font-mono tabular-nums text-text-primary">{typeof latestVal === 'number' ? (dataKey.toString().includes('latency') ? latestVal.toFixed(2) + ' ms' : formatNumber(latestVal)) : latestVal}</p>
       </div>
       <canvas ref={canvasRef} className="w-full h-12" style={{ display: data.length < 2 ? 'none' : 'block' }} />
-      {data.length < 2 && <div className="h-12 flex items-center justify-center text-gray-600 text-[11px]">No data</div>}
+      {data.length < 2 && <div className="h-12 flex items-center justify-center text-text-muted text-[11px]">No data</div>}
     </div>
   );
 });
@@ -207,21 +207,21 @@ function QueriesTable({ queries }: { queries: DbQueryInfo[] }) {
 
   return (
     <div className="glass-panel">
-      <div className="flex items-center justify-between p-4 border-b border-white/5">
-        <h3 className="text-sm font-semibold text-gray-200 flex items-center gap-2">
+      <div className="flex items-center justify-between p-4 border-b border-border">
+        <h3 className="text-sm font-semibold text-text-primary flex items-center gap-2">
           <Database className="w-4 h-4 text-brand-light" />
           Top Queries
           <span className="badge badge-info font-mono text-[10px]">{queries.length}</span>
         </h3>
         <div className="flex items-center gap-2">
           <div className="relative">
-            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" />
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
             <input
               type="text"
               placeholder="Filter queries..."
               value={searchFilter}
               onChange={e => setSearchFilter(e.target.value)}
-              className="bg-black/30 border border-white/10 rounded-lg pl-8 pr-3 py-1.5 text-[12px] text-gray-300 w-52 focus:outline-none focus:border-brand/50"
+              className="bg-surface-light border border-border rounded-lg pl-8 pr-3 py-1.5 text-[12px] text-text-primary w-52 focus:outline-none focus:border-brand/50"
             />
           </div>
         </div>
@@ -230,10 +230,10 @@ function QueriesTable({ queries }: { queries: DbQueryInfo[] }) {
       <div className="overflow-x-auto">
         <table className="w-full text-[12px]">
           <thead>
-            <tr className="border-b border-white/5 text-gray-500 uppercase tracking-wider">
+            <tr className="border-b border-border text-text-muted uppercase tracking-wider">
               <th className="text-left py-2.5 px-4 font-medium">Query</th>
               <th
-                className="text-right py-2.5 px-3 font-medium cursor-pointer hover:text-gray-300"
+                className="text-right py-2.5 px-3 font-medium cursor-pointer hover:text-text-primary"
                 onClick={() => setSortKey('frequency')}
               >
                 <span className="flex items-center justify-end gap-1">
@@ -241,7 +241,7 @@ function QueriesTable({ queries }: { queries: DbQueryInfo[] }) {
                 </span>
               </th>
               <th
-                className="text-right py-2.5 px-3 font-medium cursor-pointer hover:text-gray-300"
+                className="text-right py-2.5 px-3 font-medium cursor-pointer hover:text-text-primary"
                 onClick={() => setSortKey('avg_latency_ms')}
               >
                 <span className="flex items-center justify-end gap-1">
@@ -250,7 +250,7 @@ function QueriesTable({ queries }: { queries: DbQueryInfo[] }) {
               </th>
               <th className="text-right py-2.5 px-3 font-medium">P95</th>
               <th
-                className="text-right py-2.5 px-3 font-medium cursor-pointer hover:text-gray-300"
+                className="text-right py-2.5 px-3 font-medium cursor-pointer hover:text-text-primary"
                 onClick={() => setSortKey('error_count')}
               >
                 <span className="flex items-center justify-end gap-1">
@@ -264,24 +264,24 @@ function QueriesTable({ queries }: { queries: DbQueryInfo[] }) {
             {sorted.slice(0, 30).map((q, i) => (
               <tr key={i} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
                 <td className="py-2.5 px-4 max-w-[400px]">
-                  <div className="font-mono text-gray-300 truncate" title={q.resource}>
+                  <div className="font-mono text-text-primary truncate" title={q.resource}>
                     {q.resource || '(empty)'}
                   </div>
                 </td>
-                <td className="py-2.5 px-3 text-right font-mono tabular-nums text-gray-200">
+                <td className="py-2.5 px-3 text-right font-mono tabular-nums text-text-primary">
                   {formatNumber(q.frequency)}
                 </td>
-                <td className="py-2.5 px-3 text-right font-mono tabular-nums text-gray-200">
+                <td className="py-2.5 px-3 text-right font-mono tabular-nums text-text-primary">
                   {q.avg_latency_ms.toFixed(2)} ms
                 </td>
-                <td className="py-2.5 px-3 text-right font-mono tabular-nums text-gray-200">
+                <td className="py-2.5 px-3 text-right font-mono tabular-nums text-text-primary">
                   {q.p95_latency_ms.toFixed(2)} ms
                 </td>
                 <td className="py-2.5 px-3 text-right">
                   {q.error_count > 0 ? (
                     <span className="font-mono tabular-nums text-danger">{q.error_count}</span>
                   ) : (
-                    <span className="font-mono tabular-nums text-gray-600">0</span>
+                    <span className="font-mono tabular-nums text-text-muted">0</span>
                   )}
                 </td>
                 <td className="py-2.5 px-3">
@@ -291,7 +291,7 @@ function QueriesTable({ queries }: { queries: DbQueryInfo[] }) {
                         {s}
                       </Link>
                     ))}
-                    {q.services.length > 3 && <span className="text-[10px] text-gray-500">+{q.services.length - 3}</span>}
+                    {q.services.length > 3 && <span className="text-[10px] text-text-muted">+{q.services.length - 3}</span>}
                   </div>
                 </td>
               </tr>
@@ -300,7 +300,7 @@ function QueriesTable({ queries }: { queries: DbQueryInfo[] }) {
         </table>
       </div>
       {sorted.length === 0 && (
-        <div className="p-8 text-center text-gray-500 text-[12px]">No queries found</div>
+        <div className="p-8 text-center text-text-muted text-[12px]">No queries found</div>
       )}
     </div>
   );
@@ -311,17 +311,17 @@ function QueriesTable({ queries }: { queries: DbQueryInfo[] }) {
 function SlowQueriesPanel({ queries, thresholdMs }: { queries: SlowQueryInfo[]; thresholdMs: number }) {
   return (
     <div className="glass-panel">
-      <div className="flex items-center justify-between p-4 border-b border-white/5">
-        <h3 className="text-sm font-semibold text-gray-200 flex items-center gap-2">
+      <div className="flex items-center justify-between p-4 border-b border-border">
+        <h3 className="text-sm font-semibold text-text-primary flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-warning" />
           Slow Queries
-          <span className="text-[10px] text-gray-500 font-normal">&gt; P95 ({thresholdMs.toFixed(0)} ms)</span>
+          <span className="text-[10px] text-text-muted font-normal">&gt; P95 ({thresholdMs.toFixed(0)} ms)</span>
         </h3>
         <span className="badge badge-danger font-mono text-[10px]">{queries.length}</span>
       </div>
 
       {queries.length === 0 ? (
-        <div className="p-8 text-center text-gray-600 text-[12px]">
+        <div className="p-8 text-center text-text-muted text-[12px]">
           <Clock className="w-5 h-5 mx-auto mb-2 opacity-40" />
           No slow queries in this time range
         </div>
@@ -332,7 +332,7 @@ function SlowQueriesPanel({ queries, thresholdMs }: { queries: SlowQueryInfo[]; 
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${q.error ? 'bg-danger' : 'bg-warning'}`} />
-                  <span className="text-[12px] font-mono text-gray-400">{q.service}</span>
+                  <span className="text-[12px] font-mono text-text-secondary">{q.service}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-[12px] font-mono tabular-nums text-warning font-semibold">
@@ -343,10 +343,10 @@ function SlowQueriesPanel({ queries, thresholdMs }: { queries: SlowQueryInfo[]; 
                   </Link>
                 </div>
               </div>
-              <p className="text-[11px] font-mono text-gray-500 truncate" title={q.resource}>
+              <p className="text-[11px] font-mono text-text-muted truncate" title={q.resource}>
                 {q.resource || '(empty)'}
               </p>
-              <p className="text-[10px] text-gray-600 mt-1">
+              <p className="text-[10px] text-text-muted mt-1">
                 {new Date(q.timestamp_ms).toLocaleTimeString()}
               </p>
             </div>
@@ -362,8 +362,8 @@ function SlowQueriesPanel({ queries, thresholdMs }: { queries: SlowQueryInfo[]; 
 function ServicesTable({ services }: { services: DbServiceInfo[] }) {
   return (
     <div className="glass-panel">
-      <div className="p-4 border-b border-white/5">
-        <h3 className="text-sm font-semibold text-gray-200 flex items-center gap-2">
+      <div className="p-4 border-b border-border">
+        <h3 className="text-sm font-semibold text-text-primary flex items-center gap-2">
           <Server className="w-4 h-4 text-brand-light" />
           Connected Services
         </h3>
@@ -371,7 +371,7 @@ function ServicesTable({ services }: { services: DbServiceInfo[] }) {
       <div className="overflow-x-auto">
         <table className="w-full text-[12px]">
           <thead>
-            <tr className="border-b border-white/5 text-gray-500 uppercase tracking-wider">
+            <tr className="border-b border-border text-text-muted uppercase tracking-wider">
               <th className="text-left py-2.5 px-4 font-medium">Service</th>
               <th className="text-right py-2.5 px-3 font-medium">Queries</th>
               <th className="text-right py-2.5 px-3 font-medium">Errors</th>
@@ -388,22 +388,22 @@ function ServicesTable({ services }: { services: DbServiceInfo[] }) {
                     {s.service}
                   </Link>
                 </td>
-                <td className="py-2.5 px-3 text-right font-mono tabular-nums text-gray-200">{formatNumber(s.query_count)}</td>
+                <td className="py-2.5 px-3 text-right font-mono tabular-nums text-text-primary">{formatNumber(s.query_count)}</td>
                 <td className="py-2.5 px-3 text-right font-mono tabular-nums">
-                  {s.error_count > 0 ? <span className="text-danger">{s.error_count}</span> : <span className="text-gray-600">0</span>}
+                  {s.error_count > 0 ? <span className="text-danger">{s.error_count}</span> : <span className="text-text-muted">0</span>}
                 </td>
                 <td className="py-2.5 px-3 text-right font-mono tabular-nums">
-                  <span className={s.error_rate > 5 ? 'text-danger' : s.error_rate > 1 ? 'text-warning' : 'text-gray-400'}>{s.error_rate.toFixed(1)}%</span>
+                  <span className={s.error_rate > 5 ? 'text-danger' : s.error_rate > 1 ? 'text-warning' : 'text-text-secondary'}>{s.error_rate.toFixed(1)}%</span>
                 </td>
-                <td className="py-2.5 px-3 text-right font-mono tabular-nums text-gray-200">{s.avg_latency_ms.toFixed(2)} ms</td>
-                <td className="py-2.5 px-3 text-right font-mono tabular-nums text-gray-200">{s.p95_latency_ms.toFixed(2)} ms</td>
+                <td className="py-2.5 px-3 text-right font-mono tabular-nums text-text-primary">{s.avg_latency_ms.toFixed(2)} ms</td>
+                <td className="py-2.5 px-3 text-right font-mono tabular-nums text-text-primary">{s.p95_latency_ms.toFixed(2)} ms</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       {services.length === 0 && (
-        <div className="p-8 text-center text-gray-500 text-[12px]">No services found</div>
+        <div className="p-8 text-center text-text-muted text-[12px]">No services found</div>
       )}
     </div>
   );
@@ -486,7 +486,7 @@ export default function DatabaseMonitoring() {
             <Database className="w-5 h-5 text-brand-light" />
             Database Monitoring
           </h1>
-          <p className="text-[13px] text-gray-400 mt-1">
+          <p className="text-[13px] text-text-secondary mt-1">
             Query performance and health metrics derived from distributed traces.
           </p>
         </div>
@@ -498,7 +498,7 @@ export default function DatabaseMonitoring() {
               className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all ${
                 timeRange === t
                   ? 'bg-brand/20 text-brand-light border border-brand/30'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-white/5 border border-transparent'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-surface-light border border-transparent'
               }`}
             >
               {t}
@@ -512,10 +512,10 @@ export default function DatabaseMonitoring() {
           <Loader2 className="w-6 h-6 animate-spin text-brand-light" />
         </div>
       ) : databases.length === 0 ? (
-        <div className="glass-panel p-12 text-center border-dashed border-2 border-white/10 bg-transparent">
-          <Database className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-          <h3 className="text-sm font-semibold mb-1 text-gray-300">No database operations detected</h3>
-          <p className="text-[11px] text-gray-500">Database queries will appear here once services produce postgresql.query or redis.query spans.</p>
+        <div className="glass-panel p-12 text-center border-dashed border-2 border-border bg-transparent">
+          <Database className="w-10 h-10 text-text-muted mx-auto mb-3" />
+          <h3 className="text-sm font-semibold mb-1 text-text-primary">No database operations detected</h3>
+          <p className="text-[11px] text-text-muted">Database queries will appear here once services produce postgresql.query or redis.query spans.</p>
         </div>
       ) : (
         <>

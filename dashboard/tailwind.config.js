@@ -16,25 +16,25 @@ export default {
           light: '#F3ECFB',
           glow: 'rgba(99, 44, 166, 0.15)',
         },
-        // Backgrounds (Datadog Dark Mode)
-        background: '#151821',
+        // Backgrounds (Datadog Theme)
+        background: 'var(--color-bg-base)',
         surface: {
-          DEFAULT: '#1E2130',
-          light: '#2A2E3F',
-          dark: '#141428',
+          DEFAULT: 'var(--color-bg-surface)',
+          light: 'var(--color-bg-surface-light)',
+          dark: 'var(--color-bg-base)', // Reused for deep spots
         },
         // Typography (Datadog Hierarchy)
         text: {
-          primary: '#1A1A1A',
-          inverse: '#E6E8EB',
-          secondary: '#5F6B7A',
-          muted: '#8A94A6',
+          primary: 'var(--color-text-primary)',
+          inverse: 'var(--color-text-inverse)',
+          secondary: 'var(--color-text-secondary)',
+          muted: 'var(--color-text-muted)',
         },
         // Borders (Datadog Subtlety)
         border: {
-          DEFAULT: '#E5E8EC',
-          strong: '#D0D5DD',
-          dark: '#2A2E3F',
+          DEFAULT: 'var(--color-border)',
+          strong: 'var(--color-text-muted)',
+          dark: 'var(--color-border)',
         },
         // Semantic (Status Colors)
         primary: '#632CA6',
@@ -44,10 +44,10 @@ export default {
         info: '#3B82F6',
         // Sidebar Overrides
         sidebar: {
-          bg: '#1E2130',
-          hover: '#2A2E3F',
+          bg: 'var(--color-bg-surface)',
+          hover: 'var(--color-bg-surface-light)',
           active: 'rgba(99, 44, 166, 0.2)',
-          border: '#2A2E3F',
+          border: 'var(--color-border)',
         },
       },
       fontFamily: {

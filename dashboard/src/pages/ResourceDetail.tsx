@@ -52,30 +52,32 @@ export default function ResourceDetail() {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
-        <Link to="/apm" className="hover:text-white transition-colors">APM</Link>
+      <div className="flex items-center gap-2 text-sm text-text-secondary mb-6">
+        <Link to="/apm" className="hover:text-text-primary transition-colors">APM</Link>
         <ChevronRight className="w-3 h-3" />
-        <Link to={`/apm/services/${name}`} className="hover:text-white transition-colors">{name}</Link>
+        <Link to={`/apm/services/${name}`} className="hover:text-text-primary transition-colors">{name}</Link>
         <ChevronRight className="w-3 h-3" />
-        <span className="text-white font-semibold">{decodedResource}</span>
+        <span className="text-text-primary font-semibold">{decodedResource}</span>
       </div>
 
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
-        <Link to={`/apm/services/${name}`} className="p-2 hover:bg-white/5 rounded-lg text-gray-400 hover:text-white transition-colors">
+        <Link to={`/apm/services/${name}`} className="p-2 hover:bg-surface-light rounded-lg text-text-secondary hover:text-text-primary transition-colors">
           <ArrowLeft size={20} />
         </Link>
         <div className="flex-1">
           <h1 className="text-2xl font-extrabold tracking-tight">{decodedResource}</h1>
-          <p className="text-gray-400 text-sm mt-1">Service: {name}</p>
+          <p className="text-text-secondary text-sm mt-1">Service: {name}</p>
         </div>
-        <div className="flex gap-1 bg-surface/50 rounded-lg p-1 border border-white/10">
+        <div className="px-6 border-b border-border">
+        <div className="flex gap-1 bg-surface rounded-lg p-1 border border-border w-fit max-w-full overflow-x-auto no-scrollbar">
           {['1h', '6h', '24h'].map(t => (
             <button key={t} onClick={() => setTimeRange(t)}
-              className={`px-3 py-1 text-xs rounded font-bold transition-all ${timeRange === t ? 'bg-primary text-white' : 'text-gray-400 hover:text-white'}`}>
+              className={`px-3 py-1 text-xs rounded font-bold transition-all ${timeRange === t ? 'bg-primary text-text-inverse' : 'text-text-secondary hover:text-text-primary'}`}>
               {t}
             </button>
           ))}
+        </div>
         </div>
       </div>
 
@@ -92,7 +94,7 @@ export default function ResourceDetail() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <div className="glass-panel p-4 shadow-xl">
-          <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Request Rate</h3>
+          <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider mb-3">Request Rate</h3>
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={chartData}>
               <defs><linearGradient id="rReqGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/><stop offset="95%" stopColor="#6366f1" stopOpacity={0}/></linearGradient></defs>
@@ -106,7 +108,7 @@ export default function ResourceDetail() {
         </div>
 
         <div className="glass-panel p-4 shadow-xl">
-          <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Error Rate</h3>
+          <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider mb-3">Error Rate</h3>
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={chartData}>
               <defs><linearGradient id="rErrGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#ef4444" stopOpacity={0.4}/><stop offset="95%" stopColor="#ef4444" stopOpacity={0}/></linearGradient></defs>
@@ -120,7 +122,7 @@ export default function ResourceDetail() {
         </div>
 
         <div className="glass-panel p-4 shadow-xl">
-          <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Latency (ms)</h3>
+          <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider mb-3">Latency (ms)</h3>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
@@ -141,12 +143,12 @@ export default function ResourceDetail() {
           <Activity className="w-5 h-5 text-amber-400" /> Trace Samples
         </h2>
         {traces.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">No traces found for this resource.</p>
+          <p className="text-text-muted text-center py-8">No traces found for this resource.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-gray-400 border-b border-white/10">
+                <tr className="text-left text-text-secondary border-b border-border">
                   <th className="pb-3 font-semibold">Trace ID</th>
                   <th className="pb-3 font-semibold text-right">Duration</th>
                   <th className="pb-3 font-semibold text-right">Spans</th>
@@ -158,16 +160,16 @@ export default function ResourceDetail() {
                 {traces.map(t => (
                   <tr key={t.trace_id}
                     onClick={() => navigate(`/traces/${t.trace_id}`)}
-                    className="border-b border-white/5 hover:bg-white/5 cursor-pointer transition-colors">
-                    <td className="py-3 font-mono text-xs text-gray-300">{t.trace_id.slice(0, 16)}...</td>
+                    className="border-b border-border hover:bg-surface-light cursor-pointer transition-colors">
+                    <td className="py-3 font-mono text-xs text-text-primary">{t.trace_id.slice(0, 16)}...</td>
                     <td className="py-3 text-right font-mono text-amber-400">{t.duration_ms.toFixed(1)}ms</td>
-                    <td className="py-3 text-right font-mono text-gray-400">{t.span_count}</td>
+                    <td className="py-3 text-right font-mono text-text-secondary">{t.span_count}</td>
                     <td className="py-3">
                       <span className={`px-2 py-0.5 rounded text-xs font-bold ${t.error ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
                         {t.error ? 'ERROR' : 'OK'}
                       </span>
                     </td>
-                    <td className="py-3 text-gray-500 text-xs">{new Date(t.timestamp).toLocaleString()}</td>
+                    <td className="py-3 text-text-muted text-xs">{new Date(t.timestamp).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>
@@ -180,10 +182,10 @@ export default function ResourceDetail() {
 }
 
 function StatCard({ label, value, accent }: { label: string; value: string; accent?: 'red' | 'green' }) {
-  const color = accent === 'red' ? 'text-red-400' : accent === 'green' ? 'text-emerald-400' : 'text-white';
+  const color = accent === 'red' ? 'text-red-400' : accent === 'green' ? 'text-emerald-400' : 'text-text-primary';
   return (
     <div className="glass-panel p-4">
-      <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{label}</p>
+      <p className="text-xs text-text-secondary uppercase tracking-wider mb-1">{label}</p>
       <p className={`text-xl font-bold font-mono ${color}`}>{value}</p>
     </div>
   );

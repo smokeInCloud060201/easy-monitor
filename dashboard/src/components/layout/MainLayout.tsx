@@ -6,7 +6,7 @@ export function MainLayout() {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-background text-gray-100 font-sans">
+    <div className="flex h-screen w-screen overflow-hidden bg-background text-text-primary font-sans">
       <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Main content */}

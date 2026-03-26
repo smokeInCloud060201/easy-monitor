@@ -49,28 +49,28 @@ const ServiceCard = memo(function ServiceCard({ service }: { service: string }) 
         
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <Server className="w-5 h-5 text-gray-400 group-hover:text-brand-light transition-colors" />
+            <Server className="w-5 h-5 text-text-secondary group-hover:text-brand-light transition-colors" />
             <h3 className="text-sm font-bold">{service}</h3>
           </div>
           <div className="flex items-center gap-2">
             {!isHealthy && <Activity className="w-4 h-4 text-danger animate-pulse" />}
-            <ChevronRight className="w-4 h-4 text-gray-600 group-hover:text-brand-light transition-colors" />
+            <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-brand-light transition-colors" />
           </div>
         </div>
         
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-gray-500 text-[11px] uppercase tracking-wider mb-1">Reqs / sec</p>
-            <p className="text-lg font-mono tabular-nums text-gray-100">{metrics.rate.toFixed(1)}</p>
+            <p className="text-text-muted text-[11px] uppercase tracking-wider mb-1">Reqs / sec</p>
+            <p className="text-lg font-mono tabular-nums text-text-primary">{metrics.rate.toFixed(1)}</p>
           </div>
           <div>
-            <p className="text-gray-500 text-[11px] uppercase tracking-wider mb-1">Avg Latency</p>
-            <p className="text-lg font-mono tabular-nums text-gray-100">{avgLatency.toFixed(2)} ms</p>
+            <p className="text-text-muted text-[11px] uppercase tracking-wider mb-1">Avg Latency</p>
+            <p className="text-lg font-mono tabular-nums text-text-primary">{avgLatency.toFixed(2)} ms</p>
           </div>
           <div className="col-span-2 mt-2">
-            <p className="text-gray-500 text-[11px] uppercase tracking-wider mb-1">Error Rate ({errorRate.toFixed(1)}%)</p>
+            <p className="text-text-muted text-[11px] uppercase tracking-wider mb-1">Error Rate ({errorRate.toFixed(1)}%)</p>
             <div className="flex items-center gap-2">
-              <div className="flex-1 h-2 bg-black/40 rounded-full overflow-hidden shadow-inner">
+              <div className="flex-1 h-2 bg-surface-light rounded-full overflow-hidden shadow-inner">
                 <div 
                   className={`h-full transition-all duration-1000 ${isHealthy ? 'bg-success' : 'bg-danger'}`} 
                   style={{ width: `${Math.min(errorRate, 100)}%` }}
@@ -99,7 +99,7 @@ export default function APMCatalog() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="page-title">Service Catalog</h1>
-          <p className="text-[13px] text-gray-400 mt-1">Real-time RED metrics driven by distributed trace analysis.</p>
+          <p className="text-[13px] text-text-secondary mt-1">Real-time RED metrics driven by distributed trace analysis.</p>
         </div>
         <div className="flex gap-3 items-center">
           <Link to="/traces" className="text-[13px] text-brand-light hover:underline">View all traces →</Link>
@@ -112,10 +112,10 @@ export default function APMCatalog() {
            <Loader2 className="w-6 h-6 animate-spin text-brand-light" />
         </div>
       ) : services.length === 0 ? (
-        <div className="glass-panel p-12 text-center border-dashed border-2 border-white/10 bg-transparent">
-          <Server className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-          <h3 className="text-sm font-semibold mb-1 text-gray-300">No telemetry indexed</h3>
-          <p className="text-[11px] text-gray-500">Ensure application spans are being sent to the APM ingestion endpoint.</p>
+        <div className="glass-panel p-12 text-center border-dashed border-2 border-border bg-transparent">
+          <Server className="w-10 h-10 text-text-muted mx-auto mb-3" />
+          <h3 className="text-sm font-semibold mb-1 text-text-primary">No telemetry indexed</h3>
+          <p className="text-[11px] text-text-muted">Ensure application spans are being sent to the APM ingestion endpoint.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

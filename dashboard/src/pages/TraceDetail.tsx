@@ -24,6 +24,16 @@ export function TraceDetail() {
   const [loading, setLoading] = useState(true);
   const [activeSpan, setActiveSpan] = useState<SpanResponse | null>(null);
   const [showMetadata, setShowMetadata] = useState(false);
+  const [expandedLogIndices, setExpandedLogIndices] = useState<Set<number>>(new Set());
+
+  const handleToggleLog = (index: number) => {
+    setExpandedLogIndices(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!traceId) return;
@@ -45,7 +55,7 @@ export function TraceDetail() {
   }, [traceId]);
 
   if (loading) {
-    return <div className="flex-1 flex items-center justify-center text-gray-500 bg-gray-950">Loading trace data...</div>;
+    return <div className="flex-1 flex items-center justify-center text-text-muted bg-background">Loading trace data...</div>;
   }
 
   const uniqueServices = [...new Set(spans.map(s => s.service))];
@@ -63,14 +73,14 @@ export function TraceDetail() {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-gray-950 text-gray-200 overflow-hidden">
+    <div className="flex-1 flex flex-col h-full bg-background text-text-primary overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-800 bg-gray-900 flex items-center gap-4 flex-shrink-0 z-20 shadow-sm">
-        <Link to="/traces" className="p-2 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white transition-colors">
+      <div className="px-6 py-4 border-b border-border bg-surface flex items-center gap-4 flex-shrink-0 z-20 shadow-sm">
+        <Link to="/traces" className="p-2 hover:bg-surface-light rounded-lg text-text-secondary hover:text-text-primary transition-colors">
           <ArrowLeft size={20} />
         </Link>
         <div className="flex-1">
-          <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-3">
+          <h1 className="text-xl font-bold text-text-primary tracking-tight flex items-center gap-3">
             Trace View
             <span className="text-sm font-normal text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">{traceId}</span>
             {hasErrors && (
@@ -79,7 +89,7 @@ export function TraceDetail() {
               </span>
             )}
           </h1>
-          <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
+          <div className="flex items-center gap-4 mt-1 text-xs text-text-muted">
             <span>{spans.length} spans</span>
             <span>{rootSpan?.service}</span>
             <span>{rootSpan?.name}</span>
@@ -91,7 +101,7 @@ export function TraceDetail() {
         {/* Service Legend */}
         <div className="flex gap-2 flex-wrap">
           {uniqueServices.map(svc => (
-            <span key={svc} className="flex items-center gap-1 text-xs text-gray-400">
+            <span key={svc} className="flex items-center gap-1 text-xs text-text-secondary">
               <span className="w-2 h-2 rounded-full" style={{ background: getServiceColor(svc, uniqueServices) }} />
               {svc}
             </span>
@@ -102,7 +112,7 @@ export function TraceDetail() {
       {/* Body: Waterfall + Optional Metadata Panel */}
       <div className="flex-1 flex overflow-hidden">
         {/* Waterfall Pane */}
-        <div className={`${showMetadata ? 'w-2/3' : 'w-full'} h-[60vh] border-b border-gray-800 bg-gray-950 relative transition-all`}>
+        <div className={`${showMetadata ? 'w-2/3' : 'w-full'} h-[60vh] border-b border-border bg-background relative transition-all`}>
           <SpanWaterfall 
             spans={spans} 
             onSpanClick={handleSpanClick} 
@@ -112,10 +122,10 @@ export function TraceDetail() {
 
         {/* Metadata Panel */}
         {showMetadata && activeSpan && (
-          <div className="w-1/3 h-[60vh] border-l border-gray-800 bg-gray-900 overflow-auto animate-in slide-in-from-right duration-200">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800 bg-gray-900 sticky top-0 z-10">
-              <h3 className="font-bold text-sm text-white">Span Details</h3>
-              <button onClick={() => setShowMetadata(false)} className="p-1 hover:bg-gray-800 rounded text-gray-400 hover:text-white">
+          <div className="w-1/3 h-[60vh] border-l border-border bg-surface overflow-auto animate-in slide-in-from-right duration-200">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface sticky top-0 z-10">
+              <h3 className="font-bold text-sm text-text-primary">Span Details</h3>
+              <button onClick={() => setShowMetadata(false)} className="p-1 hover:bg-surface-light rounded text-text-secondary hover:text-text-primary">
                 <X size={16} />
               </button>
             </div>
@@ -143,19 +153,23 @@ export function TraceDetail() {
 
       {/* Logs Pane */}
       <div className="h-[40vh] flex flex-col bg-black relative shadow-[inset_0_10px_20px_rgba(0,0,0,0.5)]">
-        <div className="px-4 py-2 border-b border-gray-800 bg-gray-900 flex items-center justify-between text-xs font-semibold text-gray-400 tracking-wider">
+        <div className="px-4 py-2 border-b border-border bg-surface flex items-center justify-between text-xs font-semibold text-text-secondary tracking-wider">
           <span>Correlated Logs {activeSpan ? `for ${activeSpan.service}` : `for entire trace`} ({filteredLogs.length})</span>
           {activeSpan && (
             <button 
               onClick={() => { setActiveSpan(null); setShowMetadata(false); }}
-              className="px-2 py-1 hover:bg-gray-800 rounded text-gray-300 uppercase tracking-widest text-[10px]"
+              className="px-2 py-1 hover:bg-surface-light rounded text-text-primary uppercase tracking-widest text-[10px]"
             >
               Clear Filter
             </button>
           )}
         </div>
         <div className="flex-1 overflow-hidden">
-          <LogViewer logs={filteredLogs} />
+          <LogViewer 
+            logs={filteredLogs} 
+            expandedLogIndices={expandedLogIndices}
+            onToggleLog={handleToggleLog}
+          />
         </div>
       </div>
     </div>
@@ -165,10 +179,10 @@ export function TraceDetail() {
 function DetailRow({ icon, label, value, color }: { icon?: React.ReactNode; label: string; value: string; color?: string }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-gray-500 text-xs uppercase tracking-wider flex items-center gap-1">
+      <span className="text-text-muted text-xs uppercase tracking-wider flex items-center gap-1">
         {icon} {label}
       </span>
-      <span className="font-mono text-gray-200 break-all" style={color ? { color } : undefined}>
+      <span className="font-mono text-text-primary break-all" style={color ? { color } : undefined}>
         {value}
       </span>
     </div>

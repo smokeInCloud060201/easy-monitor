@@ -49,18 +49,18 @@ export function ServiceMap() {
   const selectedNodeData = nodes.find(n => n.service === selectedNode) || null;
 
   return (
-    <div className="flex flex-col h-full bg-gray-950 overflow-hidden">
+    <div className="flex flex-col h-full bg-background overflow-hidden">
       {/* Top Bar */}
-      <div className="px-4 py-3 flex items-center gap-3 border-b border-gray-800 bg-gray-950 z-10 flex-shrink-0">
+      <div className="px-4 py-3 flex items-center gap-3 border-b border-border bg-background z-10 flex-shrink-0">
         <div className="flex items-center gap-2 flex-shrink-0">
           <Network size={20} className="text-blue-400" />
-          <h1 className="text-lg font-bold text-white tracking-tight">Service Map</h1>
+          <h1 className="text-lg font-bold text-text-primary tracking-tight">Service Map</h1>
         </div>
 
         <div className="flex-1" />
 
         {/* Time Range */}
-        <div className="flex bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
+        <div className="flex bg-surface rounded-lg border border-border overflow-hidden">
           {TIME_RANGES.map(tr => (
             <button
               key={tr.value}
@@ -68,7 +68,7 @@ export function ServiceMap() {
               className={`px-3 py-1.5 text-xs transition-colors ${
                 timeRange === tr.value
                   ? 'bg-blue-500/20 text-blue-400 font-medium'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-surface-light'
               }`}
             >
               {tr.label}
@@ -82,7 +82,7 @@ export function ServiceMap() {
           className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
             autoRefresh
               ? 'bg-green-500/10 border-green-500/30 text-green-400'
-              : 'bg-gray-900 border-gray-800 text-gray-500 hover:text-gray-300'
+              : 'bg-surface border-border text-text-muted hover:text-text-primary'
           }`}
         >
           {autoRefresh ? '● Live' : '○ Live'}
@@ -90,16 +90,16 @@ export function ServiceMap() {
 
         <button
           onClick={loadData}
-          className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+          className="p-2 text-text-secondary hover:text-text-primary hover:bg-surface-light rounded-lg transition-colors"
           title="Refresh"
         >
           {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCcw size={16} />}
         </button>
 
         {/* Stats */}
-        <div className="flex items-center gap-2 text-xs text-gray-500 flex-shrink-0">
-          <span className="bg-gray-800 rounded px-2 py-1 tabular-nums">{nodes.length} nodes</span>
-          <span className="bg-gray-800 rounded px-2 py-1 tabular-nums">{edges.length} edges</span>
+        <div className="flex items-center gap-2 text-xs text-text-muted flex-shrink-0">
+          <span className="bg-surface-light rounded px-2 py-1 tabular-nums">{nodes.length} nodes</span>
+          <span className="bg-surface-light rounded px-2 py-1 tabular-nums">{edges.length} edges</span>
         </div>
       </div>
 
@@ -115,14 +115,14 @@ export function ServiceMap() {
               selectedNode={selectedNode}
             />
           ) : (
-            <div className="h-full flex items-center justify-center text-gray-500 flex-col gap-3">
+            <div className="h-full flex items-center justify-center text-text-muted flex-col gap-3">
               {loading ? (
                 <Loader2 size={32} className="animate-spin text-blue-400" />
               ) : (
                 <>
-                  <Network size={48} className="text-gray-700" />
+                  <Network size={48} className="text-text-secondary" />
                   <span className="text-sm">No service topology data available</span>
-                  <span className="text-xs text-gray-600">Start your services and send some traffic</span>
+                  <span className="text-xs text-text-muted">Start your services and send some traffic</span>
                 </>
               )}
             </div>
@@ -141,12 +141,12 @@ export function ServiceMap() {
       </div>
 
       {/* Legend */}
-      <div className="px-4 py-2 border-t border-gray-800 flex items-center gap-4 text-[10px] text-gray-500 flex-shrink-0">
+      <div className="px-4 py-2 border-t border-border flex items-center gap-4 text-[10px] text-text-muted flex-shrink-0">
         <span className="font-semibold uppercase tracking-wider">Legend:</span>
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500" /> Healthy</span>
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500" /> Warning</span>
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500" /> Error</span>
-        <span className="mx-2 text-gray-700">|</span>
+        <span className="mx-2 text-text-secondary">|</span>
         <span>→ Request flow</span>
         <span className="text-red-400">→ High error rate</span>
       </div>

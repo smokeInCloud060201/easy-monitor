@@ -11,8 +11,8 @@ export function LatencyDistributionChart({ data }: LatencyDistributionChartProps
   if (!data.buckets.length) {
     return (
       <div className="glass-panel p-6">
-        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Latency Distribution</h3>
-        <div className="h-[160px] flex items-center justify-center text-gray-500 text-sm">No latency data</div>
+        <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider mb-3">Latency Distribution</h3>
+        <div className="h-[160px] flex items-center justify-center text-text-muted text-sm">No latency data</div>
       </div>
     );
   }
@@ -25,7 +25,7 @@ export function LatencyDistributionChart({ data }: LatencyDistributionChartProps
 
   return (
     <div className="glass-panel p-4 shadow-xl">
-      <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Latency Distribution</h3>
+      <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider mb-3">Latency Distribution</h3>
       
       <ResponsiveContainer width="100%" height={160}>
         <BarChart data={chartData} barCategoryGap="15%">
@@ -33,8 +33,9 @@ export function LatencyDistributionChart({ data }: LatencyDistributionChartProps
           <YAxis tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} width={40} />
           <Tooltip
             contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, fontSize: 12 }}
+            labelStyle={{ color: 'var(--color-text-secondary)', fontSize: 11 }}
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            formatter={(value: number, _name: string, props: any) => [
+            formatter={(value: any, _name: any, props: any) => [
               `${value.toLocaleString()} (${props.payload.percentage.toFixed(1)}%)`,
               'Requests'
             ]}
@@ -48,12 +49,12 @@ export function LatencyDistributionChart({ data }: LatencyDistributionChartProps
       </ResponsiveContainer>
 
       {/* Percentile Pills */}
-      <div className="flex items-center gap-3 mt-3 pt-3 border-t border-white/10">
+      <div className="flex items-center gap-3 mt-3 pt-3 border-t border-border">
         <PercentilePill label="P50" value={data.p50_ms} color="text-green-400" />
         <PercentilePill label="P90" value={data.p90_ms} color="text-yellow-400" />
         <PercentilePill label="P95" value={data.p95_ms} color="text-orange-400" />
         <PercentilePill label="P99" value={data.p99_ms} color="text-red-400" />
-        <span className="ml-auto text-[10px] text-gray-600">{data.total_requests.toLocaleString()} total</span>
+        <span className="ml-auto text-[10px] text-text-muted">{data.total_requests.toLocaleString()} total</span>
       </div>
     </div>
   );
@@ -61,8 +62,8 @@ export function LatencyDistributionChart({ data }: LatencyDistributionChartProps
 
 function PercentilePill({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <div className="flex items-center gap-1.5 bg-white/5 rounded-lg px-2.5 py-1">
-      <span className="text-[10px] text-gray-500 font-semibold">{label}</span>
+    <div className="flex items-center gap-1.5 bg-surface-light rounded-lg px-2.5 py-1">
+      <span className="text-[10px] text-text-muted font-semibold">{label}</span>
       <span className={`text-xs font-bold font-mono ${color}`}>{value.toFixed(1)}ms</span>
     </div>
   );

@@ -11,7 +11,7 @@ const levelColors: Record<string, string> = {
   ERROR: 'bg-red-500/20 text-red-400 border-red-500/40',
   WARN: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
   INFO: 'bg-blue-500/20 text-blue-400 border-blue-500/40',
-  DEBUG: 'bg-gray-500/20 text-gray-400 border-gray-500/40',
+  DEBUG: 'bg-surface-light text-text-secondary border-gray-500/40',
 };
 
 const getLevelName = (level: string) => {
@@ -43,7 +43,7 @@ export function LogDetailPanel({ log, onFilterByService }: LogDetailPanelProps) 
   const attrs = Object.entries(log.attributes || {});
 
   return (
-    <div className="bg-gray-900/40 pt-3 pb-5 px-6 w-full border-t border-gray-800/60 animate-in slide-in-from-top-1 duration-200">
+    <div className="bg-surface pt-3 pb-5 px-6 w-full border-t border-border animate-in slide-in-from-top-1 duration-200">
       {/* Action Buttons */}
       <div className="flex items-center justify-end gap-3 mb-4">
         {log.trace_id && (
@@ -57,7 +57,7 @@ export function LogDetailPanel({ log, onFilterByService }: LogDetailPanelProps) 
         )}
         <button
           onClick={copyLog}
-          className="flex items-center gap-1.5 text-[11px] font-medium text-gray-400 hover:text-gray-200 transition-colors bg-white/5 hover:bg-white/10 px-2.5 py-1.5 rounded"
+          className="flex items-center gap-1.5 text-[11px] font-medium text-text-muted hover:text-text-primary transition-colors bg-surface-light border border-border px-2.5 py-1.5 rounded"
         >
           <Copy size={12} />
           Copy JSON
@@ -76,9 +76,11 @@ export function LogDetailPanel({ log, onFilterByService }: LogDetailPanelProps) 
       {/* Fields Grid */}
       <div className="grid grid-cols-2 gap-x-6 gap-y-0 px-4 py-3">
         {fields.map(f => (
-          <div key={f.label} className="flex items-center py-1.5 border-b border-gray-800/50">
-            <span className="text-xs text-gray-500 font-mono w-24 flex-shrink-0">{f.label}</span>
-            <span className="text-xs text-gray-200 truncate flex-1">
+          <div key={f.label} className="flex gap-4 py-1.5 border-b border-border last:border-0 odd:last-of-type:col-span-2">
+            <span className="text-[11px] text-text-muted font-medium w-1/3 flex-shrink-0 mt-0.5 break-all">
+              {f.label}
+            </span>
+            <span className="text-xs text-text-primary font-mono whitespace-pre-wrap break-all flex-1">
               {f.isTraceLink ? (
                 <Link to={`/traces/${f.value}`} className="text-blue-400 hover:text-blue-300 underline underline-offset-2">
                   {f.value}
@@ -101,13 +103,13 @@ export function LogDetailPanel({ log, onFilterByService }: LogDetailPanelProps) 
 
       {/* Attributes */}
       {attrs.length > 0 && (
-        <div className="px-4 py-3 border-t border-gray-800">
-          <div className="text-xs text-gray-500 mb-2 font-semibold">Attributes</div>
+        <div className="px-4 py-3 border-t border-border">
+          <div className="text-xs text-text-muted mb-2 font-semibold">Attributes</div>
           <div className="grid grid-cols-2 gap-x-6 gap-y-0">
             {attrs.map(([key, val]) => (
-              <div key={key} className="flex items-center py-1 border-b border-gray-800/30">
-                <span className="text-xs text-gray-500 font-mono w-24 flex-shrink-0">{key}</span>
-                <span className="text-xs text-gray-300 font-mono truncate">{String(val)}</span>
+              <div key={key} className="flex items-center py-1 border-b border-border">
+                <span className="text-xs text-text-muted font-mono w-24 flex-shrink-0">{key}</span>
+                <span className="text-xs text-text-primary font-mono truncate">{String(val)}</span>
               </div>
             ))}
           </div>

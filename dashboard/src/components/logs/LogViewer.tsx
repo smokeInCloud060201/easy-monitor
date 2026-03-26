@@ -15,7 +15,7 @@ const levelColors: Record<string, { badge: string; border: string }> = {
   ERROR: { badge: 'bg-red-500/20 text-red-400', border: 'border-l-red-500' },
   WARN: { badge: 'bg-amber-500/20 text-amber-400', border: 'border-l-amber-500' },
   INFO: { badge: 'bg-blue-500/20 text-blue-400', border: 'border-l-blue-500' },
-  DEBUG: { badge: 'bg-gray-600/30 text-gray-500', border: 'border-l-gray-600' },
+  DEBUG: { badge: 'bg-surface-light text-text-muted', border: 'border-l-gray-600' },
 };
 
 const getLevelName = (level: string) => {
@@ -42,7 +42,7 @@ export function LogViewer({ logs, onLoadMore, expandedLogIndices, onToggleLog, o
 
   if (!logs || logs.length === 0) {
     return (
-      <div className="h-full flex items-center justify-center text-gray-500 flex-col gap-2">
+      <div className="h-full flex items-center justify-center text-text-muted flex-col gap-2">
         <span className="text-3xl">📭</span>
         <span className="text-sm">No logs found</span>
       </div>
@@ -64,14 +64,14 @@ export function LogViewer({ logs, onLoadMore, expandedLogIndices, onToggleLog, o
           <div>
             <div
               onClick={() => onToggleLog(index)}
-              className={`flex items-start gap-3 px-4 py-1.5 cursor-pointer border-l-2 transition-all font-mono text-sm ${colors.border} ${
+              className={`flex items-start gap-3 px-4 py-1.5 cursor-pointer border-l-2 transition-all font-mono text-sm ${
                 isExpanded
-                  ? 'bg-blue-500/10 border-b-0'
-                  : 'hover:bg-white/5 border-b border-b-gray-800/40 items-center'
+                  ? 'bg-brand-glow border-b-0'
+                  : 'hover:bg-surface-light border-b border-border items-center'
               }`}
             >
               {/* Timestamp */}
-              <span className="text-gray-500 text-xs w-[95px] flex-shrink-0 tabular-nums">
+              <span className="text-text-muted text-xs w-[95px] flex-shrink-0 tabular-nums">
                 {formatTime(log.timestamp)}
               </span>
 
@@ -86,7 +86,7 @@ export function LogViewer({ logs, onLoadMore, expandedLogIndices, onToggleLog, o
               </span>
 
               {/* Message */}
-              <span className={`text-gray-300 flex-1 text-xs break-all ${isExpanded ? 'whitespace-pre-wrap mt-0.5' : 'truncate'}`}>
+              <span className={`text-text-primary flex-1 text-xs break-all ${isExpanded ? 'whitespace-pre-wrap mt-0.5' : 'truncate'}`}>
                 {log.message}
               </span>
             </div>

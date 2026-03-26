@@ -141,7 +141,7 @@ function getStatusCodeColor(code: string): string {
   if (n >= 300 && n < 400) return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
   if (n >= 400 && n < 500) return 'text-amber-400 bg-amber-500/10 border-amber-500/30';
   if (n >= 500) return 'text-red-400 bg-red-500/10 border-red-500/30';
-  return 'text-gray-400 bg-gray-500/10 border-gray-500/30';
+  return 'text-text-secondary bg-surface-light border-gray-500/30';
 }
 
 // ─── Main Component ───
@@ -238,23 +238,23 @@ export function SpanDrawer({ isOpen, onClose, serviceName, resource, traces, loa
       />
 
       {/* Drawer */}
-      <div className="fixed top-0 right-0 h-full w-[70vw] max-w-[1400px] bg-gray-950 border-l border-gray-800 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300" style={{ zIndex: zIndex + 10 }}>
+      <div className="fixed top-0 right-0 h-full w-[70vw] max-w-[1400px] bg-background border-l border-border shadow-2xl flex flex-col animate-in slide-in-from-right duration-300" style={{ zIndex: zIndex + 10 }}>
         {/* ─── Header ─── */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800 bg-gray-900 flex-shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface flex-shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: getServiceColor(serviceName) }} />
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider flex-shrink-0">{serviceName}</span>
-            <span className="text-gray-700 flex-shrink-0">›</span>
+            <span className="text-xs font-bold text-text-muted uppercase tracking-wider flex-shrink-0">{serviceName}</span>
+            <span className="text-text-secondary flex-shrink-0">›</span>
             {method && (
-              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${methodColors[method] || 'bg-gray-500/20 text-gray-400'}`}>
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${methodColors[method] || 'bg-surface-light text-text-secondary'}`}>
                 {method}
               </span>
             )}
-            <span className="font-mono text-sm text-gray-200 truncate">{path}</span>
+            <span className="font-mono text-sm text-text-primary truncate">{path}</span>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white transition-colors flex-shrink-0"
+            className="p-2 hover:bg-surface-light rounded-lg text-text-secondary hover:text-text-primary transition-colors flex-shrink-0"
           >
             <X size={18} />
           </button>
@@ -264,8 +264,8 @@ export function SpanDrawer({ isOpen, onClose, serviceName, resource, traces, loa
         <div className="flex-1 flex overflow-hidden">
           {/* Left: Trace List (hidden in singleTraceMode) */}
           {!singleTraceMode && (
-          <div className="w-72 flex-shrink-0 border-r border-gray-800 bg-gray-900/50 flex flex-col">
-            <div className="px-4 py-3 border-b border-gray-800 text-xs font-bold text-gray-500 uppercase tracking-wider">
+          <div className="w-72 flex-shrink-0 border-r border-border bg-surface flex flex-col">
+            <div className="px-4 py-3 border-b border-border text-xs font-bold text-text-muted uppercase tracking-wider">
               Recent Traces ({traces.length})
             </div>
             <div className="flex-1 overflow-y-auto">
@@ -274,7 +274,7 @@ export function SpanDrawer({ isOpen, onClose, serviceName, resource, traces, loa
                   <Loader2 className="w-5 h-5 animate-spin text-primary" />
                 </div>
               ) : traces.length === 0 ? (
-                <p className="text-gray-600 text-xs text-center py-8">No recent traces.</p>
+                <p className="text-text-muted text-xs text-center py-8">No recent traces.</p>
               ) : (
                 <div className="divide-y divide-gray-800/50">
                   {traces.map(t => (
@@ -284,18 +284,18 @@ export function SpanDrawer({ isOpen, onClose, serviceName, resource, traces, loa
                       className={`px-4 py-3 cursor-pointer transition-colors ${
                         selectedTraceId === t.trace_id
                           ? 'bg-primary/10 border-l-2 border-l-primary'
-                          : 'hover:bg-white/5 border-l-2 border-l-transparent'
+                          : 'hover:bg-surface-light border-l-2 border-l-transparent'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-1.5">
-                        <span className="font-mono text-[11px] text-primary/80">{t.trace_id.slice(0, 12)}…</span>
+                        <span className="font-mono text-[11px] text-text-primary">{t.trace_id.slice(0, 12)}…</span>
                         {t.error && (
                           <span className="text-[10px] text-red-400 flex items-center gap-0.5">
                             <AlertTriangle size={10} /> ERR
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 text-[10px] text-gray-500">
+                      <div className="flex items-center gap-3 text-[10px] text-text-muted">
                         <span className="flex items-center gap-1">
                           <Clock size={10} /> {formatTimestamp(t.timestamp)}
                         </span>
@@ -320,16 +320,16 @@ export function SpanDrawer({ isOpen, onClose, serviceName, resource, traces, loa
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Trace summary bar */}
             {selectedTrace && (
-              <div className="px-5 py-3 bg-gray-900/80 border-b border-gray-800 flex items-center gap-6 text-xs text-gray-400 flex-shrink-0">
-                <span>Trace: <span className="text-primary font-mono">{selectedTrace.trace_id.slice(0, 16)}…</span></span>
-                <span>Duration: <span className="text-white font-bold">{formatDuration(selectedTrace.duration_ms)}</span></span>
-                <span>Spans: <span className="text-white font-bold">{selectedTrace.span_count}</span></span>
+              <div className="px-5 py-3 bg-surface border-b border-border flex items-center gap-6 text-xs text-text-secondary flex-shrink-0">
+                <span>Trace: <span className="text-text-primary font-mono font-bold">{selectedTrace.trace_id.slice(0, 16)}…</span></span>
+                <span>Duration: <span className="text-text-primary font-bold">{formatDuration(selectedTrace.duration_ms)}</span></span>
+                <span>Spans: <span className="text-text-primary font-bold">{selectedTrace.span_count}</span></span>
                 <span>{formatTimestamp(selectedTrace.timestamp)}</span>
               </div>
             )}
 
             {/* Table Header */}
-            <div className="flex items-center px-5 py-2.5 bg-gray-900 border-b border-gray-800 text-[10px] font-bold text-gray-500 uppercase tracking-widest flex-shrink-0">
+            <div className="flex items-center px-5 py-2.5 bg-surface border-b border-border text-[10px] font-bold text-text-muted uppercase tracking-widest flex-shrink-0">
               <div className="flex-1 min-w-0">Service / Operation</div>
               <div className="w-[90px] text-right">Duration</div>
               <div className="w-[90px] text-right">Exec Time</div>
@@ -343,7 +343,7 @@ export function SpanDrawer({ isOpen, onClose, serviceName, resource, traces, loa
                   <Loader2 className="w-6 h-6 animate-spin text-primary" />
                 </div>
               ) : flatNodes.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-gray-600">
+                <div className="flex flex-col items-center justify-center py-16 text-text-muted">
                   <Layers className="w-8 h-8 mb-2 opacity-40" />
                   <p className="text-sm">Select a trace to view spans</p>
                 </div>
@@ -359,14 +359,14 @@ export function SpanDrawer({ isOpen, onClose, serviceName, resource, traces, loa
                     <div
                       key={`${node.span_id}-${i}`}
                       onClick={() => setSelectedSpan(isSelected ? null : node)}
-                      className={`flex items-center px-5 py-2 border-b border-gray-800/30 hover:bg-white/[0.03] transition-colors cursor-pointer group ${
+                      className={`flex items-center px-5 py-2 border-b border-border hover:bg-white/[0.03] transition-colors cursor-pointer group ${
                         node.error > 0 ? 'bg-red-500/[0.03]' : ''
                       } ${isSelected ? 'bg-primary/10 border-l-2 border-l-primary' : 'border-l-2 border-l-transparent'}`}
                     >
                       {/* Service / Operation */}
                       <div className="flex-1 min-w-0 flex items-center gap-2" style={{ paddingLeft: `${node.depth * 20}px` }}>
                         {node.depth > 0 && (
-                          <span className="text-gray-700 text-xs flex-shrink-0 font-mono">
+                          <span className="text-text-secondary text-xs flex-shrink-0 font-mono">
                             {i === flatNodes.length - 1 || (flatNodes[i + 1] && flatNodes[i + 1].depth <= node.depth)
                               ? '└─'
                               : '├─'}
@@ -377,13 +377,13 @@ export function SpanDrawer({ isOpen, onClose, serviceName, resource, traces, loa
                           style={{ backgroundColor: getServiceColor(node.service) }}
                         />
                         <div className="flex flex-col min-w-0">
-                          <span className={`text-xs truncate ${node.error > 0 ? 'text-red-400' : 'text-gray-200'}`}>
+                          <span className={`text-xs truncate ${node.error > 0 ? 'text-red-400' : 'text-text-primary'}`}>
                             {node.name}
                           </span>
-                          <span className="text-[10px] text-gray-600 truncate">{node.service}</span>
+                          <span className="text-[10px] text-text-muted truncate">{node.service}</span>
                         </div>
                         <div className="w-20 flex-shrink-0 ml-auto mr-2 hidden lg:block">
-                          <div className="w-full h-1.5 bg-gray-800/60 rounded-full overflow-hidden">
+                          <div className="w-full h-1.5 bg-surface-light rounded-full overflow-hidden">
                             <div
                               className={`h-full rounded-full transition-all ${node.error > 0 ? 'bg-red-500/70' : ''}`}
                               style={{
@@ -398,21 +398,21 @@ export function SpanDrawer({ isOpen, onClose, serviceName, resource, traces, loa
 
                       {/* Duration */}
                       <div className={`w-[90px] text-right font-mono text-xs flex-shrink-0 ${
-                        node.duration_ms >= 500 ? 'text-red-400' : node.duration_ms >= 100 ? 'text-amber-400' : 'text-gray-300'
+                        node.duration_ms >= 500 ? 'text-red-400' : node.duration_ms >= 100 ? 'text-amber-400' : 'text-text-primary'
                       }`}>
                         {formatDuration(node.duration_ms)}
                       </div>
 
                       {/* Exec Time */}
                       <div className={`w-[90px] text-right font-mono text-xs flex-shrink-0 ${
-                        isHighExec ? 'text-amber-400 font-bold' : 'text-gray-400'
+                        isHighExec ? 'text-amber-400 font-bold' : 'text-text-secondary'
                       }`}>
                         {formatDuration(node.execTime)}
                       </div>
 
                       {/* % Exec Time */}
                       <div className={`w-[100px] text-right font-mono text-xs flex-shrink-0 ${
-                        isHighExec ? 'text-amber-400 font-bold' : 'text-gray-500'
+                        isHighExec ? 'text-amber-400 font-bold' : 'text-text-muted'
                       }`}>
                         {formatPercent(node.execPercent)}
                         {node.execPercent >= 50 && <span className="ml-1">⚠️</span>}
@@ -425,14 +425,14 @@ export function SpanDrawer({ isOpen, onClose, serviceName, resource, traces, loa
 
             {/* ─── Bottom Span Detail Panel ─── */}
             {selectedSpan && (
-              <div className="border-t border-gray-700 bg-gray-900 flex-shrink-0 animate-in slide-in-from-bottom duration-300"
+              <div className="border-t border-border bg-surface flex-shrink-0 animate-in slide-in-from-bottom duration-300"
                    style={{ maxHeight: '45%', minHeight: '200px' }}>
                 {/* Detail Header */}
-                <div className="flex items-center justify-between px-5 py-3 border-b border-gray-800 bg-gray-900 sticky top-0 z-10">
+                <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-surface sticky top-0 z-10">
                   <div className="flex items-center gap-3">
-                    <Info size={14} className="text-primary" />
-                    <span className="text-xs font-bold text-gray-300 uppercase tracking-wider">Span Details</span>
-                    <span className="text-[10px] text-gray-600">
+                    <Info size={14} className="text-blue-500" />
+                    <span className="text-xs font-bold text-text-primary uppercase tracking-wider">Span Details</span>
+                    <span className="text-[10px] text-text-muted">
                       {selectedSpan.span_id.slice(0, 16)}…
                     </span>
                     {selectedSpan.error > 0 && (
@@ -443,7 +443,7 @@ export function SpanDrawer({ isOpen, onClose, serviceName, resource, traces, loa
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); setSelectedSpan(null); }}
-                    className="p-1.5 hover:bg-gray-800 rounded text-gray-500 hover:text-white transition-colors"
+                    className="p-1.5 hover:bg-surface-light rounded text-text-muted hover:text-text-primary transition-colors"
                   >
                     <ChevronDown size={14} />
                   </button>
@@ -460,13 +460,13 @@ export function SpanDrawer({ isOpen, onClose, serviceName, resource, traces, loa
                     <DetailCell
                       label="Span ID"
                       value={selectedSpan.span_id}
-                      icon={<Hash size={10} className="text-gray-600" />}
+                      icon={<Hash size={10} className="text-text-muted" />}
                       mono
                     />
                     <DetailCell
                       label="Parent ID"
                       value={selectedSpan.parent_id || 'Root Span'}
-                      icon={<Hash size={10} className="text-gray-600" />}
+                      icon={<Hash size={10} className="text-text-muted" />}
                       mono
                     />
                     <DetailCell label="Start Time" value={selectedSpan.timestamp} />
@@ -478,7 +478,7 @@ export function SpanDrawer({ isOpen, onClose, serviceName, resource, traces, loa
                     <div className="mb-4">
                       <div className="flex items-center gap-2 mb-3">
                         <Globe size={14} className="text-blue-400" />
-                        <span className="text-xs font-bold text-gray-300 uppercase tracking-wider">HTTP Details</span>
+                        <span className="text-xs font-bold text-text-primary uppercase tracking-wider">HTTP Details</span>
                       </div>
 
                       {/* Status Code Badge (large) */}
@@ -499,11 +499,11 @@ export function SpanDrawer({ isOpen, onClose, serviceName, resource, traces, loa
                           const value = selectedSpan.attributes[key];
                           if (!value || key === 'http.status_code') return null;
                           return (
-                            <div key={key} className="flex items-start gap-2 py-1.5 px-3 bg-gray-800/30 rounded-lg">
+                            <div key={key} className="flex items-start gap-2 py-1.5 px-3 bg-surface-light rounded-lg">
                               <span className="text-[10px] flex-shrink-0 mt-0.5">{icon}</span>
                               <div className="min-w-0">
-                                <span className="text-[10px] text-gray-500 uppercase tracking-wider block">{label}</span>
-                                <span className="text-xs text-gray-200 font-mono break-all">{value}</span>
+                                <span className="text-[10px] text-text-muted uppercase tracking-wider block">{label}</span>
+                                <span className="text-xs text-text-primary font-mono break-all">{value}</span>
                               </div>
                             </div>
                           );
@@ -516,23 +516,23 @@ export function SpanDrawer({ isOpen, onClose, serviceName, resource, traces, loa
                   {Object.keys(selectedSpan.attributes || {}).length > 0 && (
                     <div>
                       <div className="flex items-center gap-2 mb-3">
-                        <Layers size={14} className="text-gray-400" />
-                        <span className="text-xs font-bold text-gray-300 uppercase tracking-wider">All Attributes</span>
-                        <span className="text-[10px] text-gray-600">({Object.keys(selectedSpan.attributes).length})</span>
+                        <Layers size={14} className="text-text-secondary" />
+                        <span className="text-xs font-bold text-text-primary uppercase tracking-wider">All Attributes</span>
+                        <span className="text-[10px] text-text-muted">({Object.keys(selectedSpan.attributes).length})</span>
                       </div>
-                      <div className="bg-gray-800/20 rounded-lg border border-gray-800 overflow-hidden">
+                      <div className="bg-surface-light rounded-lg border border-border overflow-hidden">
                         <table className="w-full text-xs">
                           <thead>
-                            <tr className="border-b border-gray-800">
-                              <th className="text-left py-2 px-3 text-gray-500 font-semibold uppercase text-[10px] tracking-wider w-1/3">Key</th>
-                              <th className="text-left py-2 px-3 text-gray-500 font-semibold uppercase text-[10px] tracking-wider">Value</th>
+                            <tr className="border-b border-border">
+                              <th className="text-left py-2 px-3 text-text-muted font-semibold uppercase text-[10px] tracking-wider w-1/3">Key</th>
+                              <th className="text-left py-2 px-3 text-text-muted font-semibold uppercase text-[10px] tracking-wider">Value</th>
                             </tr>
                           </thead>
                           <tbody>
                             {Object.entries(selectedSpan.attributes).sort(([a], [b]) => a.localeCompare(b)).map(([key, value]) => (
-                              <tr key={key} className="border-b border-gray-800/50 hover:bg-white/[0.02]">
-                                <td className="py-1.5 px-3 font-mono text-primary/70">{key}</td>
-                                <td className="py-1.5 px-3 font-mono text-gray-300 break-all">{value}</td>
+                              <tr key={key} className="border-b border-border hover:bg-surface-light">
+                                <td className="py-1.5 px-3 font-mono text-text-secondary">{key}</td>
+                                <td className="py-1.5 px-3 font-mono text-text-primary break-all">{value}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -543,10 +543,10 @@ export function SpanDrawer({ isOpen, onClose, serviceName, resource, traces, loa
 
                   {/* Empty state for no attributes */}
                   {Object.keys(selectedSpan.attributes || {}).length === 0 && (
-                    <div className="text-center py-6 text-gray-600">
+                    <div className="text-center py-6 text-text-muted">
                       <Info className="w-6 h-6 mx-auto mb-2 opacity-30" />
                       <p className="text-xs">No attributes available for this span.</p>
-                      <p className="text-[10px] text-gray-700 mt-1">Attributes will be populated after the master-service is restarted to apply the schema migration.</p>
+                      <p className="text-[10px] text-text-secondary mt-1">Attributes will be populated after the master-service is restarted to apply the schema migration.</p>
                     </div>
                   )}
                 </div>
@@ -569,12 +569,12 @@ function DetailCell({ label, value, color, icon, mono }: {
   mono?: boolean;
 }) {
   return (
-    <div className="bg-gray-800/30 rounded-lg px-3 py-2">
-      <div className="flex items-center gap-1 text-[10px] text-gray-500 uppercase tracking-wider mb-1">
+    <div className="bg-surface-light rounded-lg px-3 py-2">
+      <div className="flex items-center gap-1 text-[10px] text-text-muted uppercase tracking-wider mb-1">
         {icon} {label}
       </div>
       <div
-        className={`text-xs break-all ${mono ? 'font-mono' : ''} ${color ? '' : 'text-gray-200'}`}
+        className={`text-xs break-all ${mono ? 'font-mono' : ''} ${color ? '' : 'text-text-primary'}`}
         style={color ? { color } : undefined}
       >
         {value}

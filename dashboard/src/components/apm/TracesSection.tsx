@@ -85,10 +85,10 @@ export function TracesSection({ serviceName, timeRange }: TracesSectionProps) {
     <div className="glass-panel p-4 shadow-xl">
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+        <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider flex items-center gap-2">
           <Zap className="w-4 h-4 text-amber-400" /> Traces
         </h3>
-        <span className="text-xs text-gray-500">
+        <span className="text-xs text-text-muted">
           {total > 0 ? `${total} total` : ''}
         </span>
       </div>
@@ -96,14 +96,14 @@ export function TracesSection({ serviceName, timeRange }: TracesSectionProps) {
       {/* Loading state */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-5 h-5 animate-spin text-gray-500" />
+          <Loader2 className="w-5 h-5 animate-spin text-text-muted" />
         </div>
       ) : traces.length === 0 ? (
-        <p className="text-gray-500 text-center py-10 text-sm">No traces found for this service.</p>
+        <p className="text-text-muted text-center py-10 text-sm">No traces found for this service.</p>
       ) : (
         <>
           {/* Table header */}
-          <div className="flex items-center gap-3 px-2.5 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider border-b border-white/5">
+          <div className="flex items-center gap-3 px-2.5 py-2 text-[10px] font-bold text-text-muted uppercase tracking-wider border-b border-border">
             <span className="w-5" />
             <span className="w-3" />
             <span className="flex-1">Resource</span>
@@ -125,11 +125,11 @@ export function TracesSection({ serviceName, timeRange }: TracesSectionProps) {
                     className={`flex items-center gap-3 w-full px-2.5 py-2.5 text-left rounded-lg transition-all duration-150 group ${
                       isExpanded
                         ? 'bg-white/[0.03] border-l-2 border-primary -ml-[2px] pl-[calc(0.625rem+2px)]'
-                        : 'hover:bg-white/5'
+                        : 'hover:bg-surface-light'
                     }`}
                   >
                     {/* Expand icon */}
-                    <span className="w-5 flex-shrink-0 text-gray-600 group-hover:text-gray-400 transition-colors">
+                    <span className="w-5 flex-shrink-0 text-text-muted group-hover:text-text-secondary transition-colors">
                       {isExpanded
                         ? <ChevronDown size={14} />
                         : <ChevronRight size={14} />
@@ -140,23 +140,23 @@ export function TracesSection({ serviceName, timeRange }: TracesSectionProps) {
                     <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.error ? 'bg-red-500' : 'bg-emerald-500'}`} />
 
                     {/* Resource name */}
-                    <span className="flex-1 text-gray-200 text-xs font-medium truncate">
+                    <span className="flex-1 text-text-primary text-xs font-medium truncate">
                       {t.root_name || 'unknown'}
                     </span>
 
                     {/* Service */}
                     <span className="w-24 text-center">
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-gray-400 font-mono truncate inline-block max-w-full">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-light text-text-secondary font-mono truncate inline-block max-w-full">
                         {t.root_service}
                       </span>
                     </span>
 
                     {/* Span count */}
-                    <span className="w-14 text-center text-gray-600 text-[10px]">{t.span_count} spans</span>
+                    <span className="w-14 text-center text-text-muted text-[10px]">{t.span_count} spans</span>
 
                     {/* Duration bar */}
                     <div className="w-28 flex items-center gap-1.5">
-                      <div className="flex-1 h-1 bg-black/40 rounded-full overflow-hidden">
+                      <div className="flex-1 h-1 bg-surface-light rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full ${t.error ? 'bg-red-500' : 'bg-blue-500'}`}
                           style={{ width: `${(t.duration_ms / maxDuration) * 100}%` }}
@@ -168,21 +168,21 @@ export function TracesSection({ serviceName, timeRange }: TracesSectionProps) {
                     </div>
 
                     {/* Timestamp */}
-                    <span className="w-16 text-right text-[10px] text-gray-600 tabular-nums">
+                    <span className="w-16 text-right text-[10px] text-text-muted tabular-nums">
                       {timeAgo(t.timestamp)}
                     </span>
                   </button>
 
                   {/* Expanded span waterfall */}
                   {isExpanded && (
-                    <div className="border-l-2 border-primary ml-0 bg-gray-950/50 rounded-b-lg overflow-hidden">
+                    <div className="border-l-2 border-primary ml-0 bg-background rounded-b-lg overflow-hidden">
                       {loadingSpans ? (
                         <div className="flex items-center justify-center py-8">
-                          <Loader2 className="w-4 h-4 animate-spin text-gray-500 mr-2" />
-                          <span className="text-xs text-gray-500">Loading spans…</span>
+                          <Loader2 className="w-4 h-4 animate-spin text-text-muted mr-2" />
+                          <span className="text-xs text-text-muted">Loading spans…</span>
                         </div>
                       ) : expandedSpans.length === 0 ? (
-                        <p className="text-gray-500 text-center py-6 text-xs">No spans found for this trace.</p>
+                        <p className="text-text-muted text-center py-6 text-xs">No spans found for this trace.</p>
                       ) : (
                         <div className="max-h-[400px] overflow-auto">
                           <SpanWaterfall spans={expandedSpans} />
@@ -197,11 +197,11 @@ export function TracesSection({ serviceName, timeRange }: TracesSectionProps) {
 
           {/* Load More */}
           {hasMore && (
-            <div className="flex justify-center pt-4 mt-2 border-t border-white/5">
+            <div className="flex justify-center pt-4 mt-2 border-t border-border">
               <button
                 onClick={loadMore}
                 disabled={loadingMore}
-                className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-all disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-text-secondary hover:text-text-primary bg-surface-light hover:bg-surface-light rounded-lg transition-all disabled:opacity-50"
               >
                 {loadingMore ? (
                   <>

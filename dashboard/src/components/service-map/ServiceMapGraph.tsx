@@ -45,7 +45,7 @@ function ServiceNode({ data }: { data: { node: APINode; isSelected: boolean; onC
 
   return (
     <div onClick={onClick} className="cursor-pointer group">
-      <Handle type="target" position={Position.Top} className="!bg-gray-600 !border-gray-700 !w-2 !h-2" />
+      <Handle type="target" position={Position.Top} className="!bg-surface-light !border-border !w-2 !h-2" />
 
       <div
         className="flex flex-col items-center gap-1 transition-transform"
@@ -56,27 +56,27 @@ function ServiceNode({ data }: { data: { node: APINode; isSelected: boolean; onC
           className="w-16 h-16 rounded-full flex items-center justify-center transition-shadow"
           style={{
             border: `3px solid ${isSelected ? '#3b82f6' : ringColor}`,
-            backgroundColor: '#1f2937',
+            backgroundColor: 'var(--color-bg-surface-light)',
             boxShadow: isSelected
               ? '0 0 20px rgba(59,130,246,0.4)'
               : `0 0 12px ${ringColor}33`,
           }}
         >
-          <span className="text-gray-300 group-hover:text-white transition-colors">{icon}</span>
+          <span className="text-text-primary group-hover:text-text-primary transition-colors">{icon}</span>
         </div>
 
         {/* Service name */}
-        <span className="text-[11px] text-gray-300 font-medium text-center max-w-[100px] truncate leading-tight">
+        <span className="text-[11px] text-text-primary font-medium text-center max-w-[100px] truncate leading-tight">
           {node.service}
         </span>
 
         {/* Request badge */}
-        <span className="text-[9px] bg-gray-700/80 text-gray-400 rounded-full px-2 py-0.5">
+        <span className="text-[9px] bg-surface-light text-text-secondary rounded-full px-2 py-0.5">
           {formatRequests(node.total_requests)} req
         </span>
       </div>
 
-      <Handle type="source" position={Position.Bottom} className="!bg-gray-600 !border-gray-700 !w-2 !h-2" />
+      <Handle type="source" position={Position.Bottom} className="!bg-surface-light !border-border !w-2 !h-2" />
     </div>
   );
 }
@@ -124,27 +124,27 @@ export function ServiceMapGraph({ nodes: apiNodes, edges: apiEdges, onNodeClick,
         target: e.target,
         animated: e.requests > 100,
         style: {
-          stroke: isError ? '#ef4444' : '#4b5563',
+          stroke: isError ? '#ef4444' : 'var(--color-text-muted)',
           strokeWidth: thickness,
         },
         markerEnd: {
           type: MarkerType.ArrowClosed,
-          color: isError ? '#ef4444' : '#6b7280',
+          color: isError ? '#ef4444' : 'var(--color-text-muted)',
           width: 16,
           height: 16,
         },
         label: `${formatRequests(e.requests)}`,
-        labelStyle: { fill: '#9ca3af', fontSize: 10, fontWeight: 500 },
-        labelBgStyle: { fill: '#111827', fillOpacity: 0.8 },
-        labelBgPadding: [4, 2] as [number, number],
-        labelBgBorderRadius: 4,
+        labelStyle: { fill: 'var(--color-text-primary)', fontSize: 10, fontWeight: 500 },
+        labelBgStyle: { fill: 'var(--color-bg-surface-light)', fillOpacity: 0.9 },
+        labelBgPadding: [6, 4] as [number, number],
+        labelBgBorderRadius: 12,
       };
     }), [apiEdges]);
 
 
 
   return (
-    <div className="h-full w-full" style={{ background: '#0a0a0f' }}>
+    <div className="h-full w-full bg-background rounded-tl-xl overflow-hidden shadow-card">
       <ReactFlow
         nodes={flowNodes}
         edges={flowEdges}
@@ -156,9 +156,9 @@ export function ServiceMapGraph({ nodes: apiNodes, edges: apiEdges, onNodeClick,
         maxZoom={2}
       >
         <Controls
-          className="!bg-gray-800 !border-gray-700 !shadow-lg [&>button]:!bg-gray-800 [&>button]:!border-gray-700 [&>button]:!text-gray-400 [&>button:hover]:!bg-gray-700"
+          className="!bg-surface-light !border-border !shadow-lg [&>button]:!bg-surface-light [&>button]:!border-border [&>button]:!text-text-secondary [&>button:hover]:!bg-surface"
         />
-        <Background gap={20} size={1} color="#1f2937" />
+        <Background gap={20} size={1} color="var(--color-border)" />
       </ReactFlow>
     </div>
   );

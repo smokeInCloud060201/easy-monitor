@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { MainLayout } from './components/layout/MainLayout';
 import { AuthGuard } from './components/auth/AuthGuard';
 import { AdminGuard } from './components/auth/AdminGuard';
+import { ThemeProvider } from './components/layout/ThemeContext';
 import { Loader2 } from 'lucide-react';
 
 // ─── Lazy-loaded pages (code-split per route) ───
@@ -28,29 +29,31 @@ function PageLoader() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <Suspense fallback={<PageLoader />}>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route element={<AuthGuard />}>
-            <Route element={<MainLayout />}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/apm" element={<APMCatalog />} />
-              <Route path="/apm/services/:name" element={<ServiceDetail />} />
-              <Route path="/apm/services/:name/resources/:resource" element={<ResourceDetail />} />
-              <Route path="/traces" element={<TraceExplorer />} />
-              <Route path="/traces/:traceId" element={<TraceDetail />} />
-              <Route path="/logs" element={<Logs />} />
-              <Route path="/service-map" element={<ServiceMap />} />
-              <Route path="/databases" element={<DatabaseMonitoring />} />
-              <Route element={<AdminGuard />}>
-                <Route path="/admin/users" element={<Admin />} />
+    <ThemeProvider>
+      <BrowserRouter>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route element={<AuthGuard />}>
+              <Route element={<MainLayout />}>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/apm" element={<APMCatalog />} />
+                <Route path="/apm/services/:name" element={<ServiceDetail />} />
+                <Route path="/apm/services/:name/resources/:resource" element={<ResourceDetail />} />
+                <Route path="/traces" element={<TraceExplorer />} />
+                <Route path="/traces/:traceId" element={<TraceDetail />} />
+                <Route path="/logs" element={<Logs />} />
+                <Route path="/service-map" element={<ServiceMap />} />
+                <Route path="/databases" element={<DatabaseMonitoring />} />
+                <Route element={<AdminGuard />}>
+                  <Route path="/admin/users" element={<Admin />} />
+                </Route>
               </Route>
             </Route>
-          </Route>
-        </Routes>
-      </Suspense>
-    </BrowserRouter>
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }
 

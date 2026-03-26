@@ -24,7 +24,7 @@ export function ErrorsSection({ errors, timeseries, totalErrors, errorRate }: Er
   return (
     <div className="glass-panel p-4 shadow-xl">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+        <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-red-400" /> Error Tracking
         </h3>
         <div className="flex items-center gap-3">
@@ -60,14 +60,14 @@ export function ErrorsSection({ errors, timeseries, totalErrors, errorRate }: Er
 
       {/* Top Errors List */}
       {errors.length === 0 ? (
-        <p className="text-gray-500 text-center py-4 text-sm">No errors detected — looking good! 🎉</p>
+        <p className="text-text-muted text-center py-4 text-sm">No errors detected — looking good! 🎉</p>
       ) : (
         <div className="space-y-1">
           {errors.slice(0, 5).map((err, i) => (
-            <div key={i} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors text-sm">
+            <div key={i} className="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-light transition-colors text-sm">
               <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
-              <span className="text-gray-200 flex-1 truncate font-mono text-xs">{err.name}</span>
-              <span className="text-gray-500 text-xs truncate max-w-[120px]">{err.resource}</span>
+              <span className="text-text-primary flex-1 truncate font-mono text-xs">{err.name}</span>
+              <span className="text-text-muted text-xs truncate max-w-[120px]">{err.resource}</span>
               <span className="bg-red-500/10 text-red-400 text-xs font-bold px-2 py-0.5 rounded tabular-nums">
                 ×{err.count}
               </span>

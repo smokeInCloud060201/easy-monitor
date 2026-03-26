@@ -81,34 +81,34 @@ export function EndpointsTable({ resources, serviceName }: EndpointsTableProps) 
 
   return (
     <div className="glass-panel p-4 shadow-xl">
-      <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+      <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider mb-4 flex items-center gap-2">
         <Activity className="w-4 h-4 text-primary" /> Endpoints
-        <span className="bg-white/10 text-gray-400 text-xs px-2 py-0.5 rounded-full ml-2">{apiEndpoints.length}</span>
+        <span className="bg-surface-light text-text-secondary text-xs px-2 py-0.5 rounded-full ml-2">{apiEndpoints.length}</span>
       </h3>
 
       {apiEndpoints.length === 0 ? (
-        <p className="text-gray-500 text-center py-8 text-sm">No endpoint data available yet.</p>
+        <p className="text-text-muted text-center py-8 text-sm">No endpoint data available yet.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-gray-400 border-b border-white/10">
-                <th className="pb-3 font-semibold cursor-pointer hover:text-white" onClick={() => handleSort('resource')}>
+              <tr className="text-left text-text-secondary border-b border-border">
+                <th className="pb-3 font-semibold cursor-pointer hover:text-text-primary" onClick={() => handleSort('resource')}>
                   <span className="flex items-center gap-1">Endpoint <SortIcon col="resource" sortKey={sortKey} sortAsc={sortAsc} /></span>
                 </th>
-                <th className="pb-3 font-semibold text-right cursor-pointer hover:text-white" onClick={() => handleSort('requests')}>
+                <th className="pb-3 font-semibold text-right cursor-pointer hover:text-text-primary" onClick={() => handleSort('requests')}>
                   <span className="flex items-center justify-end gap-1">Requests <SortIcon col="requests" sortKey={sortKey} sortAsc={sortAsc} /></span>
                 </th>
-                <th className="pb-3 font-semibold text-right cursor-pointer hover:text-white" onClick={() => handleSort('errors')}>
+                <th className="pb-3 font-semibold text-right cursor-pointer hover:text-text-primary" onClick={() => handleSort('errors')}>
                   <span className="flex items-center justify-end gap-1">Errors <SortIcon col="errors" sortKey={sortKey} sortAsc={sortAsc} /></span>
                 </th>
-                <th className="pb-3 font-semibold text-right cursor-pointer hover:text-white" onClick={() => handleSort('error_rate')}>
+                <th className="pb-3 font-semibold text-right cursor-pointer hover:text-text-primary" onClick={() => handleSort('error_rate')}>
                   <span className="flex items-center justify-end gap-1">Error Rate <SortIcon col="error_rate" sortKey={sortKey} sortAsc={sortAsc} /></span>
                 </th>
-                <th className="pb-3 font-semibold text-right cursor-pointer hover:text-white" onClick={() => handleSort('avg_duration_ms')}>
+                <th className="pb-3 font-semibold text-right cursor-pointer hover:text-text-primary" onClick={() => handleSort('avg_duration_ms')}>
                   <span className="flex items-center justify-end gap-1">Avg Latency <SortIcon col="avg_duration_ms" sortKey={sortKey} sortAsc={sortAsc} /></span>
                 </th>
-                <th className="pb-3 font-semibold text-right cursor-pointer hover:text-white" onClick={() => handleSort('p95_duration_ms')}>
+                <th className="pb-3 font-semibold text-right cursor-pointer hover:text-text-primary" onClick={() => handleSort('p95_duration_ms')}>
                   <span className="flex items-center justify-end gap-1">P95 <SortIcon col="p95_duration_ms" sortKey={sortKey} sortAsc={sortAsc} /></span>
                 </th>
               </tr>
@@ -121,18 +121,18 @@ export function EndpointsTable({ resources, serviceName }: EndpointsTableProps) 
                   <tr
                     key={r.resource}
                     onClick={() => handleEndpointClick(r.resource)}
-                    className={`border-b border-white/5 cursor-pointer transition-colors ${
-                      isActive ? 'bg-primary/10' : 'hover:bg-white/5'
+                    className={`border-b border-border cursor-pointer transition-colors ${
+                      isActive ? 'bg-primary/10' : 'hover:bg-surface-light'
                     }`}
                   >
                     <td className="py-3 px-1">
                       <div className="flex items-center gap-2">
                         {method && (
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${methodColors[method] || 'bg-gray-500/20 text-gray-400'}`}>
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${methodColors[method] || 'bg-surface-light text-text-secondary'}`}>
                             {method}
                           </span>
                         )}
-                        <span className="font-mono text-xs text-gray-200 truncate">{path}</span>
+                        <span className="font-mono text-xs text-text-primary truncate">{path}</span>
                       </div>
                     </td>
                     <td className="py-3 text-right font-mono text-xs">{formatNum(r.requests)}</td>
@@ -143,7 +143,7 @@ export function EndpointsTable({ resources, serviceName }: EndpointsTableProps) 
                       </span>
                     </td>
                     <td className={`py-3 text-right font-mono text-xs ${
-                      r.avg_duration_ms >= 500 ? 'text-red-400' : r.avg_duration_ms >= 100 ? 'text-amber-400' : 'text-gray-200'
+                      r.avg_duration_ms >= 500 ? 'text-red-400' : r.avg_duration_ms >= 100 ? 'text-amber-400' : 'text-text-primary'
                     }`}>
                       {r.avg_duration_ms.toFixed(1)}ms
                     </td>

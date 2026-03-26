@@ -235,32 +235,32 @@ export function EndpointDrawer({ isOpen, onClose, serviceName, resource, resourc
       />
 
       {/* EndpointDrawer Panel */}
-      <div className="fixed top-0 right-0 h-full w-[60vw] max-w-[1200px] bg-gray-950 border-l border-gray-800 shadow-2xl z-50 flex flex-col animate-in slide-in-from-right duration-300">
+      <div className="fixed top-0 right-0 h-full w-[60vw] max-w-[1200px] bg-background border-l border-border shadow-2xl z-50 flex flex-col animate-in slide-in-from-right duration-300">
         {/* ─── Header ─── */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800 bg-gray-900 flex-shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface flex-shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: getServiceColor(serviceName) }} />
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider flex-shrink-0">{serviceName}</span>
-            <span className="text-gray-700 flex-shrink-0">›</span>
+            <span className="text-xs font-bold text-text-muted uppercase tracking-wider flex-shrink-0">{serviceName}</span>
+            <span className="text-text-secondary flex-shrink-0">›</span>
             {method && (
-              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border flex-shrink-0 ${methodColors[method] || 'bg-gray-500/20 text-gray-400 border-gray-500/30'}`}>
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border flex-shrink-0 ${methodColors[method] || 'bg-surface-light text-text-secondary border-gray-500/30'}`}>
                 {method}
               </span>
             )}
-            <span className="font-mono text-sm text-gray-200 truncate">{path}</span>
+            <span className="font-mono text-sm text-text-primary truncate">{path}</span>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white transition-colors flex-shrink-0"
+            className="p-2 hover:bg-surface-light rounded-lg text-text-secondary hover:text-text-primary transition-colors flex-shrink-0"
           >
             <X size={18} />
           </button>
         </div>
 
         {/* ─── Summary Metrics Bar ─── */}
-        <div className="px-6 py-3 border-b border-gray-800 bg-gray-900/50 flex-shrink-0">
+        <div className="px-6 py-3 border-b border-border bg-surface flex-shrink-0">
           {loadingSummary ? (
-            <div className="flex items-center gap-2 text-gray-500 text-xs">
+            <div className="flex items-center gap-2 text-text-muted text-xs">
               <Loader2 className="w-3 h-3 animate-spin" /> Loading metrics…
             </div>
           ) : (
@@ -308,7 +308,7 @@ export function EndpointDrawer({ isOpen, onClose, serviceName, resource, resourc
                 <Loader2 className="w-5 h-5 animate-spin text-primary" />
               </div>
             ) : dependencies.length === 0 ? (
-              <p className="text-gray-600 text-xs text-center py-6">No downstream dependencies detected.</p>
+              <p className="text-text-muted text-xs text-center py-6">No downstream dependencies detected.</p>
             ) : (
               <DependencyGraph
                 serviceName={serviceName}
@@ -331,10 +331,10 @@ export function EndpointDrawer({ isOpen, onClose, serviceName, resource, resourc
                 <Loader2 className="w-5 h-5 animate-spin text-primary" />
               </div>
             ) : spanSummary.length === 0 ? (
-              <p className="text-gray-600 text-xs text-center py-6">No span data available.</p>
+              <p className="text-text-muted text-xs text-center py-6">No span data available.</p>
             ) : (
               <div>
-                <div className="flex items-center px-5 py-2 border-b border-gray-800 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                <div className="flex items-center px-5 py-2 border-b border-border text-[10px] font-bold text-text-muted uppercase tracking-widest">
                   <div className="flex-1 min-w-0">Operation</div>
                   <div className="w-[100px] text-right">Avg Duration</div>
                   <div className="w-[70px] text-right">Calls</div>
@@ -346,21 +346,21 @@ export function EndpointDrawer({ isOpen, onClose, serviceName, resource, resourc
                       <div className="flex-1 min-w-0 flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: getServiceColor(op.service) }} />
                         <div className="min-w-0">
-                          <span className="text-xs text-gray-200 truncate block">{op.name}</span>
-                          <span className="text-[10px] text-gray-600 truncate block">{op.service}</span>
+                          <span className="text-xs text-text-primary truncate block">{op.name}</span>
+                          <span className="text-[10px] text-text-muted truncate block">{op.service}</span>
                         </div>
                       </div>
                       <div className={`w-[100px] text-right font-mono text-xs flex-shrink-0 ${
-                        op.avgDuration >= 100 ? 'text-amber-400' : 'text-gray-300'
+                        op.avgDuration >= 100 ? 'text-amber-400' : 'text-text-primary'
                       }`}>
                         {formatDuration(op.avgDuration)}
                       </div>
-                      <div className="w-[70px] text-right font-mono text-xs text-gray-400 flex-shrink-0">
+                      <div className="w-[70px] text-right font-mono text-xs text-text-secondary flex-shrink-0">
                         {op.count}
                       </div>
                       <div className="w-[90px] text-right flex-shrink-0">
                         <div className="flex items-center justify-end gap-2">
-                          <div className="w-12 h-1.5 bg-gray-800/60 rounded-full overflow-hidden">
+                          <div className="w-12 h-1.5 bg-surface-light rounded-full overflow-hidden">
                             <div
                               className="h-full rounded-full"
                               style={{
@@ -370,7 +370,7 @@ export function EndpointDrawer({ isOpen, onClose, serviceName, resource, resourc
                               }}
                             />
                           </div>
-                          <span className={`font-mono text-[10px] ${op.pctOfTotal >= 20 ? 'text-amber-400 font-bold' : 'text-gray-500'}`}>
+                          <span className={`font-mono text-[10px] ${op.pctOfTotal >= 20 ? 'text-amber-400 font-bold' : 'text-text-muted'}`}>
                             {op.pctOfTotal.toFixed(1)}%
                           </span>
                         </div>
@@ -385,7 +385,7 @@ export function EndpointDrawer({ isOpen, onClose, serviceName, resource, resourc
           {/* ━━━ Section: Traces ━━━ */}
           <CollapsibleSection
             title="Traces"
-            icon={<Layers size={14} className="text-primary" />}
+            icon={<Layers size={14} className="text-blue-500" />}
             count={traces.length}
             collapsed={collapsedSections['traces']}
             onToggle={() => toggleSection('traces')}
@@ -395,7 +395,7 @@ export function EndpointDrawer({ isOpen, onClose, serviceName, resource, resourc
                 <Loader2 className="w-5 h-5 animate-spin text-primary" />
               </div>
             ) : traces.length === 0 ? (
-              <p className="text-gray-600 text-xs text-center py-6">No recent traces for this endpoint.</p>
+              <p className="text-text-muted text-xs text-center py-6">No recent traces for this endpoint.</p>
             ) : (
               <div className="divide-y divide-gray-800/50">
                 {traces.map(t => (
@@ -405,13 +405,13 @@ export function EndpointDrawer({ isOpen, onClose, serviceName, resource, resourc
                     className={`flex items-center gap-4 px-5 py-3 cursor-pointer transition-colors ${
                       selectedTraceId === t.trace_id
                         ? 'bg-primary/10 border-l-2 border-l-primary'
-                        : 'hover:bg-white/5 border-l-2 border-l-transparent'
+                        : 'hover:bg-surface-light border-l-2 border-l-transparent'
                     }`}
                   >
-                    <ChevronRight className="w-3.5 h-3.5 text-gray-600 flex-shrink-0" />
+                    <ChevronRight className="w-3.5 h-3.5 text-text-muted flex-shrink-0" />
                     <div className="flex-1 min-w-0 flex items-center gap-3">
-                      <span className="font-mono text-[11px] text-primary/80 flex-shrink-0">{t.trace_id.slice(0, 12)}…</span>
-                      <span className="text-xs text-gray-400 flex items-center gap-1 flex-shrink-0">
+                      <span className="font-mono text-[11px] text-text-primary flex-shrink-0">{t.trace_id.slice(0, 12)}…</span>
+                      <span className="text-xs text-text-secondary flex items-center gap-1 flex-shrink-0">
                         <Clock size={11} /> {formatTimestamp(t.timestamp)}
                       </span>
                       <span className={`text-xs font-mono font-bold flex-shrink-0 ${
@@ -419,7 +419,7 @@ export function EndpointDrawer({ isOpen, onClose, serviceName, resource, resourc
                       }`}>
                         {formatDuration(t.duration_ms)}
                       </span>
-                      <span className="text-xs text-gray-500 flex items-center gap-1 flex-shrink-0">
+                      <span className="text-xs text-text-muted flex items-center gap-1 flex-shrink-0">
                         <Layers size={11} /> {t.span_count}
                       </span>
                       {t.error && (
@@ -428,7 +428,7 @@ export function EndpointDrawer({ isOpen, onClose, serviceName, resource, resourc
                         </span>
                       )}
                     </div>
-                    <span className="text-xs text-gray-600 truncate max-w-[200px]">{t.root_name}</span>
+                    <span className="text-xs text-text-muted truncate max-w-[200px]">{t.root_name}</span>
                   </div>
                 ))}
               </div>
@@ -686,10 +686,10 @@ function DependencyGraph({ serviceName, dependencies, resource }: {
 
 function MetricPill({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string; color: string }) {
   return (
-    <div className="bg-gray-800/40 rounded-lg px-3 py-2.5 border border-gray-800">
+    <div className="bg-surface-light rounded-lg px-3 py-2.5 border border-border">
       <div className={`flex items-center gap-1.5 mb-1 ${color}`}>
         {icon}
-        <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">{label}</span>
+        <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">{label}</span>
       </div>
       <p className="text-lg font-bold font-mono">{value}</p>
     </div>
@@ -705,18 +705,18 @@ function CollapsibleSection({ title, icon, count, collapsed, onToggle, children 
   children: React.ReactNode;
 }) {
   return (
-    <div className="border-b border-gray-800">
+    <div className="border-b border-border">
       <button
         onClick={onToggle}
         className="flex items-center gap-3 w-full px-5 py-3 hover:bg-white/[0.02] transition-colors text-left"
       >
         <ChevronDown
           size={14}
-          className={`text-gray-500 transition-transform ${collapsed ? '-rotate-90' : ''}`}
+          className={`text-text-muted transition-transform ${collapsed ? '-rotate-90' : ''}`}
         />
         {icon}
-        <span className="text-xs font-bold text-gray-300 uppercase tracking-wider">{title}</span>
-        <span className="bg-white/10 text-gray-400 text-[10px] px-2 py-0.5 rounded-full">{count}</span>
+        <span className="text-xs font-bold text-text-primary uppercase tracking-wider">{title}</span>
+        <span className="bg-surface-light text-text-secondary text-[10px] px-2 py-0.5 rounded-full">{count}</span>
       </button>
       {!collapsed && (
         <div className="pb-2">

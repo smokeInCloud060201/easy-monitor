@@ -145,19 +145,19 @@ export function Logs() {
   const activeFilterCount = Object.keys(activeFilters).length + (filters.keyword ? 1 : 0);
 
   return (
-    <div className="flex flex-col h-full bg-gray-950 overflow-hidden">
+    <div className="flex flex-col h-full bg-background overflow-hidden">
       {/* Top Bar */}
-      <div className="px-4 py-3 flex items-center gap-3 border-b border-gray-800 bg-gray-950 z-10 flex-shrink-0">
-        <h1 className="text-lg font-bold text-white tracking-tight flex-shrink-0">Log Explorer</h1>
+      <div className="px-4 py-3 flex items-center gap-3 border-b border-border bg-background z-10 flex-shrink-0">
+        <h1 className="text-lg font-bold text-text-primary tracking-tight flex-shrink-0">Log Explorer</h1>
 
         <form onSubmit={handleSearch} className="flex-1 max-w-xl relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
           <input
             type="text"
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
             placeholder="Search logs... (field:value or keyword)"
-            className="w-full bg-gray-900 border border-gray-800 rounded-lg pl-9 pr-4 py-2 text-sm text-gray-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono"
+            className="w-full bg-surface border border-border rounded-lg pl-9 pr-4 py-2 text-sm text-text-primary focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono"
           />
         </form>
 
@@ -165,7 +165,7 @@ export function Logs() {
         <select
           value={filters.level || 'All'}
           onChange={e => handleLevelChange(e.target.value)}
-          className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-blue-500 appearance-none cursor-pointer"
+          className="bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-blue-500 appearance-none cursor-pointer"
         >
           {LEVELS.map(l => (
             <option key={l} value={l}>{l}</option>
@@ -173,8 +173,8 @@ export function Logs() {
         </select>
 
         {/* Results Badge */}
-        <div className="flex items-center gap-2 text-sm text-gray-400 flex-shrink-0">
-          <span className="bg-gray-800 rounded px-2 py-1 text-xs tabular-nums">
+        <div className="flex items-center gap-2 text-sm text-text-muted flex-shrink-0">
+          <span className="bg-surface rounded px-2 py-1 text-xs tabular-nums">
             {total.toLocaleString()} results
           </span>
           {activeFilterCount > 0 && (
@@ -192,7 +192,7 @@ export function Logs() {
 
         <button
           onClick={fetchData}
-          className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+          className="p-2 text-text-muted hover:text-text-primary hover:bg-surface rounded-lg transition-colors"
           title="Refresh"
         >
           {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCcw size={16} />}
@@ -207,9 +207,9 @@ export function Logs() {
       {/* Main Content: Sidebar + Log Table */}
       <div className="flex flex-1 overflow-hidden">
 
-        <div className="flex-1 overflow-hidden bg-black/30">
+        <div className="flex-1 overflow-hidden bg-background">
           {/* Column Headers */}
-          <div className="flex items-center gap-3 px-4 py-1.5 border-b border-gray-800 bg-gray-900/50 text-[10px] text-gray-500 font-semibold uppercase tracking-wider">
+          <div className="flex items-center gap-3 px-4 py-1.5 border-b border-border bg-surface text-[10px] text-text-muted font-semibold uppercase tracking-wider">
             <span className="w-[95px] flex-shrink-0">Time</span>
             <span className="w-[50px] flex-shrink-0 text-center">Level</span>
             <span className="w-[130px] flex-shrink-0">Service</span>
@@ -227,39 +227,39 @@ export function Logs() {
           </div>
 
           {/* Pagination Bar */}
-          <div className="flex items-center justify-between px-4 py-2 border-t border-gray-800 bg-gray-900/70 flex-shrink-0">
-            <span className="text-xs text-gray-500 tabular-nums">
+          <div className="flex items-center justify-between px-4 py-2 border-t border-border bg-surface flex-shrink-0">
+            <span className="text-xs text-text-muted tabular-nums">
               {total > 0 ? `${rangeStart.toLocaleString()}–${rangeEnd.toLocaleString()} of ${total.toLocaleString()}` : 'No results'}
             </span>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setCurrentPage(1)}
                 disabled={currentPage <= 1}
-                className="px-2 py-1 text-xs rounded font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-gray-400 hover:text-white hover:bg-gray-800"
+                className="px-2 py-1 text-xs rounded font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-text-muted hover:text-text-primary hover:bg-surface-light"
               >
                 First
               </button>
               <button
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage <= 1}
-                className="px-2.5 py-1 text-xs rounded font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-gray-400 hover:text-white hover:bg-gray-800"
+                className="px-2.5 py-1 text-xs rounded font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-text-secondary hover:text-text-primary hover:bg-surface-light"
               >
                 ← Prev
               </button>
-              <span className="px-3 py-1 text-xs font-bold text-gray-200 bg-gray-800 rounded tabular-nums">
+              <span className="px-3 py-1 text-xs font-bold text-text-primary bg-surface-light rounded tabular-nums">
                 {currentPage} / {totalPages}
               </span>
               <button
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage >= totalPages}
-                className="px-2.5 py-1 text-xs rounded font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-gray-400 hover:text-white hover:bg-gray-800"
+                className="px-2.5 py-1 text-xs rounded font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-text-secondary hover:text-text-primary hover:bg-surface-light"
               >
                 Next →
               </button>
               <button
                 onClick={() => setCurrentPage(totalPages)}
                 disabled={currentPage >= totalPages}
-                className="px-2 py-1 text-xs rounded font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-gray-400 hover:text-white hover:bg-gray-800"
+                className="px-2 py-1 text-xs rounded font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-text-secondary hover:text-text-primary hover:bg-surface-light"
               >
                 Last
               </button>
