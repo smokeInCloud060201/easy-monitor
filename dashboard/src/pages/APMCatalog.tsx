@@ -1,6 +1,6 @@
 import { useEffect, useState, memo } from 'react';
-import { Link } from 'react-router-dom';
-import { Loader2, Server, Activity, ChevronRight } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Loader2, Server, Activity, ChevronRight, LayoutList } from 'lucide-react';
 import { fetchServices, fetchResourcesWithMetrics, type ResourceWithMetrics } from '../lib/api';
 
 interface Metrics {
@@ -9,8 +9,9 @@ interface Metrics {
   duration_sum: number;
 }
 
-const ServiceCard = memo(function ServiceCard({ service }: { service: string }) {
+const ServiceRow = memo(function ServiceRow({ service }: { service: string }) {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchResourcesWithMetrics(service)
@@ -32,9 +33,18 @@ const ServiceCard = memo(function ServiceCard({ service }: { service: string }) 
 
   if (!metrics) {
     return (
-      <div className="glass-panel p-6 flex flex-col items-center justify-center min-h-[200px] animate-pulse">
-        <Loader2 className="w-6 h-6 animate-spin text-brand-light opacity-50" />
-      </div>
+      <tr className="animate-pulse border-b border-border">
+        <td className="px-4 py-4">
+          <div className="flex items-center gap-3 pl-2">
+            <Server className="w-4 h-4 text-brand-light opacity-50" />
+            <div className="h-4 bg-surface-light rounded w-32"></div>
+          </div>
+        </td>
+        <td className="px-4 py-4"><div className="h-4 bg-surface-light rounded w-16"></div></td>
+        <td className="px-4 py-4"><div className="h-4 bg-surface-light rounded w-16"></div></td>
+        <td className="px-4 py-4"><div className="h-4 bg-surface-light rounded w-32"></div></td>
+        <td className="px-4 py-4"></td>
+      </tr>
     );
   }
 
@@ -43,44 +53,41 @@ const ServiceCard = memo(function ServiceCard({ service }: { service: string }) 
   const isHealthy = errorRate < 5;
 
   return (
-    <Link to={`/apm/services/${service}`} className="block">
-      <div className="glass-panel-hover p-6 cursor-pointer group relative overflow-hidden">
-        <div className={`absolute top-0 w-full left-0 h-1 ${isHealthy ? 'bg-success' : 'bg-danger'}`} />
-        
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Server className="w-5 h-5 text-text-secondary group-hover:text-brand-light transition-colors" />
-            <h3 className="text-sm font-bold">{service}</h3>
-          </div>
-          <div className="flex items-center gap-2">
-            {!isHealthy && <Activity className="w-4 h-4 text-danger animate-pulse" />}
-            <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-brand-light transition-colors" />
-          </div>
+    <tr 
+      onClick={() => navigate(`/apm/services/${service}`)}
+      className="group cursor-pointer hover:bg-surface-light border-b border-border transition-colors relative"
+    >
+      <td className="px-4 py-4 relative">
+        <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${isHealthy ? 'bg-success' : 'bg-danger'}`} />
+        <div className="flex items-center gap-3 pl-3">
+          <Server className="w-4 h-4 text-text-secondary group-hover:text-primary transition-colors" />
+          <span className="font-bold text-[13px] text-text-primary group-hover:text-primary transition-colors">{service}</span>
         </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-text-muted text-[11px] uppercase tracking-wider mb-1">Reqs / sec</p>
-            <p className="text-lg font-mono tabular-nums text-text-primary">{metrics.rate.toFixed(1)}</p>
+      </td>
+      <td className="px-4 py-4 font-mono tabular-nums text-text-primary text-[13px]">
+        {metrics.rate.toFixed(1)} <span className="text-text-muted text-[10px] uppercase font-sans tracking-wider ml-1">r/s</span>
+      </td>
+      <td className="px-4 py-4 font-mono tabular-nums text-[13px] text-text-primary">
+        <span className={avgLatency > 500 ? 'text-amber-400' : ''}>{avgLatency.toFixed(2)} ms</span>
+      </td>
+      <td className="px-4 py-4 w-64">
+        <div className="flex items-center gap-3">
+          <span className={`font-mono tabular-nums text-[13px] w-12 ${errorRate > 5 ? 'text-red-400' : 'text-text-primary'}`}>
+            {errorRate.toFixed(1)}%
+          </span>
+          <div className="flex-1 h-1.5 bg-surface-light rounded-full overflow-hidden">
+            <div 
+              className={`h-full transition-all duration-1000 ${isHealthy ? 'bg-success' : 'bg-danger'}`} 
+              style={{ width: `${Math.min(errorRate, 100)}%` }}
+            />
           </div>
-          <div>
-            <p className="text-text-muted text-[11px] uppercase tracking-wider mb-1">Avg Latency</p>
-            <p className="text-lg font-mono tabular-nums text-text-primary">{avgLatency.toFixed(2)} ms</p>
-          </div>
-          <div className="col-span-2 mt-2">
-            <p className="text-text-muted text-[11px] uppercase tracking-wider mb-1">Error Rate ({errorRate.toFixed(1)}%)</p>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 h-2 bg-surface-light rounded-full overflow-hidden shadow-inner">
-                <div 
-                  className={`h-full transition-all duration-1000 ${isHealthy ? 'bg-success' : 'bg-danger'}`} 
-                  style={{ width: `${Math.min(errorRate, 100)}%` }}
-                />
-              </div>
-            </div>
-          </div>
+          {!isHealthy && <Activity className="w-3.5 h-3.5 text-danger animate-pulse flex-shrink-0" />}
         </div>
-      </div>
-    </Link>
+      </td>
+      <td className="px-4 py-4 text-right pr-6">
+        <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-primary transition-colors inline-block" />
+      </td>
+    </tr>
   );
 });
 
@@ -98,18 +105,21 @@ export default function APMCatalog() {
     <div className="page-container">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="page-title">Service Catalog</h1>
+          <h1 className="page-title flex items-center gap-2">
+            <LayoutList className="w-5 h-5 text-text-secondary" />
+            Service Catalog
+          </h1>
           <p className="text-[13px] text-text-secondary mt-1">Real-time RED metrics driven by distributed trace analysis.</p>
         </div>
         <div className="flex gap-3 items-center">
-          <Link to="/traces" className="text-[13px] text-brand-light hover:underline">View all traces →</Link>
-          <span className="badge badge-info font-mono">Active: {services.length}</span>
+          <Link to="/traces" className="text-[13px] text-primary dark:text-brand-light hover:underline font-medium">View all traces →</Link>
+          <span className="badge badge-info bg-surface font-mono border-border text-text-primary">Active: {services.length}</span>
         </div>
       </div>
 
       {loading ? (
         <div className="flex justify-center items-center h-64">
-           <Loader2 className="w-6 h-6 animate-spin text-brand-light" />
+           <Loader2 className="w-6 h-6 animate-spin text-primary" />
         </div>
       ) : services.length === 0 ? (
         <div className="glass-panel p-12 text-center border-dashed border-2 border-border bg-transparent">
@@ -118,8 +128,21 @@ export default function APMCatalog() {
           <p className="text-[11px] text-text-muted">Ensure application spans are being sent to the APM ingestion endpoint.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {services.map(s => <ServiceCard key={s} service={s} />)}
+        <div className="glass-panel overflow-hidden">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-surface border-b border-border">
+                <th className="px-4 py-3 text-[11px] font-semibold text-text-muted uppercase tracking-wider pl-8">Service Name</th>
+                <th className="px-4 py-3 text-[11px] font-semibold text-text-muted uppercase tracking-wider">Requests Rate</th>
+                <th className="px-4 py-3 text-[11px] font-semibold text-text-muted uppercase tracking-wider">Avg Latency</th>
+                <th className="px-4 py-3 text-[11px] font-semibold text-text-muted uppercase tracking-wider">Error Rate</th>
+                <th className="px-4 py-3 w-10"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {services.map(s => <ServiceRow key={s} service={s} />)}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
