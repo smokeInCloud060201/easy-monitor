@@ -272,4 +272,121 @@ new Hook(['http', 'https'], (exported: any, name: string, basedir?: string) => {
     return exported;
 });
 
+const obfuscateQuery = (sql: string) => {
+    return sql.replace(/(['"]).*?\1|(\b\d+\b)/g, '?');
+};
+
+Hook(['pg'], (exported) => {
+    const Client = exported.Client || exported.native?.Client;
+    if (Client && Client.prototype) {
+        const originalQuery = Client.prototype.query;
+        Client.prototype.query = function (...args: any[]) {
+            const config = args[0];
+            let sql = typeof config === 'string' ? config : config?.text || '';
+            
+            return tracer.startActiveSpan('pg.query', span => {
+                span.setAttribute('db.system', 'postgresql');
+                span.setAttribute('db.query', obfuscateQuery(sql));
+                span.type = 'sql';
+                
+                const lastArg = args[args.length - 1];
+                if (typeof lastArg === 'function') {
+                    args[args.length - 1] = function (...cbArgs: any[]) {
+                        const err = cbArgs[0];
+                        if (err) span.recordException(err);
+                        span.end();
+                        return lastArg.apply(this, cbArgs);
+                    };
+                    return originalQuery.apply(this, args);
+                } else {
+                    const res = originalQuery.apply(this, args);
+                    if (res && typeof res.then === 'function') {
+                        res.then((r: any) => { span.end(); return r; })
+                           .catch((err: any) => { span.recordException(err); span.end(); throw err; });
+                    } else {
+                        span.end();
+                    }
+                    return res;
+                }
+            });
+        };
+    }
+    return exported;
+});
+
+Hook(['mysql2'], (exported) => {
+    if (exported && exported.Connection && exported.Connection.prototype) {
+        ['query', 'execute'].forEach(method => {
+            const original = exported.Connection.prototype[method];
+            if (original) {
+                exported.Connection.prototype[method] = function (...args: any[]) {
+                    let sql = typeof args[0] === 'string' ? args[0] : args[0]?.sql || '';
+                    return tracer.startActiveSpan('mysql.query', span => {
+                        span.setAttribute('db.system', 'mysql');
+                        span.setAttribute('db.query', obfuscateQuery(sql));
+                        span.type = 'sql';
+                        
+                        const lastArg = args[args.length - 1];
+                        if (typeof lastArg === 'function') {
+                            args[args.length - 1] = function (...cbArgs: any[]) {
+                                const err = cbArgs[0];
+                                if (err) span.recordException(err);
+                                span.end();
+                                return lastArg.apply(this, cbArgs);
+                            };
+                            return original.apply(this, args);
+                        } else {
+                            const res = original.apply(this, args);
+                            if (res && typeof res.then === 'function') {
+                                res.then((r: any) => { span.end(); return r; })
+                                   .catch((err: any) => { span.recordException(err); span.end(); throw err; });
+                            } else {
+                                span.end();
+                            }
+                            return res;
+                        }
+                    });
+                };
+            }
+        });
+    }
+    return exported;
+});
+
+if (typeof global !== 'undefined' && typeof global.fetch === 'function') {
+    const originalFetch = global.fetch;
+    global.fetch = function(...args: any[]) {
+        const urlStr = typeof args[0] === 'string' ? args[0] : (args[0] as Request).url;
+        const method = (args[1]?.method || (args[0] as any).method || 'GET').toUpperCase();
+        
+        return tracer.startActiveSpan('http.client.request', span => {
+            span.setAttribute('http.method', method);
+            span.setAttribute('http.url', urlStr);
+            
+            args[1] = args[1] || {};
+            args[1].headers = args[1].headers || {};
+            if (typeof Headers !== 'undefined' && args[1].headers instanceof Headers) {
+                args[1].headers.set('x-easymonitor-trace-id', span.traceId.toString());
+                args[1].headers.set('x-easymonitor-parent-id', span.spanId.toString());
+            } else {
+                args[1].headers['x-easymonitor-trace-id'] = span.traceId.toString();
+                args[1].headers['x-easymonitor-parent-id'] = span.spanId.toString();
+            }
+
+            return originalFetch.apply(this, args as any)
+                .then(res => {
+                    span.setAttribute('http.status_code', res.status);
+                    if (res.status >= 400) span.error = 1;
+                    span.end();
+                    return res;
+                })
+                .catch(err => {
+                    span.recordException(err);
+                    span.end();
+                    throw err;
+                });
+        });
+    };
+}
+
 console.log(`  [EasyMonitor] Native Node/Bun Agent successfully attached to ${SERVICE_NAME}!`);
