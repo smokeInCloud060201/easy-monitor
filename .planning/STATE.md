@@ -87,6 +87,7 @@ progress:
 - Phase 42 added: In the logs page, I want to improve the UI for logs details, when click the message line, dont show the popup for message details, we should expand the message logs details instead
 - Phase 43 added: Since now I feel the dashboard UI color is too hard to see, can reference Datadog UI color theme to update our application UI
 - Phase 44 added: Update Easy Monitor Agent Core Functional Specification
+- Phase 53 added: Update node-agent and master-service for agent infrastructure changes
 
 ## Session Info
 
