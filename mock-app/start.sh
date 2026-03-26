@@ -81,7 +81,7 @@ start_java() {
   echo "☕ Starting $1 on :$2..."
   cd "$SCRIPT_DIR/$1"
   OTEL_SERVICE_NAME=$1 \
-  java -javaagent:../../agents/java/build/libs/easymonitor-javaagent-all.jar \
+  java -javaagent:../../agents/java/build/libs/easymonitor-javaagent-1.0.0-SNAPSHOT-all.jar \
        -jar build/libs/$1.jar \
        --server.port=$2 \
        > "$LOG_DIR/${1%-service}.log" 2>&1 &

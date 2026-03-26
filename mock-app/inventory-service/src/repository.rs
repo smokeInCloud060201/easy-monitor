@@ -1,5 +1,4 @@
 use sqlx::PgPool;
-use crate::domain::Inventory;
 
 pub struct InventoryRepository {
     pool: PgPool,

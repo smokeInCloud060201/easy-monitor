@@ -25,10 +25,10 @@ public class HttpAdvice {
             span.traceId = parent.traceId;
             span.parentId = parent.spanId;
         } else {
-            span.traceId = java.util.concurrent.ThreadLocalRandom.current().nextLong();
+            span.traceId = java.util.concurrent.ThreadLocalRandom.current().nextLong(1, Long.MAX_VALUE);
             span.parentId = 0L;
         }
-        span.spanId = java.util.concurrent.ThreadLocalRandom.current().nextLong();
+        span.spanId = java.util.concurrent.ThreadLocalRandom.current().nextLong(1, Long.MAX_VALUE);
         
         conn.setRequestProperty("x-easymonitor-trace-id", String.valueOf(span.traceId));
         conn.setRequestProperty("x-easymonitor-parent-id", String.valueOf(span.spanId));
@@ -59,6 +59,6 @@ public class HttpAdvice {
         long startMs = Long.parseLong(span.meta.get("start_time_ms"));
         span.duration = (System.currentTimeMillis() - startMs) * 1000000L;
         
-        DatadogSpanExporter.export(span);
+        DatadogSpanExporter.submit(span);
     }
 }

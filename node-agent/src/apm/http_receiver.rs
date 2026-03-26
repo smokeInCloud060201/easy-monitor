@@ -69,7 +69,7 @@ async fn handle_traces(
             let internal_span = InternalSpan {
                 trace_id: format!("{:016x}", span.trace_id),
                 span_id: format!("{:016x}", span.span_id),
-                parent_id: span.parent_id.map(|id| format!("{:016x}", id)).unwrap_or_default(),
+                parent_id: span.parent_id.filter(|&id| id != 0).map(|id| format!("{:016x}", id)).unwrap_or_default(),
                 name: span.name,
                 resource: span.resource,
                 service: span.service,

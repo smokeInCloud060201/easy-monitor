@@ -6,10 +6,10 @@ import (
 	"regexp"
 )
 
-var sqlObfuscator = regexp.MustCompile(`(['"]).*?\1|(\b\d+\b)`)
+var queryObfuscator = regexp.MustCompile(`('.*?')|(".*?")|(\b\d+\b)`)
 
 func ObfuscateSQL(query string) string {
-	return sqlObfuscator.ReplaceAllString(query, "?")
+	return queryObfuscator.ReplaceAllString(query, "?")
 }
 
 type DB struct {

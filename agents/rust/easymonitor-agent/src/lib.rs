@@ -2,7 +2,6 @@ use rand::Rng;
 use serde::Serialize;
 use std::collections::{BTreeMap, HashMap};
 use std::net::UdpSocket;
-use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 use tracing::{Event, Subscriber};
 use tracing_subscriber::layer::Context;
@@ -40,8 +39,6 @@ pub struct SpanData {
 
 pub struct DatadogTracingLayer {
     service_name: String,
-    client: reqwest::Client,
-    endpoint: String,
     resource_meta: HashMap<String, String>,
     sender: tokio::sync::mpsc::Sender<DatadogSpan>,
 }
@@ -49,9 +46,7 @@ pub struct DatadogTracingLayer {
 impl DatadogTracingLayer {
     pub fn new(service_name: String) -> Self {
         let (tx, mut rx) = tokio::sync::mpsc::channel::<DatadogSpan>(1000);
-        let client = reqwest::Client::new();
-        let endpoint = "http://127.0.0.1:8126/v0.4/traces".to_string();
-
+        
         let mut resource_meta = HashMap::new();
         if let Ok(attrs) = std::env::var("OTEL_RESOURCE_ATTRIBUTES") {
             for pair in attrs.split(',') {
@@ -66,10 +61,9 @@ impl DatadogTracingLayer {
             }
         }
 
-        let worker_client = client.clone();
-        let worker_endpoint = endpoint.clone();
-
         tokio::spawn(async move {
+            let worker_client = reqwest::Client::new();
+            let worker_endpoint = "http://127.0.0.1:8126/v0.4/traces".to_string();
             let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
             let mut batch = Vec::new();
 
@@ -108,8 +102,6 @@ impl DatadogTracingLayer {
 
         Self {
             service_name,
-            client,
-            endpoint,
             resource_meta,
             sender: tx,
         }

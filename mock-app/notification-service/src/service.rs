@@ -53,7 +53,7 @@ impl NotificationService {
             tracing::error!("Failed to save notification: {}", e);
         }
 
-        if let Ok(mut con) = self.redis.get_async_connection().await {
+        if let Ok(mut con) = self.redis.get_multiplexed_async_connection().await {
             let cache_key = format!("notif:{}", order_id);
             if let Ok(json_str) = serde_json::to_string(&log) {
                 let _: redis::RedisResult<()> = redis::AsyncCommands::set_ex(&mut con, cache_key, json_str, 600).await;
@@ -71,7 +71,7 @@ impl NotificationService {
     pub async fn get_status(&self, order_id: &str) -> Option<NotificationStatusResponse> {
         Self::simulate_sleep(1, 5).await;
 
-        if let Ok(mut con) = self.redis.get_async_connection().await {
+        if let Ok(mut con) = self.redis.get_multiplexed_async_connection().await {
             let cache_key = format!("notif:{}", order_id);
             let cached: redis::RedisResult<String> = redis::AsyncCommands::get(&mut con, &cache_key).await;
             if let Ok(val) = cached {
@@ -91,7 +91,7 @@ impl NotificationService {
         Self::simulate_sleep(10, 35).await;
 
         if let Ok(Some(log)) = self.repo.find_by_order_id(order_id).await {
-            if let Ok(mut con) = self.redis.get_async_connection().await {
+            if let Ok(mut con) = self.redis.get_multiplexed_async_connection().await {
                 let cache_key = format!("notif:{}", order_id);
                 if let Ok(json_str) = serde_json::to_string(&log) {
                     let _: redis::RedisResult<()> = redis::AsyncCommands::set_ex(&mut con, cache_key, json_str, 600).await;

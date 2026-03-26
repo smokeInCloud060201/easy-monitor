@@ -27,15 +27,23 @@ setup:
 
 ## master-service: Run master service
 master-service:
-	cargo run -p master-service
+	cd master-service && cargo run
 
 ## agent-node: Run agent node
 agent-node:
-	cargo run -p node-agent
+	cd node-agent && cargo run
 
 ## mock-app: Run mock app
 mock-app:
 	cd mock-app && ./start.sh
+
+down: mock-down master-down agent-down
+
+master-down:
+	-pkill -f 'master-service'
+
+agent-down:
+	-pkill -f 'node-agent'
 
 ## mock-down: Kill all mock app services
 mock-down:

@@ -3,7 +3,7 @@ import * as http from 'http';
 import * as os from 'os';
 import * as crypto from 'crypto';
 import { Hook } from 'require-in-the-middle';
-import { encode } from '@msgpack/msgpack';
+import { pack as encode } from 'msgpackr';
 
 const SERVICE_NAME = process.env.OTEL_SERVICE_NAME || 'node-agent';
 
@@ -135,20 +135,23 @@ function exportSpan(span: Span) {
         return; // drop silently (fail-safe)
     }
 
-    buffer.push({
+    const obj: any = {
         trace_id: span.traceId,
         span_id: span.spanId,
-        parent_id: span.parentId,
         name: span.name,
         resource: span.resource,
         service: span.service,
         type: 'web',
         start: span.start,
         duration: span.duration,
-        error: span.error,
-        meta: span.meta,
-        metrics: span.metrics
-    });
+        error: span.error
+    };
+    
+    if (span.parentId !== 0n) obj.parent_id = span.parentId;
+    if (Object.keys(span.meta).length > 0) obj.meta = span.meta;
+    if (Object.keys(span.metrics).length > 0) obj.metrics = span.metrics;
+    
+    buffer.push(obj);
 
     if (buffer.length >= 100) {
         flush();
@@ -168,7 +171,7 @@ function flush() {
     buffer = [];
 
     try {
-        const encoded = encode(payload, { ignoreUndefined: true });
+        const encoded = encode(payload);
         
         const req = http.request({
             hostname: '127.0.0.1',
@@ -181,10 +184,10 @@ function flush() {
             }
         });
 
-        req.on('error', (err) => {});
+        req.on('error', (err) => { console.error("[EasyMonitor] Failed to export traces:", err.message); });
         req.write(encoded);
         req.end();
-    } catch(e) {}
+    } catch(e: any) { console.error("[EasyMonitor] Exception in flush:", e.message); }
 }
 
 const originalFetch = global.fetch;

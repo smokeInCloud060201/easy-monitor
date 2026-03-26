@@ -3,51 +3,55 @@ package com.easymonitor.agent;
 import net.bytebuddy.asm.Advice;
 import com.easymonitor.agent.trace.DatadogSpanExporter.DatadogSpan;
 import com.easymonitor.agent.trace.DatadogSpanExporter;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 public class ServletAdvice {
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void onEnter(@Advice.Argument(0) Object reqObject) {
-        if (!(reqObject instanceof HttpServletRequest)) {
-            return;
-        }
-        HttpServletRequest request = (HttpServletRequest) reqObject;
+        boolean isReq_init = false;
+        try { reqObject.getClass().getMethod("getMethod"); isReq_init = true; } catch (Throwable t) {}
+        if (!isReq_init) return;
         
         DatadogSpan span = new DatadogSpan();
         span.name = "web.request";
-        span.resource = request.getMethod() + " " + request.getRequestURI();
-        span.service = System.getenv().getOrDefault("OTEL_SERVICE_NAME", "java-app");
-        span.type = "web";
-        span.meta.put("http.method", request.getMethod());
-        span.meta.put("http.url", request.getRequestURL().toString());
-        
-        String traceIdStr = request.getHeader("x-easymonitor-trace-id");
-        String parentIdStr = request.getHeader("x-easymonitor-parent-id");
         
         try {
+            String method = (String) reqObject.getClass().getMethod("getMethod").invoke(reqObject);
+            String uri = (String) reqObject.getClass().getMethod("getRequestURI").invoke(reqObject);
+            Object urlBuf = reqObject.getClass().getMethod("getRequestURL").invoke(reqObject);
+            
+            span.resource = method + " " + uri;
+            span.meta.put("http.method", method);
+            span.meta.put("http.url", urlBuf != null ? urlBuf.toString() : "");
+            
+            String traceIdStr = (String) reqObject.getClass().getMethod("getHeader", String.class).invoke(reqObject, "x-easymonitor-trace-id");
+            String parentIdStr = (String) reqObject.getClass().getMethod("getHeader", String.class).invoke(reqObject, "x-easymonitor-parent-id");
+            
             if (traceIdStr != null && !traceIdStr.isEmpty()) {
                 span.traceId = Long.parseUnsignedLong(traceIdStr);
             } else {
-                span.traceId = java.util.concurrent.ThreadLocalRandom.current().nextLong();
+                span.traceId = java.util.concurrent.ThreadLocalRandom.current().nextLong(1, Long.MAX_VALUE);
             }
             if (parentIdStr != null && !parentIdStr.isEmpty()) {
                 span.parentId = Long.parseUnsignedLong(parentIdStr);
+            } else {
+                span.parentId = 0L;
             }
-            span.spanId = java.util.concurrent.ThreadLocalRandom.current().nextLong();
         } catch (Exception e) {
-            span.traceId = java.util.concurrent.ThreadLocalRandom.current().nextLong();
-            span.spanId = java.util.concurrent.ThreadLocalRandom.current().nextLong();
+            span.traceId = java.util.concurrent.ThreadLocalRandom.current().nextLong(1, Long.MAX_VALUE);
+            span.parentId = 0L;
         }
+        span.spanId = java.util.concurrent.ThreadLocalRandom.current().nextLong(1, Long.MAX_VALUE);
         
+        span.service = System.getenv().getOrDefault("OTEL_SERVICE_NAME", "java-app");
+        span.type = "web";
         span.start = System.currentTimeMillis() * 1000000L; // ns
         span.meta.put("start_time_ms", String.valueOf(System.currentTimeMillis()));
         
         try {
             java.lang.management.ThreadMXBean bean = java.lang.management.ManagementFactory.getThreadMXBean();
             if (bean.isThreadCpuTimeSupported() && bean.isThreadCpuTimeEnabled()) {
-                request.setAttribute("easymonitor.cpu_time_start", bean.getCurrentThreadCpuTime());
+                reqObject.getClass().getMethod("setAttribute", String.class, Object.class).invoke(reqObject, "easymonitor.cpu_time_start", bean.getCurrentThreadCpuTime());
             }
         } catch (Throwable t) {}
 
@@ -68,10 +72,11 @@ public class ServletAdvice {
         }
         SpanTracker.clear();
 
-        if (reqObject instanceof HttpServletRequest) {
+        boolean isReq = false;
+        try { reqObject.getClass().getMethod("getMethod"); isReq = true; } catch (Throwable t) {}
+        if (isReq) {
             try {
-                HttpServletRequest request = (HttpServletRequest) reqObject;
-                Object startCpuObj = request.getAttribute("easymonitor.cpu_time_start");
+                Object startCpuObj = reqObject.getClass().getMethod("getAttribute", String.class).invoke(reqObject, "easymonitor.cpu_time_start");
                 if (startCpuObj != null) {
                     long startCpu = (Long) startCpuObj;
                     java.lang.management.ThreadMXBean bean = java.lang.management.ManagementFactory.getThreadMXBean();
@@ -83,12 +88,18 @@ public class ServletAdvice {
             } catch (Throwable t) {}
         }
         
-        if (resObject instanceof HttpServletResponse) {
-            HttpServletResponse response = (HttpServletResponse) resObject;
-            span.meta.put("http.status_code", String.valueOf(response.getStatus()));
-            if (response.getStatus() >= 400) {
-                span.error = 1;
-            }
+        boolean isRes = false;
+        if (resObject != null) {
+            try { resObject.getClass().getMethod("getStatus"); isRes = true; } catch (Throwable t) {}
+        }
+        if (isRes) {
+            try {
+                int status = (Integer) resObject.getClass().getMethod("getStatus").invoke(resObject);
+                span.meta.put("http.status_code", String.valueOf(status));
+                if (status >= 400) {
+                    span.error = 1;
+                }
+            } catch (Throwable t) {}
         }
         
         if (thrown != null) {
@@ -107,10 +118,10 @@ public class ServletAdvice {
             span.meta.put("error.stack", stack);
         }
         
-        long startMs = Long.parseLong(span.meta.get("start_time_ms"));
+        long startMs = Long.parseLong(span.meta.getOrDefault("start_time_ms", String.valueOf(System.currentTimeMillis())));
         span.duration = (System.currentTimeMillis() - startMs) * 1000000L;
         
-        DatadogSpanExporter.export(span);
+        DatadogSpanExporter.submit(span);
         SpanTracker.clear();
 
         try {

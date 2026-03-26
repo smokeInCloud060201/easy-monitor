@@ -38,10 +38,10 @@ public class JdbcAdvice {
                 span.traceId = parent.traceId;
                 span.parentId = parent.spanId;
             } else {
-                span.traceId = java.util.concurrent.ThreadLocalRandom.current().nextLong();
+                span.traceId = java.util.concurrent.ThreadLocalRandom.current().nextLong(1, Long.MAX_VALUE);
                 span.parentId = 0L;
             }
-            span.spanId = java.util.concurrent.ThreadLocalRandom.current().nextLong();
+            span.spanId = java.util.concurrent.ThreadLocalRandom.current().nextLong(1, Long.MAX_VALUE);
             span.start = System.currentTimeMillis() * 1000000L;
             span.meta.put("start_time_ms", String.valueOf(System.currentTimeMillis()));
             
@@ -63,7 +63,7 @@ public class JdbcAdvice {
             long startMs = Long.parseLong(span.meta.get("start_time_ms"));
             span.duration = (System.currentTimeMillis() - startMs) * 1000000L;
             
-            DatadogSpanExporter.export(span);
+            DatadogSpanExporter.submit(span);
         }
     }
 }
