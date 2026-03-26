@@ -7,6 +7,34 @@ import { encode } from '@msgpack/msgpack';
 
 const SERVICE_NAME = process.env.OTEL_SERVICE_NAME || 'node-agent';
 
+const resourceMeta: Record<string, string> = { host: os.hostname() };
+const otelAttrs = process.env.OTEL_RESOURCE_ATTRIBUTES || '';
+otelAttrs.split(',').forEach(pair => {
+    const [key, val] = pair.split('=');
+    if (key === 'deployment.environment') resourceMeta.env = val;
+    if (key === 'service.version') resourceMeta.version = val;
+});
+
+const originalLog = console.log;
+const originalInfo = console.info;
+const originalWarn = console.warn;
+const originalError = console.error;
+
+function injectTrace(args: any[]) {
+    const span = traceStorage?.getStore();
+    if (span && args.length > 0 && typeof args[0] === 'string') {
+        args[0] = `[trace_id: ${span.traceId} span_id: ${span.spanId}] ${args[0]}`;
+    } else if (span) {
+        args.unshift(`[trace_id: ${span.traceId} span_id: ${span.spanId}]`);
+    }
+    return args;
+}
+
+console.log = function(...args: any[]) { originalLog.apply(console, injectTrace(args)); };
+console.info = function(...args: any[]) { originalInfo.apply(console, injectTrace(args)); };
+console.warn = function(...args: any[]) { originalWarn.apply(console, injectTrace(args)); };
+console.error = function(...args: any[]) { originalError.apply(console, injectTrace(args)); };
+
 function generateId(): bigint {
     return crypto.randomBytes(8).readBigUInt64BE(0);
 }
@@ -22,7 +50,7 @@ export class Span {
     public hrStart: bigint;
     public duration: bigint = 0n;
     public error: number = 0;
-    public meta: Record<string, string> = { host: os.hostname() };
+    public meta: Record<string, string> = { ...resourceMeta };
     public metrics: Record<string, number> = {};
 
     constructor(name: string, traceId: bigint, spanId: bigint, parentId: bigint) {

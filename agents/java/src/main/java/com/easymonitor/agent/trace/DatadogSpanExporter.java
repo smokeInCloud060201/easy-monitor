@@ -17,8 +17,20 @@ public class DatadogSpanExporter {
     
     // Background worker for async transmission
     private static final BlockingQueue<DatadogSpan> queue = new LinkedBlockingQueue<>(10000);
+    public static final Map<String, String> ENV_META = new HashMap<>();
 
     static {
+        String attrs = System.getenv("OTEL_RESOURCE_ATTRIBUTES");
+        if (attrs != null) {
+            for (String pair : attrs.split(",")) {
+                String[] kv = pair.split("=", 2);
+                if (kv.length == 2) {
+                    if ("deployment.environment".equals(kv[0])) ENV_META.put("env", kv[1]);
+                    else if ("service.version".equals(kv[0])) ENV_META.put("version", kv[1]);
+                }
+            }
+        }
+
         Thread worker = new Thread(() -> {
             while (true) {
                 try {
@@ -55,6 +67,10 @@ public class DatadogSpanExporter {
         @JsonProperty("error") public int error;
         @JsonProperty("meta") public Map<String, String> meta = new HashMap<>();
         @JsonProperty("metrics") public Map<String, Double> metrics = new HashMap<>();
+
+        public DatadogSpan() {
+            this.meta.putAll(ENV_META);
+        }
     }
 
     public static void submit(DatadogSpan span) {

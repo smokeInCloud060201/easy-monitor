@@ -42,17 +42,18 @@ pub struct DatadogTracingLayer {
     service_name: String,
     client: reqwest::Client,
     endpoint: String,
+    resource_meta: HashMap<String, String>,
     sender: tokio::sync::mpsc::Sender<DatadogSpan>,
 }
 
 impl DatadogTracingLayer {
-    pub fn new(service_name: String) -> Self {
+    pub fn new(endpoint: &str, service_name: &str) -> Self {
         let (tx, mut rx) = tokio::sync::mpsc::channel::<DatadogSpan>(1000);
         let client = reqwest::Client::new();
-        let endpoint = "http://127.0.0.1:8126/v0.4/traces".to_string();
+        let endpoint_str = endpoint.to_string();
 
         let worker_client = client.clone();
-        let worker_endpoint = endpoint.clone();
+        let worker_endpoint = endpoint_str.clone();
 
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
@@ -177,6 +178,10 @@ where
                 }
             } else if data.meta.contains_key("http.url") && !data.meta.contains_key("http.route") {
                 span_type = "http".to_string();
+            }
+
+            for (k, v) in &self.resource_meta {
+                data.meta.insert(k.clone(), v.clone());
             }
 
             let dd_span = DatadogSpan {

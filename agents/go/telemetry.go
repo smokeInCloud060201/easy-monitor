@@ -9,12 +9,32 @@ import (
 	"log"
 	mathrand "math/rand"
 	"net/http"
+	"os"
 	"runtime/debug"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/vmihailenco/msgpack/v5"
 )
+
+var defaultMeta = make(map[string]string)
+
+func init() {
+	if otelAttrs := os.Getenv("OTEL_RESOURCE_ATTRIBUTES"); otelAttrs != "" {
+		pairs := strings.Split(otelAttrs, ",")
+		for _, pair := range pairs {
+			kv := strings.SplitN(pair, "=", 2)
+			if len(kv) == 2 {
+				if kv[0] == "deployment.environment" {
+					defaultMeta["env"] = kv[1]
+				} else if kv[0] == "service.version" {
+					defaultMeta["version"] = kv[1]
+				}
+			}
+		}
+	}
+}
 
 type Span struct {
 	TraceID  uint64
@@ -96,16 +116,23 @@ func StartSpanFromContext(ctx context.Context, name string) (*Span, context.Cont
 		traceID = generateID()
 	}
 
+	spanID := generateID()
+
+	meta := make(map[string]string)
+	for k, v := range defaultMeta {
+		meta[k] = v
+	}
+
 	span := &Span{
 		TraceID:  traceID,
-		SpanID:   generateID(),
+		SpanID:   spanID,
 		ParentID: parentID,
 		Name:     name,
 		Resource: name,
 		Service:  serviceName,
 		Type:     "web",
 		Start:    time.Now(),
-		Meta:     make(map[string]string),
+		Meta:     meta,
 		Metrics:  make(map[string]float64),
 	}
 

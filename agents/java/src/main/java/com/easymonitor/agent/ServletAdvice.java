@@ -45,10 +45,16 @@ public class ServletAdvice {
         span.meta.put("start_time_ms", String.valueOf(System.currentTimeMillis()));
         
         SpanTracker.setSpan(span);
+
+        try {
+            Class<?> mdc = Class.forName("org.slf4j.MDC");
+            mdc.getMethod("put", String.class, String.class).invoke(null, "trace_id", String.valueOf(span.traceId));
+            mdc.getMethod("put", String.class, String.class).invoke(null, "span_id", String.valueOf(span.spanId));
+        } catch (Throwable t) {}
     }
 
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
-    public static void onExit(@Advice.Argument(1) Object resObject, @Advice.Thrown Throwable thrown) {
+    public static void onExit(@Advice.Argument(0) Object reqObject, @Advice.Argument(1) Object resObject, @Advice.Thrown Throwable thrown) {
         DatadogSpan span = SpanTracker.getSpan();
         if (span == null) {
             return;
@@ -80,9 +86,15 @@ public class ServletAdvice {
         }
         
         long startMs = Long.parseLong(span.meta.get("start_time_ms"));
-        span.duration = (System.currentTimeMillis() - startMs) * 1000000L; // ns
-        span.meta.remove("start_time_ms");
+        span.duration = (System.currentTimeMillis() - startMs) * 1000000L;
         
-        DatadogSpanExporter.submit(span);
+        DatadogSpanExporter.export(span);
+        SpanTracker.clear();
+
+        try {
+            Class<?> mdc = Class.forName("org.slf4j.MDC");
+            mdc.getMethod("remove", String.class).invoke(null, "trace_id");
+            mdc.getMethod("remove", String.class).invoke(null, "span_id");
+        } catch (Throwable t) {}
     }
 }
