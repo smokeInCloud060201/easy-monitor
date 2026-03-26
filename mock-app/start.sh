@@ -81,11 +81,7 @@ start_java() {
   echo "☕ Starting $1 on :$2..."
   cd "$SCRIPT_DIR/$1"
   OTEL_SERVICE_NAME=$1 \
-  OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4317 \
-  OTEL_EXPORTER_OTLP_PROTOCOL=grpc \
-  OTEL_METRICS_EXPORTER=otlp \
-  java -javaagent:../../agents/java/opentelemetry-javaagent.jar \
-       -Dotel.javaagent.extensions=../../agents/java/build/libs/easymonitor-extension-1.0.0-SNAPSHOT.jar \
+  java -javaagent:../../agents/java/build/libs/easymonitor-javaagent-all.jar \
        -jar build/libs/$1.jar \
        --server.port=$2 \
        > "$LOG_DIR/${1%-service}.log" 2>&1 &
@@ -96,8 +92,6 @@ start_go() {
   echo "🐹 Starting $1 on :$2..."
   cd "$SCRIPT_DIR/$1"
   OTEL_SERVICE_NAME=$1 \
-  OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4317 \
-  OTEL_EXPORTER_OTLP_PROTOCOL=grpc \
   ./$1 > "$LOG_DIR/${1%-service}.log" 2>&1 &
   PIDS+=($!)
 }
@@ -114,8 +108,6 @@ start_rust() {
   echo "🦀 Starting $1 on :$2..."
   cd "$SCRIPT_DIR/$1"
   OTEL_SERVICE_NAME=$1 \
-  OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4317 \
-  OTEL_EXPORTER_OTLP_PROTOCOL=grpc \
   ./target/debug/$1 > "$LOG_DIR/${1%-service}.log" 2>&1 &
   PIDS+=($!)
 }

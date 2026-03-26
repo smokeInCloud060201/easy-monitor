@@ -2,11 +2,9 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"log/slog"
 	"net/http"
-	"os"
 
 	"github.com/easymonitor/agents/go"
 	"github.com/easymonitor/user-service/internal/controller"
@@ -20,14 +18,7 @@ import (
 
 func main() {
 	ctx := context.Background()
-	
-    tpShutdown, lpShutdown, err := telemetry.Init("user-service")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to init telemetry: %v\n", err)
-		os.Exit(1)
-	}
-	defer tpShutdown(ctx)
-	defer lpShutdown(ctx)
+	telemetry.Init("user-service")
 
 	// Dependency Injection: Databases
 	dbDsn := "host=localhost user=easymonitor password=password dbname=easymonitor port=5432 sslmode=disable"
