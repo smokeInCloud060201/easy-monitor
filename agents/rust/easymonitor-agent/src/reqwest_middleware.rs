@@ -1,6 +1,6 @@
+use crate::SpanData;
 use reqwest::RequestBuilder;
 use tracing_subscriber::registry::LookupSpan;
-use crate::SpanData;
 
 pub trait TracingReqwestExt {
     fn send_with_trace(self) -> RequestBuilder;
@@ -9,17 +9,17 @@ pub trait TracingReqwestExt {
 impl TracingReqwestExt for RequestBuilder {
     fn send_with_trace(mut self) -> RequestBuilder {
         let span = tracing::Span::current();
-        
+
         // We use span.with_subscriber but practically in tracing it's simpler
         // to just use span.id() and fetch from the global registry if we want extensions.
-        // However, standard tracing `Span::current()` doesn't expose extensions directly 
+        // However, standard tracing `Span::current()` doesn't expose extensions directly
         // without a registry handle.
-        // Since `SpanData` is inserted by DatadogTracingLayer, we can extract it if we have 
+        // Since `SpanData` is inserted by DatadogTracingLayer, we can extract it if we have
         // context. A simpler approach is that the application uses `tracing::Span::current()`
         // which has an ID.
-        
+
         let id = span.id();
-        
+
         let mut t_id = None;
         let mut s_id = None;
         if let Some(id) = id {
@@ -34,14 +34,14 @@ impl TracingReqwestExt for RequestBuilder {
                 }
             });
         }
-        
+
         if let Some(tid) = t_id {
             self = self.header("x-easymonitor-trace-id", tid);
         }
         if let Some(sid) = s_id {
             self = self.header("x-easymonitor-parent-id", sid);
         }
-        
+
         self
     }
 }

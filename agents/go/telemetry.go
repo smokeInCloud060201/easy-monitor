@@ -23,6 +23,7 @@ type Span struct {
 	Name     string
 	Resource string
 	Service  string
+	Type     string
 	Start    time.Time
 	Duration time.Duration
 	Error    int32
@@ -102,6 +103,7 @@ func StartSpanFromContext(ctx context.Context, name string) (*Span, context.Cont
 		Name:     name,
 		Resource: name,
 		Service:  serviceName,
+		Type:     "web",
 		Start:    time.Now(),
 		Meta:     make(map[string]string),
 		Metrics:  make(map[string]float64),
@@ -160,7 +162,7 @@ func startBackgroundFlusher() {
 				Name:     s.Name,
 				Resource: s.Resource,
 				Service:  s.Service,
-				Type:     "web",
+				Type:     s.Type,
 				Start:    s.Start.UnixNano(),
 				Duration: s.Duration.Nanoseconds(),
 				Error:    s.Error,

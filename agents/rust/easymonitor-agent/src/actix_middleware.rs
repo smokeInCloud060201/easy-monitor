@@ -43,12 +43,16 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        let trace_id = req.headers().get("x-easymonitor-trace-id")
+        let trace_id = req
+            .headers()
+            .get("x-easymonitor-trace-id")
             .and_then(|h| h.to_str().ok())
             .and_then(|s| s.parse::<u64>().ok())
             .unwrap_or(0);
-        
-        let parent_id = req.headers().get("x-easymonitor-parent-id")
+
+        let parent_id = req
+            .headers()
+            .get("x-easymonitor-parent-id")
             .and_then(|h| h.to_str().ok())
             .and_then(|s| s.parse::<u64>().ok())
             .unwrap_or(0);
