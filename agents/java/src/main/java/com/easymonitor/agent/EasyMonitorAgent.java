@@ -15,5 +15,23 @@ public class EasyMonitorAgent {
             .transform(new AgentBuilder.Transformer.ForAdvice()
                     .advice(ElementMatchers.named("service"), "com.easymonitor.agent.ServletAdvice"))
             .installOn(inst);
+
+        new AgentBuilder.Default()
+            .type(ElementMatchers.isSubTypeOf(java.net.HttpURLConnection.class))
+            .transform(new AgentBuilder.Transformer.ForAdvice()
+                    .advice(ElementMatchers.named("connect").or(ElementMatchers.named("getInputStream")), "com.easymonitor.agent.HttpAdvice"))
+            .installOn(inst);
+
+        new AgentBuilder.Default()
+            .type(ElementMatchers.hasSuperType(ElementMatchers.named("java.sql.Connection")))
+            .transform(new AgentBuilder.Transformer.ForAdvice()
+                    .advice(ElementMatchers.nameStartsWith("prepareStatement"), "com.easymonitor.agent.JdbcAdvice$PrepareAdvice"))
+            .installOn(inst);
+
+        new AgentBuilder.Default()
+            .type(ElementMatchers.hasSuperType(ElementMatchers.named("java.sql.PreparedStatement")))
+            .transform(new AgentBuilder.Transformer.ForAdvice()
+                    .advice(ElementMatchers.nameStartsWith("execute"), "com.easymonitor.agent.JdbcAdvice$ExecuteAdvice"))
+            .installOn(inst);
     }
 }

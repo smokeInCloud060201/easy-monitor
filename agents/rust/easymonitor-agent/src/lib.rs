@@ -157,7 +157,7 @@ where
     fn on_close(&self, id: tracing::Id, ctx: Context<'_, S>) {
         let span = ctx.span(&id).expect("Span not found");
         let data_opt = span.extensions_mut().remove::<SpanData>();
-        if let Some(data) = data_opt {
+        if let Some(mut data) = data_opt {
             let duration = SystemTime::now()
                 .duration_since(data.start_time)
                 .unwrap_or_default()
@@ -168,6 +168,17 @@ where
                 .unwrap_or_default()
                 .as_nanos() as i64;
 
+            let mut span_type = "web".to_string();
+            if let Some(stmt) = data.meta.get("db.statement") {
+                span_type = "sql".to_string();
+                if let Ok(re) = regex::Regex::new(r#"(['"]).*?\1|(\b\d+\b)"#) {
+                    let obfuscated = re.replace_all(stmt, "?").to_string();
+                    data.meta.insert("db.query".to_string(), obfuscated);
+                }
+            } else if data.meta.contains_key("http.url") && !data.meta.contains_key("http.route") {
+                span_type = "http".to_string();
+            }
+
             let dd_span = DatadogSpan {
                 trace_id: data.trace_id,
                 span_id: data.span_id,
@@ -175,7 +186,7 @@ where
                 name: span.name().to_string(),
                 resource: span.name().to_string(),
                 service: self.service_name.clone(),
-                r#type: "web".to_string(),
+                r#type: span_type,
                 start,
                 duration,
                 error: data.error,
