@@ -488,9 +488,9 @@ Plans:
 **Goal:** Hook into popular database drivers and HTTP clients to automatically trace database queries and external RPCs.
 **Requirements**: TBD
 **Depends on:** Phase 48
-**Plans:** 0 plans
+**Plans:** 2/2 plans complete
 Plans:
-- [ ] TBD (run /gsd-plan-phase 49 to break down)
+- [x] TBD (run /gsd-plan-phase 49 to break down) (completed 2026-03-26)
 
 ### Phase 50: Agent Metadata Enrichment & Correlation
 **Goal:** Tag spans with environment metadata (host, service, version) and inject trace IDs into application logs.
