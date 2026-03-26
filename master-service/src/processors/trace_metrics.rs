@@ -25,6 +25,16 @@ impl ResourceBucket {
     }
 }
 
+struct TopologyBucket {
+    call_count: u64,
+    errors: u64,
+    durations: Vec<f64>,
+}
+
+impl TopologyBucket {
+    fn new() -> Self { Self { call_count: 0, errors: 0, durations: Vec::new() } }
+}
+
 fn percentile(sorted: &[f64], p: f64) -> f64 {
     if sorted.is_empty() { return 0.0; }
     let idx = ((sorted.len() as f64 - 1.0) * p / 100.0).round() as usize;
@@ -35,17 +45,32 @@ pub async fn start_trace_metrics_engine(tx: EventBusTx, mut rx: EventBusRx) -> a
     info!("Starting Trace-to-Metrics Engine (RED + ClickHouse persistence)...");
 
     let buckets: Arc<DashMap<String, ResourceBucket>> = Arc::new(DashMap::new());
+    let topology_buckets: Arc<DashMap<String, TopologyBucket>> = Arc::new(DashMap::new());
 
     let buckets_clone = buckets.clone();
+    let topology_clone = topology_buckets.clone();
     tokio::spawn(async move {
         loop {
             match rx.recv().await {
                 Ok(Event::Traces(spans)) => {
                     for span in spans {
+                        // Topology Edge extraction
+                        if span.name.contains(".request") || span.name.contains(".client") {
+                            if let Some(peer) = span.meta.get("peer.service") {
+                                let edge_key = format!("{}->{}", span.service, peer);
+                                let mut t_entry = topology_clone.entry(edge_key).or_insert_with(TopologyBucket::new);
+                                t_entry.call_count += 1;
+                                if is_error_span(span.error, &span.meta) {
+                                    t_entry.errors += 1;
+                                }
+                                t_entry.durations.push(span.duration as f64 / 1000.0);
+                            }
+                        }
+
                         let sanitized_resource = sanitize_resource(&span.resource);
                         // EXCLUSIVE FILTER: Only track RED metrics for Entrypoint spans (Root spans or explicit APIs/Servers). 
                         // This prevents internal Redis/DB queries or background tasks from polluting the APM Resources endpoint list.
-                        let is_api = span.resource.contains(".request") || span.resource.contains(".server");
+                        let is_api = span.name.contains(".request") || span.name.contains(".server") || span.name.contains("web.request");
                         if !is_api {
                             continue;
                         }
@@ -159,6 +184,46 @@ pub async fn start_trace_metrics_engine(tx: EventBusTx, mut rx: EventBusRx) -> a
                     .body(ch_payload);
                 if let Err(e) = req.send().await {
                     error!("TraceEngine ClickHouse RED persist failed: {}", e);
+                }
+            }
+
+            // Drain topology buckets
+            let t_entries: Vec<(String, TopologyBucket)> = topology_buckets.iter()
+                .map(|entry| (entry.key().clone(), TopologyBucket {
+                    call_count: entry.call_count,
+                    errors: entry.errors,
+                    durations: entry.durations.clone(),
+                }))
+                .collect();
+            topology_buckets.clear();
+
+            let mut topology_ch_payload = String::new();
+            for (key, mut bucket) in t_entries {
+                let parts: Vec<&str> = key.split("->").collect();
+                if parts.len() != 2 { continue; }
+                let parent_service = parts[0];
+                let child_service = parts[1];
+
+                bucket.durations.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+                let p95 = percentile(&bucket.durations, 95.0);
+
+                let row = json!({
+                    "parent_service": parent_service,
+                    "child_service": child_service,
+                    "timestamp": ts,
+                    "call_count": bucket.call_count,
+                    "error_count": bucket.errors,
+                    "p95_latency": p95,
+                });
+                topology_ch_payload.push_str(&row.to_string());
+                topology_ch_payload.push('\n');
+            }
+
+            if !topology_ch_payload.is_empty() {
+                let req = ch_client.post(&format!("{}&query=INSERT INTO easy_monitor_topology_edges FORMAT JSONEachRow", CH_URL))
+                    .body(topology_ch_payload);
+                if let Err(e) = req.send().await {
+                    error!("TraceEngine ClickHouse Topology persist failed: {}", e);
                 }
             }
         }
