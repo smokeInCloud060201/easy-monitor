@@ -49,8 +49,12 @@ export class Span {
 
     recordException(err: Error) {
         this.error = 1;
+        this.setAttribute('error.type', err.name || 'Error');
         this.setAttribute('error.message', err.message);
-        if (err.stack) this.setAttribute('error.stack', err.stack);
+        if (err.stack) {
+            const stackStr = err.stack.toString();
+            this.setAttribute('error.stack', stackStr.length > 2000 ? stackStr.substring(0, 2000) + '... (truncated)' : stackStr);
+        }
     }
 
     end() {

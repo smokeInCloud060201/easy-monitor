@@ -5,9 +5,11 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/binary"
+	"fmt"
 	"log"
 	mathrand "math/rand"
 	"net/http"
+	"runtime/debug"
 	"strconv"
 	"time"
 
@@ -194,6 +196,23 @@ func WrapHTTPHandler(next http.Handler, serviceName string) http.Handler {
 		span.SetTag("http.url", r.URL.String())
 		
 		defer span.Finish()
+		defer func() {
+			if err := recover(); err != nil {
+				span.Error = 1
+				span.SetTag("error.message", fmt.Sprintf("%v", err))
+				span.SetTag("error.type", "panic")
+				
+				stack := debug.Stack()
+				stackStr := string(stack)
+				if len(stackStr) > 2000 {
+					stackStr = stackStr[:2000] + "... (truncated)"
+				}
+				span.SetTag("error.stack", stackStr)
+
+				panic(err)
+			}
+		}()
+
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
