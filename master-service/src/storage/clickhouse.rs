@@ -69,9 +69,33 @@ pub async fn initialize_clickhouse(client: &Client) -> anyhow::Result<()> {
         ORDER BY (service, resource, timestamp);
     ";
 
+    let create_topology_edges = "
+        CREATE TABLE IF NOT EXISTS easy_monitor_topology_edges (
+            parent_service String,
+            child_service String,
+            timestamp Int64,
+            call_count UInt64,
+            error_count UInt64,
+            p95_latency Float64
+        ) ENGINE = MergeTree()
+        ORDER BY (parent_service, child_service, timestamp);
+    ";
+
+    let create_profiles = "
+        CREATE TABLE IF NOT EXISTS easy_monitor_profiles (
+            service String,
+            profile_type String,
+            timestamp Int64,
+            raw_data String
+        ) ENGINE = MergeTree()
+        ORDER BY (service, timestamp);
+    ";
+
     client.post(CH_URL).body(create_logs.to_string()).send().await?.error_for_status()?;
     client.post(CH_URL).body(create_traces.to_string()).send().await?.error_for_status()?;
     client.post(CH_URL).body(create_red_metrics.to_string()).send().await?.error_for_status()?;
+    client.post(CH_URL).body(create_topology_edges.to_string()).send().await?.error_for_status()?;
+    client.post(CH_URL).body(create_profiles.to_string()).send().await?.error_for_status()?;
 
     // Run idempotent ALTER TABLE migrations for logs metadata columns
     for migration in alter_logs_migrations {

@@ -7,6 +7,14 @@ service TracesService {
 
 message SyncTracesRequest {
     repeated Span spans = 1;
+    repeated Profile profiles = 2;
+}
+
+message Profile {
+    string service = 1;
+    string profile_type = 2; // e.g. "cpu", "heap"
+    int64 timestamp = 3;
+    string raw_data = 4;
 }
 
 message Span {
