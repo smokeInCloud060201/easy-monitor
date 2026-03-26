@@ -496,22 +496,22 @@ Plans:
 **Goal:** Tag spans with environment metadata (host, service, version) and inject trace IDs into application logs.
 **Requirements**: TBD
 **Depends on:** Phase 49
-**Plans:** 0 plans
+**Plans:** 0/2 plans complete
 Plans:
-- [ ] TBD (run /gsd-plan-phase 50 to break down)
+- [x] TBD (run /gsd-plan-phase 50 to break down) (completed 2026-03-26)
 
 ### Phase 51: Service Mapping & Topology Generation
 **Goal:** Map inter-service dependencies dynamically based on incoming trace edges in the Node agent backend.
 **Requirements**: TBD
 **Depends on:** Phase 50
-**Plans:** 0 plans
+**Plans:** 0/1 plans complete
 Plans:
-- [ ] TBD (run /gsd-plan-phase 51 to break down)
+- [x] TBD (run /gsd-plan-phase 51 to break down) (completed 2026-03-26)
 
 ### Phase 52: Agent Runtime Profiling (Optional)
 **Goal:** Continuously profile CPU/Memory and associate with application endpoints.
 **Requirements**: TBD
 **Depends on:** Phase 51
-**Plans:** 0 plans
+**Plans:** 0/2 plans complete
 Plans:
-- [ ] TBD (run /gsd-plan-phase 52 to break down)
+- [x] TBD (run /gsd-plan-phase 52 to break down) (completed 2026-03-26)
