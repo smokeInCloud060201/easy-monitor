@@ -19,6 +19,7 @@ dependencies {
     implementation 'org.msgpack:jackson-dataformat-msgpack:0.9.3'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
     implementation 'net.bytebuddy:byte-buddy:1.14.9'
+    compileOnly 'javax.servlet:javax.servlet-api:4.0.1'
 }
 
 jar {
