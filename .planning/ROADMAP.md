@@ -515,3 +515,13 @@ Plans:
 **Plans:** 0/2 plans complete
 Plans:
 - [x] TBD (run /gsd-plan-phase 52 to break down) (completed 2026-03-26)
+
+### Phase 53: Update node-agent and master-service for agent infrastructure changes
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 52
+**Plans:** 0/3 plans complete
+
+Plans:
+- [x] TBD (run /gsd-plan-phase 53 to break down) (completed 2026-03-26)
