@@ -10,6 +10,7 @@ use serde::Serialize;
 use rand::Rng;
 
 pub mod actix_middleware;
+pub mod reqwest_middleware;
 
 #[derive(Debug, Serialize, Clone)]
 pub struct DatadogSpan {
@@ -27,13 +28,14 @@ pub struct DatadogSpan {
     pub metrics: HashMap<String, f64>,
 }
 
-struct SpanData {
-    trace_id: u64,
-    span_id: u64,
-    parent_id: u64,
-    start_time: SystemTime,
-    error: i32,
-    meta: HashMap<String, String>,
+#[derive(Clone, Debug)]
+pub struct SpanData {
+    pub trace_id: u64,
+    pub span_id: u64,
+    pub parent_id: u64,
+    pub start_time: SystemTime,
+    pub error: i32,
+    pub meta: HashMap<String, String>,
 }
 
 pub struct DatadogTracingLayer {
