@@ -44,6 +44,13 @@ public class ServletAdvice {
         span.start = System.currentTimeMillis() * 1000000L; // ns
         span.meta.put("start_time_ms", String.valueOf(System.currentTimeMillis()));
         
+        try {
+            java.lang.management.ThreadMXBean bean = java.lang.management.ManagementFactory.getThreadMXBean();
+            if (bean.isThreadCpuTimeSupported() && bean.isThreadCpuTimeEnabled()) {
+                request.setAttribute("easymonitor.cpu_time_start", bean.getCurrentThreadCpuTime());
+            }
+        } catch (Throwable t) {}
+
         SpanTracker.setSpan(span);
 
         try {
@@ -60,6 +67,21 @@ public class ServletAdvice {
             return;
         }
         SpanTracker.clear();
+
+        if (reqObject instanceof HttpServletRequest) {
+            try {
+                HttpServletRequest request = (HttpServletRequest) reqObject;
+                Object startCpuObj = request.getAttribute("easymonitor.cpu_time_start");
+                if (startCpuObj != null) {
+                    long startCpu = (Long) startCpuObj;
+                    java.lang.management.ThreadMXBean bean = java.lang.management.ManagementFactory.getThreadMXBean();
+                    long endCpu = bean.getCurrentThreadCpuTime();
+                    if (endCpu > startCpu) {
+                        span.metrics.put("cpu.user", (double)(endCpu - startCpu) / 1000000.0); // ms
+                    }
+                }
+            } catch (Throwable t) {}
+        }
         
         if (resObject instanceof HttpServletResponse) {
             HttpServletResponse response = (HttpServletResponse) resObject;
