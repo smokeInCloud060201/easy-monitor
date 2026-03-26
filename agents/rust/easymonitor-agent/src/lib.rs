@@ -42,14 +42,60 @@ pub struct DatadogTracingLayer {
     service_name: String,
     client: reqwest::Client,
     endpoint: String,
+    sender: tokio::sync::mpsc::Sender<DatadogSpan>,
 }
 
 impl DatadogTracingLayer {
     pub fn new(service_name: String) -> Self {
+        let (tx, mut rx) = tokio::sync::mpsc::channel::<DatadogSpan>(1000);
+        let client = reqwest::Client::new();
+        let endpoint = "http://127.0.0.1:8126/v0.4/traces".to_string();
+        
+        let worker_client = client.clone();
+        let worker_endpoint = endpoint.clone();
+        
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
+            let mut batch = Vec::new();
+            
+            loop {
+                tokio::select! {
+                    _ = interval.tick() => {
+                        if !batch.is_empty() {
+                            let payload = vec![batch.clone()];
+                            if let Ok(body) = rmp_serde::to_vec_named(&payload) {
+                                let _ = worker_client.post(&worker_endpoint)
+                                    .header("Content-Type", "application/msgpack")
+                                    .body(body)
+                                    .send()
+                                    .await;
+                            }
+                            batch.clear();
+                        }
+                    }
+                    Some(span) = rx.recv() => {
+                        batch.push(span);
+                        if batch.len() >= 100 {
+                            let payload = vec![batch.clone()];
+                            if let Ok(body) = rmp_serde::to_vec_named(&payload) {
+                                let _ = worker_client.post(&worker_endpoint)
+                                    .header("Content-Type", "application/msgpack")
+                                    .body(body)
+                                    .send()
+                                    .await;
+                            }
+                            batch.clear();
+                        }
+                    }
+                }
+            }
+        });
+
         Self {
             service_name,
-            client: reqwest::Client::new(),
-            endpoint: "http://127.0.0.1:8126/v0.4/traces".to_string(),
+            client,
+            endpoint,
+            sender: tx,
         }
     }
 }
@@ -115,19 +161,12 @@ where
                 metrics: HashMap::new(),
             };
 
-            let payload = vec![vec![dd_span]];
-            let client = self.client.clone();
-            let endpoint = self.endpoint.clone();
+            let sample_rate: f64 = 1.0;
+            if data.error == 0 && rand::thread_rng().gen::<f64>() > sample_rate {
+                return; // drop silently
+            }
 
-            tokio::spawn(async move {
-                if let Ok(body) = rmp_serde::to_vec_named(&payload) {
-                    let _ = client.post(&endpoint)
-                        .header("Content-Type", "application/msgpack")
-                        .body(body)
-                        .send()
-                        .await;
-                }
-            });
+            let _ = self.sender.try_send(dd_span);
         }
     }
 }

@@ -23,7 +23,10 @@ public class DatadogSpanExporter {
             while (true) {
                 try {
                     List<DatadogSpan> batch = new ArrayList<>();
-                    DatadogSpan first = queue.take(); // Block until data arrives
+                    DatadogSpan first = queue.poll(1, TimeUnit.SECONDS);
+                    if (first == null) {
+                        continue;
+                    }
                     batch.add(first);
                     queue.drainTo(batch, 99); // Take up to 99 more 
 
@@ -55,6 +58,10 @@ public class DatadogSpanExporter {
     }
 
     public static void submit(DatadogSpan span) {
+        double sampleRate = 1.0;
+        if (span.error == 0 && ThreadLocalRandom.current().nextDouble() > sampleRate) {
+            return; // drop silently
+        }
         queue.offer(span);
     }
 
