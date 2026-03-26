@@ -11,6 +11,14 @@ use std::collections::HashMap;
 use tracing::{info, error};
 use crate::wal::WalBuffer;
 use shared_proto::traces::Span as InternalSpan;
+use shared_proto::traces::Profile as InternalProfile;
+
+#[derive(Debug, Deserialize)]
+pub struct ProfilingPayload {
+    pub service: String,
+    pub profile_type: String,
+    pub raw_data: String,
+}
 
 #[derive(Debug, Deserialize)]
 pub struct DatadogSpan {
@@ -32,6 +40,7 @@ pub async fn start_http_receiver(wal: Arc<WalBuffer>) -> anyhow::Result<()> {
     let app = Router::new()
         .route("/v0.4/traces", post(handle_traces))
         .route("/v0.3/traces", post(handle_traces))
+        .route("/profiling", post(handle_profiling))
         .with_state(wal);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8126").await?;
@@ -49,6 +58,7 @@ async fn handle_traces(
     let traces: Vec<Vec<DatadogSpan>> = match rmp_serde::from_slice(&body) {
         Ok(t) => t,
         Err(e) => {
+            std::fs::write("/tmp/last_rmp_err.txt", format!("Err: {}\nBody: {:?}", e, body)).unwrap();
             error!("Failed to deserialize MessagePack traces: {}", e);
             return Err(StatusCode::BAD_REQUEST);
         }
@@ -74,6 +84,34 @@ async fn handle_traces(
                 error!("Failed to write Datadog span to WAL: {}", e);
             }
         }
+    }
+
+    Ok(StatusCode::OK)
+}
+
+async fn handle_profiling(
+    State(wal): State<Arc<WalBuffer>>,
+    body: Bytes,
+) -> Result<StatusCode, StatusCode> {
+    let payload: ProfilingPayload = match rmp_serde::from_slice(&body) {
+        Ok(t) => t,
+        Err(e) => {
+            error!("Failed to deserialize MessagePack profile: {}", e);
+            return Err(StatusCode::BAD_REQUEST);
+        }
+    };
+
+    let ts = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as i64;
+
+    let internal_profile = InternalProfile {
+        service: payload.service,
+        profile_type: payload.profile_type,
+        timestamp: ts,
+        raw_data: payload.raw_data,
+    };
+
+    if let Err(e) = wal.write_profile(internal_profile).await {
+        error!("Failed to write Profile to WAL: {}", e);
     }
 
     Ok(StatusCode::OK)

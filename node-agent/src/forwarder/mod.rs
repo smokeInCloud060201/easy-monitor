@@ -126,7 +126,7 @@ pub async fn start_forwarder_worker(wal: Arc<WalBuffer>) -> anyhow::Result<()> {
             }
         }
 
-        // --- Traces ---
+        // --- Traces & Profiles ---
         let mut traces = Vec::new();
         let mut trace_keys = Vec::new();
         {
@@ -141,23 +141,42 @@ pub async fn start_forwarder_worker(wal: Arc<WalBuffer>) -> anyhow::Result<()> {
             }
         }
 
-        if !traces.is_empty() {
-            let count = trace_keys.len();
-            let req = SyncTracesRequest { spans: traces.clone() };
+        let mut profiles = Vec::new();
+        let mut profile_keys = Vec::new();
+        {
+            let tree = wal.profiles_tree();
+            for item in tree.iter().take(BATCH_SIZE) {
+                if let Ok((k, v)) = item {
+                    if let Ok(payload) = rmp_serde::from_slice::<shared_proto::traces::Profile>(&v) {
+                        profiles.push(payload);
+                        profile_keys.push(k);
+                    }
+                }
+            }
+        }
+
+        if !traces.is_empty() || !profiles.is_empty() {
+            let t_count = trace_keys.len();
+            let p_count = profile_keys.len();
+            let req = SyncTracesRequest { spans: traces.clone(), profiles: profiles.clone() };
             match traces_client.sync_traces(req).await {
                 Ok(resp) => {
                     let inner = resp.into_inner();
                     if inner.success {
-                        info!("Forwarded {} spans ({})", count, trigger);
+                        info!("Forwarded {} traces and {} profiles ({})", t_count, p_count, trigger);
                         let tree = wal.traces_tree();
                         for k in trace_keys {
                             let _ = tree.remove(k);
                         }
+                        let p_tree = wal.profiles_tree();
+                        for k in profile_keys {
+                            let _ = p_tree.remove(k);
+                        }
                     } else {
-                        error!("Traces rejected by master: {}", inner.message);
+                        error!("Traces/Profiles rejected by master: {}", inner.message);
                     }
                 }
-                Err(e) => error!("Traces forward connection error: {:?}", e),
+                Err(e) => error!("Traces/Profiles forward connection error: {:?}", e),
             }
         }
     }

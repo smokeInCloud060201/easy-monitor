@@ -5,11 +5,12 @@ use tokio::sync::Notify;
 use tracing::{error, debug};
 use shared_proto::metrics::MetricPayload;
 use shared_proto::logs::LogEntry;
-use shared_proto::traces::Span;
+use shared_proto::traces::{Span, Profile};
 
 const METRICS_TREE: &str = "metrics_v1";
 const LOGS_TREE: &str = "logs_v1";
 const TRACES_TREE: &str = "traces_v1";
+const PROFILES_TREE: &str = "profiles_v1";
 
 /// Kafka-style batch threshold: flush when any tree reaches this count.
 pub const BATCH_THRESHOLD: usize = 1000;
@@ -20,6 +21,7 @@ pub struct WalBuffer {
     metrics: Tree,
     logs: Tree,
     traces: Tree,
+    profiles: Tree,
     /// Notifies the forwarder when any tree reaches BATCH_THRESHOLD.
     batch_notify: Arc<Notify>,
 }
@@ -30,12 +32,14 @@ impl WalBuffer {
         let metrics = db.open_tree(METRICS_TREE)?;
         let logs = db.open_tree(LOGS_TREE)?;
         let traces = db.open_tree(TRACES_TREE)?;
+        let profiles = db.open_tree(PROFILES_TREE)?;
 
         Ok(Self {
             _db: db,
             metrics,
             logs,
             traces,
+            profiles,
             batch_notify: Arc::new(Notify::new()),
         })
     }
@@ -94,9 +98,22 @@ impl WalBuffer {
         Ok(())
     }
 
+    pub async fn write_profile(&self, profile: Profile) -> Result<()> {
+        let key = self.generate_key();
+        match rmp_serde::to_vec_named(&profile) {
+            Ok(data) => {
+                self.profiles.insert(key, data)?;
+                self.check_batch_threshold(&self.profiles, "profiles");
+            }
+            Err(e) => error!("Failed to serialize profile: {}", e),
+        }
+        Ok(())
+    }
+
     pub fn metrics_tree(&self) -> Tree { self.metrics.clone() }
     pub fn logs_tree(&self) -> Tree { self.logs.clone() }
     pub fn traces_tree(&self) -> Tree { self.traces.clone() }
+    pub fn profiles_tree(&self) -> Tree { self.profiles.clone() }
 
     /// Returns the batch notification handle for the forwarder.
     pub fn batch_notify(&self) -> Arc<Notify> {
