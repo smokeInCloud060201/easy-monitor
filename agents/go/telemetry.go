@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"log"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -139,7 +140,7 @@ func SendSpan(s *Span) {
 
 func WrapHTTPHandler(next http.Handler, serviceName string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		span, ctx := StartSpanFromContext(r.Context(), "http.request")
+		span, ctx := StartSpanFromContext(r.Context(), "http.server.request")
 		span.Resource = r.Method + " " + r.URL.Path
 		span.SetTag("http.method", r.Method)
 		span.SetTag("http.url", r.URL.String())
@@ -147,4 +148,53 @@ func WrapHTTPHandler(next http.Handler, serviceName string) http.Handler {
 		defer span.Finish()
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+// Transport wraps an existing http.RoundTripper to capture and inject spans
+type Transport struct {
+	Base http.RoundTripper
+}
+
+func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
+	span, ctx := StartSpanFromContext(req.Context(), "http.client.request")
+	span.Resource = req.Method + " " + req.URL.Path
+	span.SetTag("http.method", req.Method)
+	span.SetTag("http.url", req.URL.String())
+
+	// Inject trace context headers
+	req.Header.Set("x-easymonitor-trace-id", strconv.FormatUint(span.TraceID, 10))
+	req.Header.Set("x-easymonitor-parent-id", strconv.FormatUint(span.SpanID, 10))
+
+	// Re-assign context
+	req = req.WithContext(ctx)
+	
+	base := t.Base
+	if base == nil {
+		base = http.DefaultTransport
+	}
+
+	resp, err := base.RoundTrip(req)
+	
+	if err != nil {
+		span.Error = 1
+		span.SetTag("error.message", err.Error())
+	} else if resp != nil {
+		span.SetTag("http.status_code", strconv.Itoa(resp.StatusCode))
+		if resp.StatusCode >= 400 {
+			span.Error = 1
+		}
+	}
+	
+	span.Finish()
+	return resp, err
+}
+
+// WrapHTTPClient wraps an existing *http.Client's Transport
+func WrapHTTPClient(client *http.Client) *http.Client {
+	if client.Transport == nil {
+		client.Transport = &Transport{Base: http.DefaultTransport}
+	} else if _, ok := client.Transport.(*Transport); !ok {
+		client.Transport = &Transport{Base: client.Transport}
+	}
+	return client
 }
