@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"log"
+	mathrand "math/rand"
 	"net/http"
 	"strconv"
 	"time"
@@ -29,6 +30,9 @@ type Span struct {
 
 func (s *Span) Finish() {
 	s.Duration = time.Since(s.Start)
+	if s.Error == 0 && mathrand.Float64() > sampleRate {
+		return // drop 
+	}
 	SendSpan(s)
 }
 
@@ -57,13 +61,17 @@ type DatadogSpan struct {
 
 var (
 	serviceName string
-	exporterURL string = "http://127.0.0.1:8126/v0.4/traces" // Datadog Agent default
+	exporterURL string  = "http://127.0.0.1:8126/v0.4/traces" // Datadog Agent default
 	client      *http.Client
+	spanQueue   chan *Span
+	sampleRate  float64 = 1.0
 )
 
 func Init(service string) {
 	serviceName = service
 	client = &http.Client{Timeout: 5 * time.Second}
+	spanQueue = make(chan *Span, 1000)
+	go startBackgroundFlusher()
 	log.Printf("  [EasyMonitor] Native Go Agent attached to %s!", serviceName)
 }
 
@@ -101,39 +109,68 @@ func StartSpanFromContext(ctx context.Context, name string) (*Span, context.Cont
 }
 
 func SendSpan(s *Span) {
-	dd := DatadogSpan{
-		TraceID:  s.TraceID,
-		SpanID:   s.SpanID,
-		ParentID: s.ParentID,
-		Name:     s.Name,
-		Resource: s.Resource,
-		Service:  s.Service,
-		Type:     "web",
-		Start:    s.Start.UnixNano(),
-		Duration: s.Duration.Nanoseconds(),
-		Error:    s.Error,
-		Meta:     s.Meta,
-		Metrics:  s.Metrics,
+	select {
+	case spanQueue <- s:
+	default:
+		// spanQueue is full, drop span silently
 	}
+}
 
-	payload := [][]DatadogSpan{{dd}}
-	
-	// Batching is omitted in this simple native client for brevity, but easily added
-	go func() {
-		b, err := msgpack.Marshal(payload)
-		if err != nil {
+func startBackgroundFlusher() {
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
+	var batch []DatadogSpan
+
+	flush := func() {
+		if len(batch) == 0 {
 			return
 		}
-		
-		req, err := http.NewRequest("POST", exporterURL, bytes.NewReader(b))
-		if err != nil { return }
-		
-		req.Header.Set("Content-Type", "application/msgpack")
-		resp, err := client.Do(req)
+
+		payload := [][]DatadogSpan{batch}
+		b, err := msgpack.Marshal(payload)
 		if err == nil {
-			resp.Body.Close()
+			req, err := http.NewRequest("POST", exporterURL, bytes.NewReader(b))
+			if err == nil {
+				req.Header.Set("Content-Type", "application/msgpack")
+				resp, err := client.Do(req)
+				if err == nil {
+					resp.Body.Close()
+				}
+			}
 		}
-	}()
+
+		batch = nil
+	}
+
+	for {
+		select {
+		case <-ticker.C:
+			flush()
+		case s, ok := <-spanQueue:
+			if !ok {
+				return
+			}
+			dd := DatadogSpan{
+				TraceID:  s.TraceID,
+				SpanID:   s.SpanID,
+				ParentID: s.ParentID,
+				Name:     s.Name,
+				Resource: s.Resource,
+				Service:  s.Service,
+				Type:     "web",
+				Start:    s.Start.UnixNano(),
+				Duration: s.Duration.Nanoseconds(),
+				Error:    s.Error,
+				Meta:     s.Meta,
+				Metrics:  s.Metrics,
+			}
+			batch = append(batch, dd)
+			if len(batch) >= 100 {
+				flush()
+			}
+		}
+	}
 }
 
 func WrapHTTPHandler(next http.Handler, serviceName string) http.Handler {

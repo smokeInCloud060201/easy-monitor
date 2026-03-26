@@ -55,11 +55,18 @@ export class Span {
 
     end() {
         this.duration = process.hrtime.bigint() - this.hrStart;
+        if (this.error === 0 && Math.random() > sampleRate) {
+            return; // drop
+        }
         exportSpan(this);
     }
 }
 
 export const traceStorage = new AsyncLocalStorage<Span>();
+
+const MAX_BUFFER_SIZE = 1000;
+const FLUSH_INTERVAL_MS = 1000;
+let sampleRate = 1.0;
 
 export const tracer = {
     startActiveSpan(name: string, fn: (span: Span) => any, externalTraceId?: bigint, externalParentId?: bigint) {
@@ -80,6 +87,10 @@ let buffer: any[] = [];
 let flushTimer: NodeJS.Timeout | null = null;
 
 function exportSpan(span: Span) {
+    if (buffer.length >= MAX_BUFFER_SIZE) {
+        return; // drop silently (fail-safe)
+    }
+
     buffer.push({
         trace_id: span.traceId,
         span_id: span.spanId,
@@ -95,13 +106,18 @@ function exportSpan(span: Span) {
         metrics: span.metrics
     });
 
-    if (!flushTimer) {
-        flushTimer = setTimeout(flush, 1000);
+    if (buffer.length >= 100) {
+        flush();
+    } else if (!flushTimer) {
+        flushTimer = setTimeout(flush, FLUSH_INTERVAL_MS);
     }
 }
 
 function flush() {
-    flushTimer = null;
+    if (flushTimer) {
+        clearTimeout(flushTimer);
+        flushTimer = null;
+    }
     if (buffer.length === 0) return;
 
     const payload = [buffer];
