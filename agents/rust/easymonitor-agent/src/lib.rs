@@ -1,13 +1,13 @@
+use rand::Rng;
+use serde::Serialize;
 use std::collections::{BTreeMap, HashMap};
 use std::net::UdpSocket;
 use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 use tracing::{Event, Subscriber};
 use tracing_subscriber::layer::Context;
-use tracing_subscriber::{EnvFilter, Layer, Registry};
 use tracing_subscriber::layer::SubscriberExt;
-use serde::Serialize;
-use rand::Rng;
+use tracing_subscriber::{EnvFilter, Layer, Registry};
 
 pub mod actix_middleware;
 pub mod reqwest_middleware;
@@ -50,14 +50,14 @@ impl DatadogTracingLayer {
         let (tx, mut rx) = tokio::sync::mpsc::channel::<DatadogSpan>(1000);
         let client = reqwest::Client::new();
         let endpoint = "http://127.0.0.1:8126/v0.4/traces".to_string();
-        
+
         let worker_client = client.clone();
         let worker_endpoint = endpoint.clone();
-        
+
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
             let mut batch = Vec::new();
-            
+
             loop {
                 tokio::select! {
                     _ = interval.tick() => {
@@ -104,17 +104,32 @@ impl<S> Layer<S> for DatadogTracingLayer
 where
     S: Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>,
 {
-    fn on_new_span(&self, attrs: &tracing::span::Attributes<'_>, id: &tracing::Id, ctx: Context<'_, S>) {
+    fn on_new_span(
+        &self,
+        attrs: &tracing::span::Attributes<'_>,
+        id: &tracing::Id,
+        ctx: Context<'_, S>,
+    ) {
         let span = ctx.span(id).expect("Span not found");
         let mut meta = HashMap::new();
-        
+
         let mut visitor = TagVisitor(&mut meta);
         attrs.record(&mut visitor);
 
-        let ext_trace_id = meta.get("trace_id").and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
-        let mut trace_id = if ext_trace_id != 0 { ext_trace_id } else { rand::thread_rng().gen::<u64>() };
-        
-        let mut parent_id = meta.get("parent_id").and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+        let ext_trace_id = meta
+            .get("trace_id")
+            .and_then(|s| s.parse::<u64>().ok())
+            .unwrap_or(0);
+        let mut trace_id = if ext_trace_id != 0 {
+            ext_trace_id
+        } else {
+            rand::thread_rng().gen::<u64>()
+        };
+
+        let mut parent_id = meta
+            .get("parent_id")
+            .and_then(|s| s.parse::<u64>().ok())
+            .unwrap_or(0);
         let span_id = rand::thread_rng().gen::<u64>();
 
         meta.remove("trace_id");
@@ -143,8 +158,15 @@ where
         let span = ctx.span(&id).expect("Span not found");
         let data_opt = span.extensions_mut().remove::<SpanData>();
         if let Some(data) = data_opt {
-            let duration = SystemTime::now().duration_since(data.start_time).unwrap_or_default().as_nanos() as i64;
-            let start = data.start_time.duration_since(SystemTime::UNIX_EPOCH).unwrap_or_default().as_nanos() as i64;
+            let duration = SystemTime::now()
+                .duration_since(data.start_time)
+                .unwrap_or_default()
+                .as_nanos() as i64;
+            let start = data
+                .start_time
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos() as i64;
 
             let dd_span = DatadogSpan {
                 trace_id: data.trace_id,
@@ -182,43 +204,77 @@ impl GelfLayer {
     fn new(service_name: String) -> Self {
         let socket = UdpSocket::bind("0.0.0.0:0").expect("Failed to bind UDP socket");
         let _ = socket.set_nonblocking(true);
-        socket.connect("127.0.0.1:12201").expect("Failed to connect GELF UDP");
-        Self { socket, service_name }
+        socket
+            .connect("127.0.0.1:12201")
+            .expect("Failed to connect GELF UDP");
+        Self {
+            socket,
+            service_name,
+        }
     }
+}
+
+fn truncate_string(mut s: String) -> String {
+    if s.len() > 2000 {
+        s.truncate(2000);
+        s.push_str("... (truncated)");
+    }
+    s
 }
 
 struct JsonVisitor<'a>(&'a mut BTreeMap<String, serde_json::Value>);
 impl<'a> tracing::field::Visit for JsonVisitor<'a> {
     fn record_f64(&mut self, field: &tracing::field::Field, value: f64) {
-        self.0.insert(field.name().to_string(), serde_json::Value::from(value));
+        self.0
+            .insert(field.name().to_string(), serde_json::Value::from(value));
     }
     fn record_i64(&mut self, field: &tracing::field::Field, value: i64) {
-        self.0.insert(field.name().to_string(), serde_json::Value::from(value));
+        self.0
+            .insert(field.name().to_string(), serde_json::Value::from(value));
     }
     fn record_u64(&mut self, field: &tracing::field::Field, value: u64) {
-        self.0.insert(field.name().to_string(), serde_json::Value::from(value));
+        self.0
+            .insert(field.name().to_string(), serde_json::Value::from(value));
     }
     fn record_bool(&mut self, field: &tracing::field::Field, value: bool) {
-        self.0.insert(field.name().to_string(), serde_json::Value::from(value));
+        self.0
+            .insert(field.name().to_string(), serde_json::Value::from(value));
     }
     fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
-        self.0.insert(field.name().to_string(), serde_json::Value::from(value));
+        self.0.insert(
+            field.name().to_string(),
+            serde_json::Value::from(truncate_string(value.to_string())),
+        );
     }
-    fn record_error(&mut self, field: &tracing::field::Field, value: &(dyn std::error::Error + 'static)) {
-        self.0.insert(field.name().to_string(), serde_json::Value::from(value.to_string()));
+    fn record_error(
+        &mut self,
+        field: &tracing::field::Field,
+        value: &(dyn std::error::Error + 'static),
+    ) {
+        self.0.insert(
+            field.name().to_string(),
+            serde_json::Value::from(truncate_string(value.to_string())),
+        );
     }
     fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
-        self.0.insert(field.name().to_string(), serde_json::Value::from(format!("{:?}", value)));
+        self.0.insert(
+            field.name().to_string(),
+            serde_json::Value::from(truncate_string(format!("{:?}", value))),
+        );
     }
 }
 
 struct TagVisitor<'a>(&'a mut HashMap<String, String>);
 impl<'a> tracing::field::Visit for TagVisitor<'a> {
     fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
-        self.0.insert(field.name().to_string(), format!("{:?}", value));
+        self.0.insert(
+            field.name().to_string(),
+            truncate_string(format!("{:?}", value)),
+        );
     }
     fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
-        self.0.insert(field.name().to_string(), value.to_string());
+        self.0
+            .insert(field.name().to_string(), truncate_string(value.to_string()));
     }
     fn record_u64(&mut self, field: &tracing::field::Field, value: u64) {
         self.0.insert(field.name().to_string(), value.to_string());
@@ -234,7 +290,10 @@ impl<S: Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>> Layer
         let mut visitor = JsonVisitor(&mut fields);
         event.record(&mut visitor);
 
-        let msg = fields.remove("message").and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or_default();
+        let msg = fields
+            .remove("message")
+            .and_then(|v| v.as_str().map(|s| s.to_string()))
+            .unwrap_or_default();
 
         let mut trace_id = String::new();
         let mut span_id = String::new();
@@ -281,7 +340,7 @@ pub fn init_telemetry(service_name: &str) {
         .add_directive("tonic=off".parse().unwrap())
         .add_directive("reqwest=off".parse().unwrap())
         .add_directive("mio=off".parse().unwrap());
-        
+
     let log_filter = EnvFilter::new("info")
         .add_directive("h2=off".parse().unwrap())
         .add_directive("hyper=off".parse().unwrap())
@@ -292,11 +351,13 @@ pub fn init_telemetry(service_name: &str) {
     let telemetry = DatadogTracingLayer::new(service_name.to_string()).with_filter(trace_filter);
     let log_layer = GelfLayer::new(service_name.to_string()).with_filter(log_filter);
 
-    let subscriber = Registry::default()
-        .with(telemetry)
-        .with(log_layer);
-        
-    tracing::subscriber::set_global_default(subscriber).expect("Failed to install tracing subscriber");
+    let subscriber = Registry::default().with(telemetry).with(log_layer);
 
-    tracing::info!("  [EasyMonitor] Native Rust Agent attached to {}!", service_name);
+    tracing::subscriber::set_global_default(subscriber)
+        .expect("Failed to install tracing subscriber");
+
+    tracing::info!(
+        "  [EasyMonitor] Native Rust Agent attached to {}!",
+        service_name
+    );
 }

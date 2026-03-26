@@ -65,8 +65,18 @@ public class ServletAdvice {
         
         if (thrown != null) {
             span.error = 1;
-            span.meta.put("error.message", thrown.getMessage());
+            String msg = thrown.getMessage();
+            span.meta.put("error.message", msg != null ? msg : "null");
             span.meta.put("error.type", thrown.getClass().getName());
+            
+            java.io.StringWriter sw = new java.io.StringWriter();
+            java.io.PrintWriter pw = new java.io.PrintWriter(sw);
+            thrown.printStackTrace(pw);
+            String stack = sw.toString();
+            if (stack.length() > 2000) {
+                stack = stack.substring(0, 2000) + "... (truncated)";
+            }
+            span.meta.put("error.stack", stack);
         }
         
         long startMs = Long.parseLong(span.meta.get("start_time_ms"));
