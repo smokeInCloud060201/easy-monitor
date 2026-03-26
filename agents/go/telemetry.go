@@ -10,6 +10,7 @@ import (
 	mathrand "math/rand"
 	"net/http"
 	"os"
+	"runtime"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -49,6 +50,7 @@ type Span struct {
 	Error    int32
 	Meta     map[string]string
 	Metrics  map[string]float64
+	StartAlloc uint64
 }
 
 func (s *Span) Finish() {
@@ -123,17 +125,21 @@ func StartSpanFromContext(ctx context.Context, name string) (*Span, context.Cont
 		meta[k] = v
 	}
 
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+
 	span := &Span{
-		TraceID:  traceID,
-		SpanID:   spanID,
-		ParentID: parentID,
-		Name:     name,
-		Resource: name,
-		Service:  serviceName,
-		Type:     "web",
-		Start:    time.Now(),
-		Meta:     meta,
-		Metrics:  make(map[string]float64),
+		TraceID:    traceID,
+		SpanID:     spanID,
+		ParentID:   parentID,
+		Name:       name,
+		Resource:   name, // Default to name
+		Service:    serviceName,
+		Type:       "web",
+		Start:      time.Now(),
+		Meta:       meta,
+		StartAlloc: m.TotalAlloc,
+		Metrics:    make(map[string]float64),
 	}
 
 	return span, context.WithValue(ctx, traceContextKey{}, span)

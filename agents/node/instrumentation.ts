@@ -52,6 +52,8 @@ export class Span {
     public error: number = 0;
     public meta: Record<string, string> = { ...resourceMeta };
     public metrics: Record<string, number> = {};
+    public startCpu: NodeJS.CpuUsage;
+    public startMem: number;
 
     constructor(name: string, traceId: bigint, spanId: bigint, parentId: bigint) {
         this.name = name;
@@ -64,6 +66,8 @@ export class Span {
         const nowMs = Date.now();
         this.hrStart = process.hrtime.bigint();
         this.start = BigInt(nowMs) * 1000000n;
+        this.startCpu = process.cpuUsage();
+        this.startMem = process.memoryUsage().heapUsed;
     }
 
     setAttribute(key: string, value: string | number | boolean) {
@@ -87,6 +91,14 @@ export class Span {
 
     end() {
         this.duration = process.hrtime.bigint() - this.hrStart;
+        
+        const endCpu = process.cpuUsage(this.startCpu);
+        const endMem = process.memoryUsage().heapUsed;
+        
+        this.metrics['cpu.user'] = endCpu.user;
+        this.metrics['cpu.system'] = endCpu.system;
+        this.metrics['mem.delta'] = endMem - this.startMem;
+
         if (this.error === 0 && Math.random() > sampleRate) {
             return; // drop
         }
