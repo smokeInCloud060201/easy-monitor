@@ -6,26 +6,51 @@ import com.easymonitor.agent.trace.DatadogSpanExporter;
 
 public class ServletAdvice {
 
+    private static Class<?> MDC_CLASS;
+    private static boolean MDC_INITIALIZED = false;
+
+    private static Class<?> getMdcClass() {
+        if (!MDC_INITIALIZED) {
+            try {
+                MDC_CLASS = Class.forName("org.slf4j.MDC", false, Thread.currentThread().getContextClassLoader());
+            } catch (Throwable t) {
+                try {
+                    MDC_CLASS = Class.forName("org.slf4j.MDC");
+                } catch (Throwable t2) {
+                }
+            }
+            MDC_INITIALIZED = true;
+        }
+        return MDC_CLASS;
+    }
+
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void onEnter(@Advice.Argument(0) Object reqObject) {
         boolean isReq_init = false;
-        try { reqObject.getClass().getMethod("getMethod"); isReq_init = true; } catch (Throwable t) {}
+        try { 
+            if (ReflectionCache.getMethod(reqObject.getClass(), "getMethod") != null) isReq_init = true; 
+        } catch (Throwable t) {}
         if (!isReq_init) return;
         
         DatadogSpan span = new DatadogSpan();
         span.name = "web.request";
         
         try {
-            String method = (String) reqObject.getClass().getMethod("getMethod").invoke(reqObject);
-            String uri = (String) reqObject.getClass().getMethod("getRequestURI").invoke(reqObject);
-            Object urlBuf = reqObject.getClass().getMethod("getRequestURL").invoke(reqObject);
+            String method = (String) ReflectionCache.getMethod(reqObject.getClass(), "getMethod").invoke(reqObject);
+            String uri = (String) ReflectionCache.getMethod(reqObject.getClass(), "getRequestURI").invoke(reqObject);
+            Object urlBuf = ReflectionCache.getMethod(reqObject.getClass(), "getRequestURL").invoke(reqObject);
             
             span.resource = method + " " + uri;
             span.meta.put("http.method", method);
             span.meta.put("http.url", urlBuf != null ? urlBuf.toString() : "");
             
-            String traceIdStr = (String) reqObject.getClass().getMethod("getHeader", String.class).invoke(reqObject, "x-easymonitor-trace-id");
-            String parentIdStr = (String) reqObject.getClass().getMethod("getHeader", String.class).invoke(reqObject, "x-easymonitor-parent-id");
+            String traceIdStr = null;
+            String parentIdStr = null;
+            java.lang.reflect.Method getHeaderMethod = ReflectionCache.getMethod(reqObject.getClass(), "getHeader", String.class);
+            if (getHeaderMethod != null) {
+                traceIdStr = (String) getHeaderMethod.invoke(reqObject, "x-easymonitor-trace-id");
+                parentIdStr = (String) getHeaderMethod.invoke(reqObject, "x-easymonitor-parent-id");
+            }
             
             if (traceIdStr != null && !traceIdStr.isEmpty()) {
                 span.traceId = Long.parseUnsignedLong(traceIdStr);
@@ -51,16 +76,21 @@ public class ServletAdvice {
         try {
             java.lang.management.ThreadMXBean bean = java.lang.management.ManagementFactory.getThreadMXBean();
             if (bean.isThreadCpuTimeSupported() && bean.isThreadCpuTimeEnabled()) {
-                reqObject.getClass().getMethod("setAttribute", String.class, Object.class).invoke(reqObject, "easymonitor.cpu_time_start", bean.getCurrentThreadCpuTime());
+                java.lang.reflect.Method setAttr = ReflectionCache.getMethod(reqObject.getClass(), "setAttribute", String.class, Object.class);
+                if (setAttr != null) {
+                    setAttr.invoke(reqObject, "easymonitor.cpu_time_start", bean.getCurrentThreadCpuTime());
+                }
             }
         } catch (Throwable t) {}
 
         SpanTracker.setSpan(span);
 
         try {
-            Class<?> mdc = Class.forName("org.slf4j.MDC");
-            mdc.getMethod("put", String.class, String.class).invoke(null, "trace_id", String.valueOf(span.traceId));
-            mdc.getMethod("put", String.class, String.class).invoke(null, "span_id", String.valueOf(span.spanId));
+            Class<?> mdc = getMdcClass();
+            if (mdc != null) {
+                ReflectionCache.getMethod(mdc, "put", String.class, String.class).invoke(null, "trace_id", String.valueOf(span.traceId));
+                ReflectionCache.getMethod(mdc, "put", String.class, String.class).invoke(null, "span_id", String.valueOf(span.spanId));
+            }
         } catch (Throwable t) {}
     }
 
@@ -73,10 +103,12 @@ public class ServletAdvice {
         SpanTracker.clear();
 
         boolean isReq = false;
-        try { reqObject.getClass().getMethod("getMethod"); isReq = true; } catch (Throwable t) {}
+        try { 
+            if (ReflectionCache.getMethod(reqObject.getClass(), "getMethod") != null) isReq = true; 
+        } catch (Throwable t) {}
         if (isReq) {
             try {
-                Object startCpuObj = reqObject.getClass().getMethod("getAttribute", String.class).invoke(reqObject, "easymonitor.cpu_time_start");
+                Object startCpuObj = ReflectionCache.getMethod(reqObject.getClass(), "getAttribute", String.class).invoke(reqObject, "easymonitor.cpu_time_start");
                 if (startCpuObj != null) {
                     long startCpu = (Long) startCpuObj;
                     java.lang.management.ThreadMXBean bean = java.lang.management.ManagementFactory.getThreadMXBean();
@@ -90,11 +122,13 @@ public class ServletAdvice {
         
         boolean isRes = false;
         if (resObject != null) {
-            try { resObject.getClass().getMethod("getStatus"); isRes = true; } catch (Throwable t) {}
+            try { 
+                if (ReflectionCache.getMethod(resObject.getClass(), "getStatus") != null) isRes = true; 
+            } catch (Throwable t) {}
         }
         if (isRes) {
             try {
-                int status = (Integer) resObject.getClass().getMethod("getStatus").invoke(resObject);
+                int status = (Integer) ReflectionCache.getMethod(resObject.getClass(), "getStatus").invoke(resObject);
                 span.meta.put("http.status_code", String.valueOf(status));
                 if (status >= 400) {
                     span.error = 1;
@@ -125,9 +159,11 @@ public class ServletAdvice {
         SpanTracker.clear();
 
         try {
-            Class<?> mdc = Class.forName("org.slf4j.MDC");
-            mdc.getMethod("remove", String.class).invoke(null, "trace_id");
-            mdc.getMethod("remove", String.class).invoke(null, "span_id");
+            Class<?> mdc = getMdcClass();
+            if (mdc != null) {
+                ReflectionCache.getMethod(mdc, "remove", String.class).invoke(null, "trace_id");
+                ReflectionCache.getMethod(mdc, "remove", String.class).invoke(null, "span_id");
+            }
         } catch (Throwable t) {}
     }
 }

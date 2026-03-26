@@ -7,14 +7,15 @@ import java.sql.PreparedStatement;
 import java.sql.Connection;
 
 public class JdbcAdvice {
-    public static final java.util.Map<PreparedStatement, DatadogSpan> SPANS = new java.util.concurrent.ConcurrentHashMap<>();
-    public static final java.util.Map<PreparedStatement, String> QUERIES = new java.util.concurrent.ConcurrentHashMap<>();
+    public static final java.util.Map<Object, DatadogSpan> SPANS = java.util.Collections.synchronizedMap(new java.util.WeakHashMap<>());
+    public static final java.util.Map<Object, String> QUERIES = java.util.Collections.synchronizedMap(new java.util.WeakHashMap<>());
+    private static final java.util.regex.Pattern OBFUSCATOR = java.util.regex.Pattern.compile("(['\"]).*?\\1|(\\b\\d+\\b)");
 
     public static class PrepareAdvice {
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static void onExit(@Advice.Argument(0) String sql, @Advice.Return PreparedStatement stmt) {
             if (stmt != null && sql != null) {
-                QUERIES.put(stmt, sql.replaceAll("(['\"]).*?\\1|(\\b\\d+\\b)", "?"));
+                QUERIES.put(stmt, OBFUSCATOR.matcher(sql).replaceAll("?"));
             }
         }
     }

@@ -6,7 +6,7 @@ import com.easymonitor.agent.trace.DatadogSpanExporter;
 import java.net.HttpURLConnection;
 
 public class HttpAdvice {
-    public static final java.util.Map<HttpURLConnection, DatadogSpan> SPANS = new java.util.concurrent.ConcurrentHashMap<>();
+    public static final java.util.Map<Object, DatadogSpan> SPANS = java.util.Collections.synchronizedMap(new java.util.WeakHashMap<>());
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void onEnter(@Advice.This HttpURLConnection conn) {

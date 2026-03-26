@@ -5,7 +5,7 @@ import com.easymonitor.agent.trace.DatadogSpanExporter.DatadogSpan;
 import com.easymonitor.agent.trace.DatadogSpanExporter;
 
 public class SpringHttpAdvice {
-    public static final java.util.Map<Object, DatadogSpan> SPANS = new java.util.concurrent.ConcurrentHashMap<>();
+    public static final java.util.Map<Object, DatadogSpan> SPANS = java.util.Collections.synchronizedMap(new java.util.WeakHashMap<>());
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void onEnter(@Advice.This Object req) {
@@ -13,9 +13,9 @@ public class SpringHttpAdvice {
         span.name = "http.client.request";
         
         try {
-            Object methodObj = req.getClass().getMethod("getMethod").invoke(req);
-            Object uriObj = req.getClass().getMethod("getURI").invoke(req);
-            span.resource = methodObj.toString() + " " + uriObj.getClass().getMethod("getPath").invoke(uriObj);
+            Object methodObj = ReflectionCache.getMethod(req.getClass(), "getMethod").invoke(req);
+            Object uriObj = ReflectionCache.getMethod(req.getClass(), "getURI").invoke(req);
+            span.resource = methodObj.toString() + " " + ReflectionCache.getMethod(uriObj.getClass(), "getPath").invoke(uriObj);
             span.meta.put("http.method", methodObj.toString());
             span.meta.put("http.url", uriObj.toString());
         } catch (Exception e) {}
@@ -34,9 +34,9 @@ public class SpringHttpAdvice {
         span.spanId = java.util.concurrent.ThreadLocalRandom.current().nextLong(1, Long.MAX_VALUE);
         
         try {
-            Object headersObj = req.getClass().getMethod("getHeaders").invoke(req);
-            headersObj.getClass().getMethod("set", String.class, String.class).invoke(headersObj, "x-easymonitor-trace-id", String.valueOf(span.traceId));
-            headersObj.getClass().getMethod("set", String.class, String.class).invoke(headersObj, "x-easymonitor-parent-id", String.valueOf(span.spanId));
+            Object headersObj = ReflectionCache.getMethod(req.getClass(), "getHeaders").invoke(req);
+            ReflectionCache.getMethod(headersObj.getClass(), "set", String.class, String.class).invoke(headersObj, "x-easymonitor-trace-id", String.valueOf(span.traceId));
+            ReflectionCache.getMethod(headersObj.getClass(), "set", String.class, String.class).invoke(headersObj, "x-easymonitor-parent-id", String.valueOf(span.spanId));
         } catch (Exception e) {}
         
         span.start = System.currentTimeMillis() * 1000000L;
@@ -52,8 +52,8 @@ public class SpringHttpAdvice {
         
         if (res != null) {
             try {
-                Object statusObj = res.getClass().getMethod("getStatusCode").invoke(res);
-                int status = (Integer) statusObj.getClass().getMethod("value").invoke(statusObj);
+                Object statusObj = ReflectionCache.getMethod(res.getClass(), "getStatusCode").invoke(res);
+                int status = (Integer) ReflectionCache.getMethod(statusObj.getClass(), "value").invoke(statusObj);
                 span.meta.put("http.status_code", String.valueOf(status));
                 if (status >= 400) span.error = 1;
             } catch (Exception e) {}
