@@ -47,13 +47,27 @@ pub struct DatadogTracingLayer {
 }
 
 impl DatadogTracingLayer {
-    pub fn new(endpoint: &str, service_name: &str) -> Self {
+    pub fn new(service_name: String) -> Self {
         let (tx, mut rx) = tokio::sync::mpsc::channel::<DatadogSpan>(1000);
         let client = reqwest::Client::new();
-        let endpoint_str = endpoint.to_string();
+        let endpoint = "http://127.0.0.1:8126/v0.4/traces".to_string();
+
+        let mut resource_meta = HashMap::new();
+        if let Ok(attrs) = std::env::var("OTEL_RESOURCE_ATTRIBUTES") {
+            for pair in attrs.split(',') {
+                let mut kv = pair.splitn(2, '=');
+                if let (Some(k), Some(v)) = (kv.next(), kv.next()) {
+                    if k == "deployment.environment" {
+                        resource_meta.insert("env".to_string(), v.to_string());
+                    } else if k == "service.version" {
+                        resource_meta.insert("version".to_string(), v.to_string());
+                    }
+                }
+            }
+        }
 
         let worker_client = client.clone();
-        let worker_endpoint = endpoint_str.clone();
+        let worker_endpoint = endpoint.clone();
 
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
@@ -96,6 +110,7 @@ impl DatadogTracingLayer {
             service_name,
             client,
             endpoint,
+            resource_meta,
             sender: tx,
         }
     }
