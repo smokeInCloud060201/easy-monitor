@@ -464,9 +464,9 @@ Plans:
 **Goal:** Implement Span lifecycle management and distributed tracing header propagation (e.g., x-easymonitor-trace-id).
 **Requirements**: TBD
 **Depends on:** Phase 45
-**Plans:** 0 plans
+**Plans:** 0/4 plans complete
 Plans:
-- [ ] TBD (run /gsd-plan-phase 46 to break down)
+- [x] TBD (run /gsd-plan-phase 46 to break down) (completed 2026-03-26)
 
 ### Phase 47: Agent Buffering, Batching & Sampling Modules
 **Goal:** Optimize trace transmission via memory buffering, batching into MessagePack payloads, and priority sampling.
