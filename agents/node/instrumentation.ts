@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from 'async_hooks';
 import * as http from 'http';
 import * as os from 'os';
 import * as crypto from 'crypto';
+import * as dgram from 'dgram';
 import { Hook } from 'require-in-the-middle';
 import { pack as encode } from 'msgpackr';
 
@@ -23,23 +24,47 @@ const originalInfo = console.info;
 const originalWarn = console.warn;
 const originalError = console.error;
 
-function injectTrace(args: any[]) {
-    const span = traceStorage?.getStore();
-    if (span && args.length > 0 && typeof args[0] === 'string') {
-        args[0] = `[trace_id: ${span.traceId} span_id: ${span.spanId}] ${args[0]}`;
-    } else if (span) {
-        args.unshift(`[trace_id: ${span.traceId} span_id: ${span.spanId}]`);
-    }
-    return args;
+const udpClient = dgram.createSocket('udp4');
+const GELF_PORT = 12201;
+
+function sendGelfLog(level: number, args: any[]) {
+    try {
+        const span = traceStorage?.getStore();
+
+        let message = args.map(a => {
+            if (typeof a === 'object') {
+                try { return JSON.stringify(a); } catch (e) { return String(a); }
+            }
+            return String(a);
+        }).join(' ');
+
+        const payload: any = {
+            version: "1.1",
+            host: os.hostname(),
+            short_message: message,
+            timestamp: Date.now() / 1000,
+            level: level,
+            _service: SERVICE_NAME
+        };
+
+        if (span) {
+            // Send hex-encoded IDs for Datadog UI correlation
+            payload._trace_id = span.traceId.toString(16).padStart(16, '0');
+            payload._span_id = span.spanId.toString(16).padStart(16, '0');
+        }
+
+        const msgBuffer = Buffer.from(JSON.stringify(payload));
+        udpClient.send(msgBuffer, 0, msgBuffer.length, GELF_PORT, '127.0.0.1');
+    } catch (e) { /* Ignore log serialization errors */ }
 }
 
-console.log = function(...args: any[]) { originalLog.apply(console, injectTrace(args)); };
-console.info = function(...args: any[]) { originalInfo.apply(console, injectTrace(args)); };
-console.warn = function(...args: any[]) { originalWarn.apply(console, injectTrace(args)); };
-console.error = function(...args: any[]) { originalError.apply(console, injectTrace(args)); };
+console.log = function (...args: any[]) { sendGelfLog(6, args); originalLog.apply(console, args as any); };
+console.info = function (...args: any[]) { sendGelfLog(6, args); originalInfo.apply(console, args as any); };
+console.warn = function (...args: any[]) { sendGelfLog(4, args); originalWarn.apply(console, args as any); };
+console.error = function (...args: any[]) { sendGelfLog(3, args); originalError.apply(console, args as any); };
 
 function generateId(): bigint {
-    return crypto.randomBytes(8).readBigUInt64BE(0);
+    return crypto.randomBytes(8).readBigUInt64BE(0) & 0x7FFFFFFFFFFFFFFFn;
 }
 
 export class Span {
@@ -65,7 +90,7 @@ export class Span {
         this.traceId = traceId;
         this.spanId = spanId;
         this.parentId = parentId;
-        
+
         const nowMs = Date.now();
         this.hrStart = process.hrtime.bigint();
         this.start = BigInt(nowMs) * 1000000n;
@@ -94,10 +119,10 @@ export class Span {
 
     end() {
         this.duration = process.hrtime.bigint() - this.hrStart;
-        
+
         const endCpu = process.cpuUsage(this.startCpu);
         const endMem = process.memoryUsage().heapUsed;
-        
+
         this.metrics['cpu.user'] = endCpu.user;
         this.metrics['cpu.system'] = endCpu.system;
         this.metrics['mem.delta'] = endMem - this.startMem;
@@ -121,9 +146,9 @@ export const tracer = {
         const traceId = externalTraceId || (parent ? parent.traceId : generateId());
         const parentId = externalParentId || (parent ? parent.spanId : 0n);
         const spanId = generateId();
-        
+
         const span = new Span(name, traceId, spanId, parentId);
-        
+
         return traceStorage.run(span, () => {
             return fn(span);
         });
@@ -149,11 +174,11 @@ function exportSpan(span: Span) {
         duration: span.duration,
         error: span.error
     };
-    
+
     if (span.parentId !== 0n) obj.parent_id = span.parentId;
     if (Object.keys(span.meta).length > 0) obj.meta = span.meta;
     if (Object.keys(span.metrics).length > 0) obj.metrics = span.metrics;
-    
+
     buffer.push(obj);
 
     if (buffer.length >= 100) {
@@ -175,7 +200,7 @@ function flush() {
 
     try {
         const encoded = encode(payload);
-        
+
         const req = http.request({
             hostname: '127.0.0.1',
             port: 8126,
@@ -190,7 +215,7 @@ function flush() {
         req.on('error', (err) => { console.error("[EasyMonitor] Failed to export traces:", err.message); });
         req.write(encoded);
         req.end();
-    } catch(e: any) { console.error("[EasyMonitor] Exception in flush:", e.message); }
+    } catch (e: any) { console.error("[EasyMonitor] Exception in flush:", e.message); }
 }
 
 const originalFetch = global.fetch;
@@ -198,11 +223,11 @@ if (typeof originalFetch === 'function') {
     global.fetch = async function (url: string | URL | Request, options?: RequestInit) {
         options = options || {};
         const targetUrl = typeof url === 'string' ? url : (url as any).url || url.toString();
-        
+
         return tracer.startActiveSpan(`fetch ${options.method || 'GET'}`, async (span) => {
             span.setAttribute('http.url', scrubUrl(targetUrl));
             span.setAttribute('http.method', options!.method || 'GET');
-            
+
             try {
                 const res = await originalFetch(url as any, options);
                 span.setAttribute('http.status_code', res.status);
@@ -292,7 +317,7 @@ new Hook(['http', 'https'], (exported: any, name: string, basedir?: string) => {
                 try {
                     if (traceIdStr) extTraceId = BigInt(traceIdStr as string);
                     if (parentIdStr) extParentId = BigInt(parentIdStr as string);
-                } catch(e) {}
+                } catch (e) { }
 
                 return tracer.startActiveSpan(`http.server.request`, span => {
                     span.setAttribute('http.method', req.method || 'GET');
@@ -303,7 +328,7 @@ new Hook(['http', 'https'], (exported: any, name: string, basedir?: string) => {
                         span.setAttribute('http.status_code', res.statusCode);
                         span.end();
                     });
-                    
+
                     res.on('error', (err: any) => {
                         span.recordException(err);
                     });
@@ -329,12 +354,12 @@ Hook(['pg'], (exported) => {
         Client.prototype.query = function (...args: any[]) {
             const config = args[0];
             let sql = typeof config === 'string' ? config : config?.text || '';
-            
+
             return tracer.startActiveSpan('pg.query', span => {
                 span.setAttribute('db.system', 'postgresql');
                 span.setAttribute('db.query', obfuscateQuery(sql));
                 span.type = 'sql';
-                
+
                 const lastArg = args[args.length - 1];
                 if (typeof lastArg === 'function') {
                     args[args.length - 1] = function (...cbArgs: any[]) {
@@ -348,7 +373,7 @@ Hook(['pg'], (exported) => {
                     const res = originalQuery.apply(this, args);
                     if (res && typeof res.then === 'function') {
                         res.then((r: any) => { span.end(); return r; })
-                           .catch((err: any) => { span.recordException(err); span.end(); throw err; });
+                            .catch((err: any) => { span.recordException(err); span.end(); throw err; });
                     } else {
                         span.end();
                     }
@@ -371,7 +396,7 @@ Hook(['mysql2'], (exported) => {
                         span.setAttribute('db.system', 'mysql');
                         span.setAttribute('db.query', obfuscateQuery(sql));
                         span.type = 'sql';
-                        
+
                         const lastArg = args[args.length - 1];
                         if (typeof lastArg === 'function') {
                             args[args.length - 1] = function (...cbArgs: any[]) {
@@ -385,7 +410,7 @@ Hook(['mysql2'], (exported) => {
                             const res = original.apply(this, args);
                             if (res && typeof res.then === 'function') {
                                 res.then((r: any) => { span.end(); return r; })
-                                   .catch((err: any) => { span.recordException(err); span.end(); throw err; });
+                                    .catch((err: any) => { span.recordException(err); span.end(); throw err; });
                             } else {
                                 span.end();
                             }
@@ -401,14 +426,14 @@ Hook(['mysql2'], (exported) => {
 
 if (typeof global !== 'undefined' && typeof global.fetch === 'function') {
     const originalFetch = global.fetch;
-    global.fetch = function(...args: any[]) {
+    global.fetch = function (...args: any[]) {
         const urlStr = typeof args[0] === 'string' ? args[0] : (args[0] as Request).url;
         const method = (args[1]?.method || (args[0] as any).method || 'GET').toUpperCase();
-        
+
         return tracer.startActiveSpan('http.client.request', span => {
             span.setAttribute('http.method', method);
             span.setAttribute('http.url', scrubUrl(urlStr));
-            
+
             args[1] = args[1] || {};
             args[1].headers = args[1].headers || {};
             if (typeof Headers !== 'undefined' && args[1].headers instanceof Headers) {

@@ -15,7 +15,7 @@ public class DatadogSpanExporter {
 
     private static final ObjectMapper mapper = new ObjectMapper(new MessagePackFactory());
     private static final String ENDPOINT = "http://127.0.0.1:8126/v0.4/traces";
-    
+
     // Background worker for async transmission
     private static final BlockingQueue<DatadogSpan> queue = new LinkedBlockingQueue<>(10000);
     public static final Map<String, String> ENV_META = new HashMap<>();
@@ -28,8 +28,10 @@ public class DatadogSpanExporter {
             for (String pair : attrs.split(",")) {
                 String[] kv = pair.split("=", 2);
                 if (kv.length == 2) {
-                    if ("deployment.environment".equals(kv[0])) ENV_META.put("env", kv[1]);
-                    else if ("service.version".equals(kv[0])) ENV_META.put("version", kv[1]);
+                    if ("deployment.environment".equals(kv[0]))
+                        ENV_META.put("env", kv[1]);
+                    else if ("service.version".equals(kv[0]))
+                        ENV_META.put("version", kv[1]);
                 }
             }
         }
@@ -43,7 +45,7 @@ public class DatadogSpanExporter {
                         continue;
                     }
                     batch.add(first);
-                    queue.drainTo(batch, 99); // Take up to 99 more 
+                    queue.drainTo(batch, 99); // Take up to 99 more
 
                     exportBatch(batch);
                 } catch (InterruptedException e) {
@@ -58,19 +60,32 @@ public class DatadogSpanExporter {
     }
 
     public static class DatadogSpan {
-        @JsonProperty("trace_id") public long traceId;
-        @JsonProperty("span_id") public long spanId;
-        @JsonProperty("parent_id") public long parentId;
-        @JsonProperty("name") public String name;
-        @JsonProperty("resource") public String resource;
-        @JsonProperty("service") public String service;
-        @JsonProperty("type") public String type = "web";
-        @JsonProperty("start") public long start;
-        @JsonProperty("duration") public long duration;
-        @JsonProperty("error") public int error;
-        @JsonProperty("meta") public Map<String, String> meta = new HashMap<>();
-        @JsonProperty("metrics") public Map<String, Double> metrics = new HashMap<>();
-        @JsonProperty("source") public String source;
+        @JsonProperty("trace_id")
+        public long traceId;
+        @JsonProperty("span_id")
+        public long spanId;
+        @JsonProperty("parent_id")
+        public long parentId;
+        @JsonProperty("name")
+        public String name;
+        @JsonProperty("resource")
+        public String resource;
+        @JsonProperty("service")
+        public String service;
+        @JsonProperty("type")
+        public String type = "web";
+        @JsonProperty("start")
+        public long start;
+        @JsonProperty("duration")
+        public long duration;
+        @JsonProperty("error")
+        public int error;
+        @JsonProperty("meta")
+        public Map<String, String> meta = new HashMap<>();
+        @JsonProperty("metrics")
+        public Map<String, Double> metrics = new HashMap<>();
+        @JsonProperty("source")
+        public String source;
 
         public DatadogSpan() {
             this.meta.putAll(ENV_META);

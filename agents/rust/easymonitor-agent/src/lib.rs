@@ -131,14 +131,14 @@ where
         let mut trace_id = if ext_trace_id != 0 {
             ext_trace_id
         } else {
-            rand::thread_rng().gen::<u64>()
+            rand::thread_rng().gen::<u64>() & 0x7FFFFFFFFFFFFFFF
         };
 
         let mut parent_id = meta
             .get("parent_id")
             .and_then(|s| s.parse::<u64>().ok())
             .unwrap_or(0);
-        let span_id = rand::thread_rng().gen::<u64>();
+        let span_id = rand::thread_rng().gen::<u64>() & 0x7FFFFFFFFFFFFFFF;
 
         meta.remove("trace_id");
         meta.remove("parent_id");

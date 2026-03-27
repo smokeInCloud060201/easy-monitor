@@ -7,9 +7,12 @@ import java.sql.PreparedStatement;
 import java.sql.Connection;
 
 public class JdbcAdvice {
-    public static final java.util.Map<Object, DatadogSpan> SPANS = java.util.Collections.synchronizedMap(new java.util.WeakHashMap<>());
-    public static final java.util.Map<Object, String> QUERIES = java.util.Collections.synchronizedMap(new java.util.WeakHashMap<>());
-    private static final java.util.regex.Pattern OBFUSCATOR = java.util.regex.Pattern.compile("(['\"]).*?\\1|(\\b\\d+\\b)");
+    public static final java.util.Map<Object, DatadogSpan> SPANS = java.util.Collections
+            .synchronizedMap(new java.util.WeakHashMap<>());
+    public static final java.util.Map<Object, String> QUERIES = java.util.Collections
+            .synchronizedMap(new java.util.WeakHashMap<>());
+    private static final java.util.regex.Pattern OBFUSCATOR = java.util.regex.Pattern
+            .compile("(['\"]).*?\\1|(\\b\\d+\\b)");
 
     public static class PrepareAdvice {
         @Advice.OnMethodExit(suppress = Throwable.class)
@@ -21,20 +24,13 @@ public class JdbcAdvice {
     }
 
     public static class ExecuteAdvice {
-        public static void debugOnEnter(PreparedStatement stmt) {
-            System.out.println("[JdbcAdvice] onEnter - stmt: " + stmt);
-        }
-
-        public static void debugOnExit(PreparedStatement stmt, Throwable thrown) {
-            System.out.println("[JdbcAdvice] onExit - stmt: " + stmt + ", thrown: " + thrown);
-        }
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void onEnter(@Advice.This PreparedStatement stmt) {
-            debugOnEnter(stmt);
             String sql = QUERIES.get(stmt);
-            if (sql == null) sql = "unknown";
-            
+            if (sql == null)
+                sql = "unknown";
+
             DatadogSpan span = new DatadogSpan();
             span.name = "db.query";
             span.resource = sql;
@@ -43,7 +39,7 @@ public class JdbcAdvice {
             span.meta.put("db.system", "sql");
             span.meta.put("db.query", sql);
             span.source = JdbcAdvice.class.getName();
-            
+
             DatadogSpan parent = SpanTracker.getSpan();
             if (parent != null) {
                 span.traceId = parent.traceId;
@@ -55,26 +51,26 @@ public class JdbcAdvice {
             span.spanId = java.util.concurrent.ThreadLocalRandom.current().nextLong(1, Long.MAX_VALUE);
             span.start = System.currentTimeMillis() * 1000000L;
             span.meta.put("start_time_ms", String.valueOf(System.currentTimeMillis()));
-            
+
             SPANS.put(stmt, span);
         }
 
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
         public static void onExit(@Advice.This PreparedStatement stmt, @Advice.Thrown Throwable thrown) {
-            debugOnExit(stmt, thrown);
             DatadogSpan span = SPANS.remove(stmt);
-            if (span == null) return;
-            
+            if (span == null)
+                return;
+
             if (thrown != null) {
                 span.error = 1;
                 String msg = thrown.getMessage();
                 span.meta.put("error.message", msg != null ? msg : "null");
                 span.meta.put("error.type", thrown.getClass().getName());
             }
-            
+
             long startMs = Long.parseLong(span.meta.get("start_time_ms"));
             span.duration = (System.currentTimeMillis() - startMs) * 1000000L;
-            
+
             DatadogSpanExporter.submit(span);
         }
     }

@@ -12,7 +12,7 @@ func (t *GormTracer) Name() string { return "easymonitor-tracer" }
 func (t *GormTracer) Initialize(db *gorm.DB) error {
 	db.Callback().Create().Before("gorm:create").Register("easymonitor:before_create", t.before)
 	db.Callback().Create().After("gorm:create").Register("easymonitor:after_create", t.after)
-	
+
 	db.Callback().Query().Before("gorm:query").Register("easymonitor:before_query", t.before)
 	db.Callback().Query().After("gorm:query").Register("easymonitor:after_query", t.after)
 
@@ -21,13 +21,13 @@ func (t *GormTracer) Initialize(db *gorm.DB) error {
 
 	db.Callback().Delete().Before("gorm:delete").Register("easymonitor:before_delete", t.before)
 	db.Callback().Delete().After("gorm:delete").Register("easymonitor:after_delete", t.after)
-	
+
 	db.Callback().Row().Before("gorm:row").Register("easymonitor:before_row", t.before)
 	db.Callback().Row().After("gorm:row").Register("easymonitor:after_row", t.after)
-	
+
 	db.Callback().Raw().Before("gorm:raw").Register("easymonitor:before_raw", t.before)
 	db.Callback().Raw().After("gorm:raw").Register("easymonitor:after_raw", t.after)
-	
+
 	return nil
 }
 
@@ -45,7 +45,7 @@ func (t *GormTracer) after(db *gorm.DB) {
 	if db.Statement == nil || db.Statement.Context == nil {
 		return
 	}
-	
+
 	val, ok := db.InstanceGet(spanKey)
 	if !ok {
 		return
@@ -54,18 +54,18 @@ func (t *GormTracer) after(db *gorm.DB) {
 	if !ok || span == nil {
 		return
 	}
-	
+
 	query := db.Statement.SQL.String()
 	if query == "" {
 		query = db.Statement.Table
 	}
 	span.SetTag("db.statement", query)
 	span.SetTag("db.query", ObfuscateSQL(query))
-	
+
 	if db.Error != nil {
 		span.Error = 1
 		span.SetTag("error.message", db.Error.Error())
 	}
-	
+
 	span.Finish()
 }

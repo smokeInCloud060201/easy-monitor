@@ -60,7 +60,7 @@ func (db *DB) QueryRowContext(ctx context.Context, query string, args ...any) *s
 	span.Type = "sql"
 
 	row := db.DB.QueryRowContext(ctx, query, args...)
-	
+
 	span.Finish()
 	return row
 }

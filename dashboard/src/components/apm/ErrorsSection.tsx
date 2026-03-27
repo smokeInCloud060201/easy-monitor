@@ -66,8 +66,7 @@ export function ErrorsSection({ errors, timeseries, totalErrors, errorRate }: Er
           {errors.slice(0, 5).map((err, i) => (
             <div key={i} className="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-light transition-colors text-sm">
               <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
-              <span className="text-text-primary flex-1 truncate font-mono text-xs">{err.name}</span>
-              <span className="text-text-muted text-xs truncate max-w-[120px]">{err.resource}</span>
+              <span className="text-text-primary flex-1 truncate font-mono text-xs">{err.resource}</span>
               <span className="bg-red-500/10 text-red-400 text-xs font-bold px-2 py-0.5 rounded tabular-nums">
                 ×{err.count}
               </span>

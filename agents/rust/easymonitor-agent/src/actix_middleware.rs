@@ -5,7 +5,7 @@ use actix_web::{
 use futures_util::future::{ok, LocalBoxFuture, Ready};
 use std::rc::Rc;
 use std::sync::OnceLock;
-
+ 
 static URL_SCRUBBER: OnceLock<regex::Regex> = OnceLock::new();
 
 fn scrub_url(url: &str) -> String {

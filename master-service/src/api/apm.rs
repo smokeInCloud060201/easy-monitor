@@ -538,7 +538,7 @@ pub async fn get_service_errors(
     let query = format!(
         "SELECT name, resource, count() as cnt, max(timestamp) as last_ts \
          FROM easy_monitor_traces \
-         WHERE service = '{}' AND error > 0 AND resource NOT LIKE '%http.client%' \
+         WHERE service = '{}' AND error > 0 AND name = 'web.request' \
          GROUP BY name, resource ORDER BY cnt DESC LIMIT 50 FORMAT JSON",
         service_name.replace('\'', "")
     );
