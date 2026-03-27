@@ -9,8 +9,8 @@ public class ServletAdvice {
     private static Class<?> MDC_CLASS;
     private static boolean MDC_INITIALIZED = false;
 
-    private static final java.util.regex.Pattern URL_SCRUBBER = java.util.regex.Pattern.compile("/([a-zA-Z0-9]+_[0-9]+|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}|\\d+)(/|$|\\?)");
-    private static String scrubUrl(String url) {
+    public static final java.util.regex.Pattern URL_SCRUBBER = java.util.regex.Pattern.compile("/([a-zA-Z0-9]+_[0-9]+|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}|\\d+)(/|$|\\?)");
+    public static String scrubUrl(String url) {
         if (url == null) return "";
         return URL_SCRUBBER.matcher(url).replaceAll("/?$2");
     }

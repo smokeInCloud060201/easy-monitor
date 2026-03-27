@@ -70,7 +70,7 @@ pub async fn start_trace_metrics_engine(tx: EventBusTx, mut rx: EventBusRx) -> a
                         let sanitized_resource = sanitize_resource(&span.resource);
                         // EXCLUSIVE FILTER: Only track RED metrics for Entrypoint spans (Root spans or explicit APIs/Servers). 
                         // This prevents internal Redis/DB queries or background tasks from polluting the APM Resources endpoint list.
-                        let is_api = span.name.contains(".request") || span.name.contains(".server") || span.name.contains("web.request");
+                        let is_api = (span.name.contains(".request") && !span.name.contains(".client")) || span.name.contains(".server") || span.name.contains("web.request");
                         if !is_api {
                             continue;
                         }
