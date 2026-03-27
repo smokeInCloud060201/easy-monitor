@@ -1,13 +1,27 @@
 package com.easymonitor.agent;
 
 import java.lang.instrument.Instrumentation;
+import java.util.logging.Logger;
+
+import com.easymonitor.agent.trace.DatadogSpanExporter;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.matcher.ElementMatchers;
 
+import static net.bytebuddy.matcher.ElementMatchers.named;
+
 public class EasyMonitorAgent {
+
+    private static final Logger log = Logger.getLogger(EasyMonitorAgent.class.getName());
+
     public static void premain(String agentArgs, Instrumentation inst) {
         String service = System.getenv().getOrDefault("OTEL_SERVICE_NAME", "java-app");
-        System.out.println("  [EasyMonitor] Pure Java Servlet ByteBuddy Agent successfully attached to " + service + "!");
+        log.info("  [EasyMonitor] Pure Java Servlet ByteBuddy Agent successfully attached to " + service + "!");
+
+        new AgentBuilder.Default()
+                .type(ElementMatchers.hasSuperType(ElementMatchers.named("org.springframework.web.servlet.DispatcherServlet")))
+                .transform(new AgentBuilder.Transformer.ForAdvice()
+                        .advice(ElementMatchers.named("doDispatch"), "com.easymonitor.agent.SpringAdvice"))
+                .installOn(inst);
         
         new AgentBuilder.Default()
             .type(ElementMatchers.hasSuperType(ElementMatchers.named("javax.servlet.http.HttpServlet"))

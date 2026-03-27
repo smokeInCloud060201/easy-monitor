@@ -13,10 +13,21 @@ public class SpringHttpAdvice {
         return URL_SCRUBBER.matcher(url).replaceAll("/?$2");
     }
 
+    public static void debugOnEnter(Object req) {
+        System.out.println("[SpringHttpAdvice] onEnter - req: " + req);
+    }
+
+    public static void debugOnExit(Object req, Object res, Throwable thrown) {
+        System.out.println("[SpringHttpAdvice] onExit - req: " + req + ", res: " + res + ", thrown: " + thrown);
+    }
+
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void onEnter(@Advice.This Object req) {
+        debugOnEnter(req);
         DatadogSpan span = new DatadogSpan();
         span.name = "http.client.request";
+
+        span.source = SpringHttpAdvice.class.getName();
         
         try {
             Object methodObj = ReflectionCache.getMethod(req.getClass(), "getMethod").invoke(req);
@@ -54,6 +65,7 @@ public class SpringHttpAdvice {
 
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
     public static void onExit(@Advice.This Object req, @Advice.Return Object res, @Advice.Thrown Throwable thrown) {
+        debugOnExit(req, res, thrown);
         DatadogSpan span = SPANS.remove(req);
         if (span == null) return;
         

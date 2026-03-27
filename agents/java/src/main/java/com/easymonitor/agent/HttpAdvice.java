@@ -14,8 +14,17 @@ public class HttpAdvice {
         return URL_SCRUBBER.matcher(url).replaceAll("/?$2");
     }
 
+    public static void debugOnEnter(HttpURLConnection conn) {
+        System.out.println("[HttpAdvice] onEnter - conn: " + conn);
+    }
+
+    public static void debugOnExit(HttpURLConnection conn, Throwable thrown) {
+        System.out.println("[HttpAdvice] onExit - conn: " + conn + ", thrown: " + thrown);
+    }
+
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void onEnter(@Advice.This HttpURLConnection conn) {
+        debugOnEnter(conn);
         if (SPANS.containsKey(conn)) return;
         
         DatadogSpan span = new DatadogSpan();
@@ -25,6 +34,7 @@ public class HttpAdvice {
         span.type = "http";
         span.meta.put("http.method", conn.getRequestMethod());
         span.meta.put("http.url", scrubUrl(conn.getURL().toString()));
+        span.source = HttpAdvice.class.getName();
         
         DatadogSpan parent = SpanTracker.getSpan();
         if (parent != null) {
@@ -47,6 +57,7 @@ public class HttpAdvice {
 
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
     public static void onExit(@Advice.This HttpURLConnection conn, @Advice.Thrown Throwable thrown) {
+        debugOnExit(conn, thrown);
         DatadogSpan span = SPANS.remove(conn);
         if (span == null) return;
         

@@ -9,6 +9,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.logging.Logger;
 
 public class DatadogSpanExporter {
 
@@ -18,6 +19,8 @@ public class DatadogSpanExporter {
     // Background worker for async transmission
     private static final BlockingQueue<DatadogSpan> queue = new LinkedBlockingQueue<>(10000);
     public static final Map<String, String> ENV_META = new HashMap<>();
+
+    private static final Logger log = Logger.getLogger(DatadogSpanExporter.class.getName());
 
     static {
         String attrs = System.getenv("OTEL_RESOURCE_ATTRIBUTES");
@@ -67,6 +70,7 @@ public class DatadogSpanExporter {
         @JsonProperty("error") public int error;
         @JsonProperty("meta") public Map<String, String> meta = new HashMap<>();
         @JsonProperty("metrics") public Map<String, Double> metrics = new HashMap<>();
+        @JsonProperty("source") public String source;
 
         public DatadogSpan() {
             this.meta.putAll(ENV_META);
@@ -97,10 +101,10 @@ public class DatadogSpanExporter {
 
             int code = conn.getResponseCode();
             if (code >= 400) {
-                System.err.println("[EasyMonitor] Failed to export traces to Datadog agent, status: " + code);
+                log.info("[EasyMonitor] Failed to export traces to Datadog agent, status: " + code);
             }
         } catch (Exception e) {
-            System.err.println("[EasyMonitor] Failed to export traces: " + e.getMessage());
+            log.info("[EasyMonitor] Failed to export traces: " + e.getMessage());
         }
     }
 }

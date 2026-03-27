@@ -15,6 +15,14 @@ public class ServletAdvice {
         return URL_SCRUBBER.matcher(url).replaceAll("/?$2");
     }
 
+    public static void debugOnEnter(Object reqObject) {
+        System.out.println("[ServletAdvice] onEnter - req: " + reqObject);
+    }
+
+    public static void debugOnExit(Object reqObject, Object resObject, Throwable thrown) {
+        System.out.println("[ServletAdvice] onExit - req: " + reqObject + ", res: " + resObject + ", thrown: " + thrown);
+    }
+
     private static Class<?> getMdcClass() {
         if (!MDC_INITIALIZED) {
             try {
@@ -32,6 +40,7 @@ public class ServletAdvice {
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void onEnter(@Advice.Argument(0) Object reqObject) {
+        debugOnEnter(reqObject);
         boolean isReq_init = false;
         try { 
             if (ReflectionCache.getMethod(reqObject.getClass(), "getMethod") != null) isReq_init = true; 
@@ -49,6 +58,7 @@ public class ServletAdvice {
             span.resource = method + " " + scrubUrl(uri);
             span.meta.put("http.method", method);
             span.meta.put("http.url", urlBuf != null ? scrubUrl(urlBuf.toString()) : "");
+            span.source = ServletAdvice.class.getName();
             
             String traceIdStr = null;
             String parentIdStr = null;
@@ -102,6 +112,7 @@ public class ServletAdvice {
 
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
     public static void onExit(@Advice.Argument(0) Object reqObject, @Advice.Argument(1) Object resObject, @Advice.Thrown Throwable thrown) {
+        debugOnExit(reqObject, resObject, thrown);
         DatadogSpan span = SpanTracker.getSpan();
         if (span == null) {
             return;

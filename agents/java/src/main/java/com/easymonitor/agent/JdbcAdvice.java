@@ -21,8 +21,17 @@ public class JdbcAdvice {
     }
 
     public static class ExecuteAdvice {
+        public static void debugOnEnter(PreparedStatement stmt) {
+            System.out.println("[JdbcAdvice] onEnter - stmt: " + stmt);
+        }
+
+        public static void debugOnExit(PreparedStatement stmt, Throwable thrown) {
+            System.out.println("[JdbcAdvice] onExit - stmt: " + stmt + ", thrown: " + thrown);
+        }
+
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void onEnter(@Advice.This PreparedStatement stmt) {
+            debugOnEnter(stmt);
             String sql = QUERIES.get(stmt);
             if (sql == null) sql = "unknown";
             
@@ -33,6 +42,7 @@ public class JdbcAdvice {
             span.type = "sql";
             span.meta.put("db.system", "sql");
             span.meta.put("db.query", sql);
+            span.source = JdbcAdvice.class.getName();
             
             DatadogSpan parent = SpanTracker.getSpan();
             if (parent != null) {
@@ -51,6 +61,7 @@ public class JdbcAdvice {
 
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
         public static void onExit(@Advice.This PreparedStatement stmt, @Advice.Thrown Throwable thrown) {
+            debugOnExit(stmt, thrown);
             DatadogSpan span = SPANS.remove(stmt);
             if (span == null) return;
             
