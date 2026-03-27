@@ -10,6 +10,7 @@ import (
 	mathrand "math/rand"
 	"net/http"
 	"os"
+	"regexp"
 	"runtime"
 	"runtime/debug"
 	"strconv"
@@ -20,6 +21,12 @@ import (
 )
 
 var defaultMeta = make(map[string]string)
+
+var urlScrubber = regexp.MustCompile(`(?i)/([a-zA-Z0-9]+_[0-9]+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\d+)(/|$|\?)`)
+
+func scrubURL(u string) string {
+	return urlScrubber.ReplaceAllString(u, "/?$2")
+}
 
 func init() {
 	if otelAttrs := os.Getenv("OTEL_RESOURCE_ATTRIBUTES"); otelAttrs != "" {
@@ -226,9 +233,9 @@ func WrapHTTPHandler(next http.Handler, serviceName string) http.Handler {
 		}
 
 		span, ctx := StartSpanFromContext(ctx, "http.server.request")
-		span.Resource = r.Method + " " + r.URL.Path
+		span.Resource = r.Method + " " + scrubURL(r.URL.Path)
 		span.SetTag("http.method", r.Method)
-		span.SetTag("http.url", r.URL.String())
+		span.SetTag("http.url", scrubURL(r.URL.String()))
 		
 		defer span.Finish()
 		defer func() {
@@ -259,9 +266,9 @@ type Transport struct {
 
 func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	span, ctx := StartSpanFromContext(req.Context(), "http.client.request")
-	span.Resource = req.Method + " " + req.URL.Path
+	span.Resource = req.Method + " " + scrubURL(req.URL.Path)
 	span.SetTag("http.method", req.Method)
-	span.SetTag("http.url", req.URL.String())
+	span.SetTag("http.url", scrubURL(req.URL.String()))
 
 	// Inject trace context headers
 	req.Header.Set("x-easymonitor-trace-id", strconv.FormatUint(span.TraceID, 10))

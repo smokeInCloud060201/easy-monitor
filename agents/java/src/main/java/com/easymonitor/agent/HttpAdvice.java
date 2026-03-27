@@ -8,17 +8,23 @@ import java.net.HttpURLConnection;
 public class HttpAdvice {
     public static final java.util.Map<Object, DatadogSpan> SPANS = java.util.Collections.synchronizedMap(new java.util.WeakHashMap<>());
 
+    private static final java.util.regex.Pattern URL_SCRUBBER = java.util.regex.Pattern.compile("/([a-zA-Z0-9]+_[0-9]+|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}|\\d+)(/|$|\\?)");
+    private static String scrubUrl(String url) {
+        if (url == null) return "";
+        return URL_SCRUBBER.matcher(url).replaceAll("/?$2");
+    }
+
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void onEnter(@Advice.This HttpURLConnection conn) {
         if (SPANS.containsKey(conn)) return;
         
         DatadogSpan span = new DatadogSpan();
         span.name = "http.client.request";
-        span.resource = conn.getRequestMethod() + " " + conn.getURL().getPath();
+        span.resource = conn.getRequestMethod() + " " + scrubUrl(conn.getURL().getPath());
         span.service = System.getenv().getOrDefault("OTEL_SERVICE_NAME", "java-app");
         span.type = "http";
         span.meta.put("http.method", conn.getRequestMethod());
-        span.meta.put("http.url", conn.getURL().toString());
+        span.meta.put("http.url", scrubUrl(conn.getURL().toString()));
         
         DatadogSpan parent = SpanTracker.getSpan();
         if (parent != null) {

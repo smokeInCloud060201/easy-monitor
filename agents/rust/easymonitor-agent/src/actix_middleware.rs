@@ -4,6 +4,16 @@ use actix_web::{
 };
 use futures_util::future::{ok, LocalBoxFuture, Ready};
 use std::rc::Rc;
+use std::sync::OnceLock;
+
+static URL_SCRUBBER: OnceLock<regex::Regex> = OnceLock::new();
+
+fn scrub_url(url: &str) -> String {
+    let re = URL_SCRUBBER.get_or_init(|| {
+        regex::Regex::new(r"(?i)/([a-zA-Z0-9]+_[0-9]+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\d+)(/|$|\?)").unwrap()
+    });
+    re.replace_all(url, "/?$2").to_string()
+}
 
 pub struct EasyMonitorActix;
 
@@ -57,11 +67,13 @@ where
             .and_then(|s| s.parse::<u64>().ok())
             .unwrap_or(0);
 
+        let url_str = scrub_url(&req.uri().to_string());
+
         // Automatically inject trace span
         let span = tracing::info_span!(
-            "http.request",
+            "http.server.request",
             http.method = %req.method(),
-            http.url = %req.uri(),
+            http.url = %url_str,
             trace_id = trace_id,
             parent_id = parent_id
         );

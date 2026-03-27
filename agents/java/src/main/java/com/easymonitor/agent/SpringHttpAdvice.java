@@ -7,6 +7,12 @@ import com.easymonitor.agent.trace.DatadogSpanExporter;
 public class SpringHttpAdvice {
     public static final java.util.Map<Object, DatadogSpan> SPANS = java.util.Collections.synchronizedMap(new java.util.WeakHashMap<>());
 
+    private static final java.util.regex.Pattern URL_SCRUBBER = java.util.regex.Pattern.compile("/([a-zA-Z0-9]+_[0-9]+|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}|\\d+)(/|$|\\?)");
+    private static String scrubUrl(String url) {
+        if (url == null) return "";
+        return URL_SCRUBBER.matcher(url).replaceAll("/?$2");
+    }
+
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void onEnter(@Advice.This Object req) {
         DatadogSpan span = new DatadogSpan();
@@ -15,9 +21,10 @@ public class SpringHttpAdvice {
         try {
             Object methodObj = ReflectionCache.getMethod(req.getClass(), "getMethod").invoke(req);
             Object uriObj = ReflectionCache.getMethod(req.getClass(), "getURI").invoke(req);
-            span.resource = methodObj.toString() + " " + ReflectionCache.getMethod(uriObj.getClass(), "getPath").invoke(uriObj);
+            String pathStr = (String) ReflectionCache.getMethod(uriObj.getClass(), "getPath").invoke(uriObj);
+            span.resource = methodObj.toString() + " " + scrubUrl(pathStr);
             span.meta.put("http.method", methodObj.toString());
-            span.meta.put("http.url", uriObj.toString());
+            span.meta.put("http.url", scrubUrl(uriObj.toString()));
         } catch (Exception e) {}
         
         span.service = System.getenv().getOrDefault("OTEL_SERVICE_NAME", "java-app");

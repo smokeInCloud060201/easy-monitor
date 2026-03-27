@@ -9,6 +9,12 @@ public class ServletAdvice {
     private static Class<?> MDC_CLASS;
     private static boolean MDC_INITIALIZED = false;
 
+    private static final java.util.regex.Pattern URL_SCRUBBER = java.util.regex.Pattern.compile("/([a-zA-Z0-9]+_[0-9]+|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}|\\d+)(/|$|\\?)");
+    private static String scrubUrl(String url) {
+        if (url == null) return "";
+        return URL_SCRUBBER.matcher(url).replaceAll("/?$2");
+    }
+
     private static Class<?> getMdcClass() {
         if (!MDC_INITIALIZED) {
             try {
@@ -40,9 +46,9 @@ public class ServletAdvice {
             String uri = (String) ReflectionCache.getMethod(reqObject.getClass(), "getRequestURI").invoke(reqObject);
             Object urlBuf = ReflectionCache.getMethod(reqObject.getClass(), "getRequestURL").invoke(reqObject);
             
-            span.resource = method + " " + uri;
+            span.resource = method + " " + scrubUrl(uri);
             span.meta.put("http.method", method);
-            span.meta.put("http.url", urlBuf != null ? urlBuf.toString() : "");
+            span.meta.put("http.url", urlBuf != null ? scrubUrl(urlBuf.toString()) : "");
             
             String traceIdStr = null;
             String parentIdStr = null;

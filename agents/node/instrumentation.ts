@@ -7,6 +7,9 @@ import { pack as encode } from 'msgpackr';
 
 const SERVICE_NAME = process.env.OTEL_SERVICE_NAME || 'node-agent';
 
+const urlScrubber = /\/([a-zA-Z0-9]+_[0-9]+|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}|\d+)(\/|$|\?)/gi;
+const scrubUrl = (url: string) => url.replace(urlScrubber, '/?$2');
+
 const resourceMeta: Record<string, string> = { host: os.hostname() };
 const otelAttrs = process.env.OTEL_RESOURCE_ATTRIBUTES || '';
 otelAttrs.split(',').forEach(pair => {
@@ -197,7 +200,7 @@ if (typeof originalFetch === 'function') {
         const targetUrl = typeof url === 'string' ? url : (url as any).url || url.toString();
         
         return tracer.startActiveSpan(`fetch ${options.method || 'GET'}`, async (span) => {
-            span.setAttribute('http.url', targetUrl);
+            span.setAttribute('http.url', scrubUrl(targetUrl));
             span.setAttribute('http.method', options!.method || 'GET');
             
             try {
@@ -228,7 +231,7 @@ new Hook(['http', 'https'], (exported: any, name: string, basedir?: string) => {
             return tracer.startActiveSpan(`http.client.request`, span => {
                 span.setAttribute('http.method', req.method || 'GET');
                 const protocol = name === 'https' ? 'https:' : 'http:';
-                span.setAttribute('http.url', `${protocol}//${req.host}${req.path}`);
+                span.setAttribute('http.url', scrubUrl(`${protocol}//${req.host}${req.path}`));
 
                 // Inject Trace Headers
                 req.setHeader('x-easymonitor-trace-id', span.traceId.toString());
@@ -256,7 +259,7 @@ new Hook(['http', 'https'], (exported: any, name: string, basedir?: string) => {
             return tracer.startActiveSpan(`http.client.request`, span => {
                 span.setAttribute('http.method', req.method || 'GET');
                 const protocol = name === 'https' ? 'https:' : 'http:';
-                span.setAttribute('http.url', `${protocol}//${req.host}${req.path}`);
+                span.setAttribute('http.url', scrubUrl(`${protocol}//${req.host}${req.path}`));
 
                 req.setHeader('x-easymonitor-trace-id', span.traceId.toString());
                 req.setHeader('x-easymonitor-parent-id', span.spanId.toString());
@@ -293,8 +296,8 @@ new Hook(['http', 'https'], (exported: any, name: string, basedir?: string) => {
 
                 return tracer.startActiveSpan(`http.server.request`, span => {
                     span.setAttribute('http.method', req.method || 'GET');
-                    span.setAttribute('http.url', req.url || '/');
-                    span.resource = `${req.method || 'GET'} ${req.url || '/'}`;
+                    span.setAttribute('http.url', scrubUrl(req.url || '/'));
+                    span.resource = scrubUrl(`${req.method || 'GET'} ${req.url || '/'}`);
 
                     res.on('finish', () => {
                         span.setAttribute('http.status_code', res.statusCode);
@@ -404,7 +407,7 @@ if (typeof global !== 'undefined' && typeof global.fetch === 'function') {
         
         return tracer.startActiveSpan('http.client.request', span => {
             span.setAttribute('http.method', method);
-            span.setAttribute('http.url', urlStr);
+            span.setAttribute('http.url', scrubUrl(urlStr));
             
             args[1] = args[1] || {};
             args[1].headers = args[1].headers || {};

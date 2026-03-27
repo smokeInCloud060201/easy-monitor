@@ -89,6 +89,7 @@ progress:
 - Phase 44 added: Update Easy Monitor Agent Core Functional Specification
 - Phase 53 added: Update node-agent and master-service for agent infrastructure changes
 - Phase 54 added: Decouple telemetry logic from application business logic across all polyglot agents
+- Phase 55 added: Fix trace metrics endpoint aggregation and implement framework-level URL obfuscators in all polyglot agents
 
 ## Session Info
 
