@@ -88,6 +88,7 @@ progress:
 - Phase 43 added: Since now I feel the dashboard UI color is too hard to see, can reference Datadog UI color theme to update our application UI
 - Phase 44 added: Update Easy Monitor Agent Core Functional Specification
 - Phase 53 added: Update node-agent and master-service for agent infrastructure changes
+- Phase 54 added: Decouple telemetry logic from application business logic across all polyglot agents
 
 ## Session Info
 

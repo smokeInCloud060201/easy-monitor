@@ -214,6 +214,62 @@ where
             let _ = self.sender.try_send(dd_span);
         }
     }
+
+    fn on_event(&self, event: &tracing::Event<'_>, ctx: Context<'_, S>) {
+        if event.metadata().target() == "sqlx::query" {
+            let mut fields = HashMap::new();
+            let mut visitor = TagVisitor(&mut fields);
+            event.record(&mut visitor);
+
+            let sql = fields.get("db.statement").cloned().unwrap_or_else(|| "unknown".to_string());
+            let elapsed_secs: f64 = fields.get("elapsed_secs").and_then(|s| s.parse().ok()).unwrap_or(0.0);
+            let duration: i64 = (elapsed_secs * 1_000_000_000.0) as i64;
+            
+            let mut trace_id = rand::thread_rng().gen::<u64>();
+            let span_id = rand::thread_rng().gen::<u64>();
+            let mut parent_id = 0;
+
+            if let Some(span) = ctx.lookup_current() {
+                if let Some(ext) = span.extensions().get::<SpanData>() {
+                    trace_id = ext.trace_id;
+                    parent_id = ext.span_id;
+                }
+            }
+
+            let mut obfuscated = sql.clone();
+            if let Ok(re) = regex::Regex::new(r#"(['"]).*?\1|(\b\d+\b)"#) {
+                obfuscated = re.replace_all(&sql, "?").to_string();
+            }
+
+            let mut meta = fields.clone();
+            meta.insert("db.query".to_string(), obfuscated.clone());
+            meta.insert("db.system".to_string(), "sql".to_string());
+            
+            for (k, v) in &self.resource_meta {
+                meta.insert(k.clone(), v.clone());
+            }
+
+            let end_time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap_or_default().as_nanos() as i64;
+            let start = end_time - duration;
+
+            let dd_span = DatadogSpan {
+                trace_id,
+                span_id,
+                parent_id,
+                name: "db.query".to_string(),
+                resource: obfuscated,
+                service: self.service_name.clone(),
+                r#type: "sql".to_string(),
+                start,
+                duration,
+                error: 0,
+                meta,
+                metrics: HashMap::new(),
+            };
+
+            let _ = self.sender.try_send(dd_span);
+        }
+    }
 }
 
 // ─── GELF UDP LAYER ───
@@ -303,6 +359,12 @@ impl<'a> tracing::field::Visit for TagVisitor<'a> {
         self.0.insert(field.name().to_string(), value.to_string());
     }
     fn record_i64(&mut self, field: &tracing::field::Field, value: i64) {
+        self.0.insert(field.name().to_string(), value.to_string());
+    }
+    fn record_f64(&mut self, field: &tracing::field::Field, value: f64) {
+        self.0.insert(field.name().to_string(), value.to_string());
+    }
+    fn record_bool(&mut self, field: &tracing::field::Field, value: bool) {
         self.0.insert(field.name().to_string(), value.to_string());
     }
 }

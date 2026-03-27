@@ -36,6 +36,13 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 sleep 5 # give postgres & redis a moment to wake up
 
+# ─── 0. Build Agents ───
+echo "🤖 Building Agents..."
+echo "📦 Building Java Agent..."
+(cd "$SCRIPT_DIR/../agents/java" && ../../mock-app/order-service/gradlew shadowJar -q 2>&1)
+echo "   ✅ Java Agent ready"
+echo ""
+
 # ─── 1. Build Services ───
 build_java() {
   echo "📦 Building $1 (Java/Spring Boot)..."

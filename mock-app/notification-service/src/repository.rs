@@ -10,7 +10,6 @@ impl NotificationRepository {
         Self { pool }
     }
 
-    #[tracing::instrument(name = "db.query", skip_all, fields(db.statement = "CREATE TABLE IF NOT EXISTS notification_logs"))]
     pub async fn init_schema(&self) -> Result<(), sqlx::Error> {
         sqlx::query(
             "CREATE TABLE IF NOT EXISTS notification_logs (
@@ -27,7 +26,6 @@ impl NotificationRepository {
         Ok(())
     }
 
-    #[tracing::instrument(name = "db.query", skip_all, fields(db.statement = "INSERT INTO notification_logs"))]
     pub async fn save(&self, log: &NotificationLog) -> Result<(), sqlx::Error> {
         sqlx::query(
             "INSERT INTO notification_logs (id, order_id, recipient, channel, status, sent_at)
@@ -44,7 +42,6 @@ impl NotificationRepository {
         Ok(())
     }
 
-    #[tracing::instrument(name = "db.query", skip_all, fields(db.statement = "SELECT id, order_id, recipient, channel, status, sent_at FROM notification_logs WHERE order_id = $1 LIMIT 1"))]
     pub async fn find_by_order_id(&self, order_id: &str) -> Result<Option<NotificationLog>, sqlx::Error> {
         let log = sqlx::query_as::<_, NotificationLog>(
             "SELECT id, order_id, recipient, channel, status, sent_at FROM notification_logs WHERE order_id = $1 LIMIT 1"
